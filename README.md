@@ -19,6 +19,11 @@ npm run lint (Lints and fixes files)
 vue ui (User interface)
 ```
 
+## Tools
+```
+https://github.com/vuejs/vue-devtools#vue-devtools
+```
+
 ## Customize configuration
 See [Configuration Reference](https://cli.vuejs.org/config/).
 

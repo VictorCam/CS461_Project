@@ -1,16 +1,15 @@
 <template>
   <div class="hello">
     <h1>{{ msg }}</h1>
+
+    <p>display state from store.js: {{temp}}</p>
+    <p>display state from store.js: {{temp2}}</p>
+
     <p>
       For a guide and recipes on how to configure / customize this project,<br>
       check out the
       <a href="https://cli.vuejs.org" target="_blank" rel="noopener">vue-cli documentation</a>.
     </p>
-    <h3>Installed CLI Plugins</h3>
-    <ul>
-      <li><a href="https://github.com/vuejs/vue-cli/tree/dev/packages/%40vue/cli-plugin-babel" target="_blank" rel="noopener">babel</a></li>
-      <li><a href="https://github.com/vuejs/vue-cli/tree/dev/packages/%40vue/cli-plugin-eslint" target="_blank" rel="noopener">eslint</a></li>
-    </ul>
     <h3>Essential Links</h3>
     <ul>
       <li><a href="https://vuejs.org" target="_blank" rel="noopener">Core Docs</a></li>
@@ -31,10 +30,25 @@
 </template>
 
 <script>
+import { mapState } from "vuex"; //imports go here
 export default {
   name: 'HelloWorld',
   props: {
     msg: String
+  },
+  data() {
+    return {
+      //data objects (created by user) go here
+    }
+  },
+  created() { //first api calls go here (function)
+
+  },
+  methods: { //methods that manipulate the api go here (multiple functions)
+
+  },
+  computed: { //grabbing the current state goes here
+    ...mapState(["temp", "temp2"])
   }
 }
 </script>
