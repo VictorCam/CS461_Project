@@ -8,9 +8,9 @@ The document management system time stamps documents, documents are immutable on
 ## Project Setup
 ```
 1. npm install
-2. npm run serve (starts development server)
+2. npm install -g nodemon
+3. npm run serve (starts development server)
 ```
-
 
 ## Other Commands
 ```
