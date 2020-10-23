@@ -14,13 +14,13 @@ app.use(upload.array());
 
 //imported routes
 const
-  login = require('./routes/route_login')
+  scrape = require('./routes/route_scrape')
 
 // app.use('/', serveStatic(path.join(__dirname, '/dist')))
 
 
 //linked routes (route middleware)
-app.use("/", [login]);
+app.use("/", [scrape]);
 
 
 //port

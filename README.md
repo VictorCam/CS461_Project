@@ -12,10 +12,10 @@ The document management system time stamps documents, documents are immutable on
 3. npm run serve (starts development server)
 ```
 
-## Lanuch Development Process
+## Lanuch Development
 ```
 (since we are firstly working on the backend just run this below)
-1. nodemon server.js
+1. nodemon server.js (look at route_scrape.js)
 ```
 
 ## Other Commands
