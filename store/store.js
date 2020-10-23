@@ -7,7 +7,8 @@ Vue.use(vuex, axios)
 export default new vuex.Store({
     state: { //used for holding info
         temp: ["dummy data", "more data"],
-        temp2: ["tempdata2"]
+        temp2: ["tempdata2"],
+        data: []
     },
     getters: { //used for calling a small function 
 
