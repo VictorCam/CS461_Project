@@ -9,6 +9,10 @@ const {Base64} = require('js-base64');
 var app = express();
 //const connectsql = require("../server_connection"); // no server connection yet
 
+
+//global variables
+save_attach_id = []
+
 const SCOPES = ['https://www.googleapis.com/auth/gmail.readonly'];
 // The file token.json stores the user's access and refresh tokens, and is
 // created automatically when the authorization flow completes for the first
@@ -91,7 +95,6 @@ function get_data(auth) {
     //console.log(msg_id)
     //return msg_id
     //res.status(200).send("hello")
-    save_attach_id = []
 
     //api call for obtaining body content
     for(let i = 0; i < msg_id.length; i++) {
@@ -144,18 +147,25 @@ function get_data(auth) {
       //   });
       // }
     }
-    // (async () => { 
-    //   await new Promise(r => setTimeout(r, 5000));
-    // })
-    console.log("saved: ", save_attach_id)
     return
   });
+
 }
 
 
 
 router.get("/", (req, res) => {
-  res.status(200).send("hello") //saying hello world
+  save_attach_id = []
+  
+  //want to call this and obtain the newst save_attach_id
+  fs.readFile('credentials.json', (err, content) => {
+    if (err) return console.log('Error loading client secret file:', err);
+    //Authorize a client with credentials, then call the Gmail API.
+    authorize(JSON.parse(content), get_data);
+  });
+
+  //can check if this is successful when going to "localhost:13377/"
+  res.status(200).json(save_attach_id)
 });
 
 router.use(cors());
