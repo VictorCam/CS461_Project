@@ -1,32 +1,11 @@
-const express = require("express");
-const cors = require("cors");
-const bodyParser = require("body-parser");
-const app = express();
-var multer = require( 'multer');
-var upload = multer();
-const fs = require('fs');
-const readline = require('readline');
-const {google} = require('googleapis');
-// const serveStatic = require("serve-static")
-// const path = require('path');
-
-app.use(cors());
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: false }));
-app.use(upload.array());
-
 
 //EMAIL = 'gobeavdms@gmail.com', PASSWORD 'mictur-6nedku-qyDdog'
 //EMAIL ='beavDMS@outlook.com', PASSWORD = 'mictur-6nedku-qyDdog'
 
 //client id: 732487833946-s1kjsmr7go144k6rn1tml0gi3jbuepch.apps.googleusercontent.com
 //client secret: bJaS9r6RosfmHGamT5pcdC0x
-
-
-
-
-
 ///////////////////////////////////////////////////////////////////////
+
 // If modifying these scopes, delete token.json.
 const SCOPES = ['https://www.googleapis.com/auth/gmail.readonly'];
 // The file token.json stores the user's access and refresh tokens, and is
@@ -103,27 +82,9 @@ function listLabels(auth) {
   }, (err, res) => {
     if (err) return console.log('The API returned an error: ' + err);
     console.log(res.data)
-    console.log(res.data.messages) //<-- we can now preform something else with this data!!
+    console.log(res.data.messages)
+    //const labels = res.data;
+    //console.log(labels)
   });
 }
 //////////////////////////////////////////////////////////////////////////////
-
-
-
-
-//imported routes
-const
-  scrape = require('./routes/route_scrape')
-
-// app.use('/', serveStatic(path.join(__dirname, '/dist')))
-
-
-//linked routes (route middleware)
-app.use("/", [scrape]);
-
-
-//port
-const PORT = process.env.PORT || 13377;
-app.listen(PORT, function() {
-  console.log("Server is running on port:", PORT);
-});
