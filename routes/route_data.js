@@ -5,6 +5,7 @@ const fs = require('fs');
 const readline = require('readline');
 const {google} = require('googleapis');
 const {Base64} = require('js-base64');
+const { isBuffer } = require("lodash");
 
 var app = express();
 //const connectsql = require("../server_connection"); // no server connection yet
@@ -20,11 +21,10 @@ const SCOPES = ['https://www.googleapis.com/auth/gmail.readonly'];
 const TOKEN_PATH = 'token.json';
 
 // Load client secrets from a local file.
-fs.readFile('credentials.json', (err, content) => {
-  if (err) return console.log('Error loading client secret file:', err);
-  // Authorize a client with credentials, then call the Gmail API.
-  authorize(JSON.parse(content), get_data);
-});
+// fs.readFile('credentials.json', (err, content) => {
+//   if (err) return console.log('Error loading client secret file:', err);
+//   authorize(JSON.parse(content), get_data); // Authorize client with credentials, then call the Gmail API.
+// });
 
 /**
  * Create an OAuth2 client with the given credentials, and then execute the
@@ -82,19 +82,16 @@ function getNewToken(oAuth2Client, callback) {
  * @param {google.auth.OAuth2} auth An authorized OAuth2 client.
  * 
  */
-function get_data(auth) {
+async function get_data(auth) {
   //used to know what id the attachment corresponds to
   const gmail = google.gmail({version: 'v1', auth});
 
   //api call for getting all id's of emails
-  gmail.users.messages.list({ 
+ await gmail.users.messages.list({
     userId: 'me',
   }, (err, res) => {
     if (err) return console.log('The API returned an error: ' + err);
     var msg_id = res.data.messages
-    //console.log(msg_id)
-    //return msg_id
-    //res.status(200).send("hello")
 
     //api call for obtaining body content
     for(let i = 0; i < msg_id.length; i++) {
@@ -105,34 +102,50 @@ function get_data(auth) {
       }, (err, res) => {
         if (err) return console.log('The API returned an error: ' + err);
 
-        //get id's
-        //console.log(res.data.id)
-
-        //get title (need to check when no input is made)
-        //console.log(res.data.payload.headers[19].value)
-
         //get users allowed (names weridly get double appended sometimes)
-        //console.log("allowed: ", res.data.payload.headers[20].value)
+        info_p = res.data.payload.headers[20].value
+        email_p = info_p.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+)/gi); //regex parse emails (there is duplicates)
 
-        // //get content (exists even when body is empty)
-        // if(res.data.payload.parts[0].body.data) {
-        //   //this exists when there is no attachment provided
-        //   console.log("content: ", Base64.decode(res.data.payload.parts[0].body.data))
-        // }
-        // else {
-        //   //this exists when there is an attachment provided
-        //   console.log("content:", Base64.decode(res.data.payload.parts[0].parts[0].body.data))
-        // }
+        //NOTE: MISSING THE SENDER EMAIL TOO!
 
-      ///////////////////////////COME BACK TO THIS since Im trying to save them
-      //check attachments ids
-        if(res.data.payload.parts[1].headers[4] != undefined) {
-          //find_msg_id.push(res.data.id)
-          for (let a = 0; a < res.data.payload.parts.length-1; a++) {
-            console.log(res.data.payload.parts[a+1].headers[4].value)
-            save_attach_id.push([res.data.payload.parts[a+1].headers[4].value])
+        // check if user is allowed
+        for (let u = 0; u < email_p.length; u++) {
+          if(email_p[a] == "vdcampa0@gmail.com") { //check access (need a check for the sender too)
+              // //get id's (we could also assign our own ids to this in order)
+              // console.log(res.data.id)
+              // console.log(i)
+
+              // // //get title (need to check when no input is made)
+              // console.log(res.data.payload.headers[19].value)
+
+
+              // //get content (exists even when body is empty)
+              // if(res.data.payload.parts[0].body.data) {
+              //   //this exists when there is no attachment provided
+              //   console.log("content: ", Base64.decode(res.data.payload.parts[0].body.data))
+              // }
+              // else {
+              //   //this exists when there is an attachment provided
+              //   console.log("content:", Base64.decode(res.data.payload.parts[0].parts[0].body.data))
+              // }
+
+
+            //check attachments ids
+              if(res.data.payload.parts[1].headers[4] != undefined) {
+                //find_msg_id.push(res.data.id)
+                for (let a = 0; a < res.data.payload.parts.length-1; a++) {
+                  //console.log(res.data.payload.parts[a+1].headers[4].value)
+                  save_attach_id.push([res.data.payload.parts[a+1].headers[4].value])
+                }
+              }
+            break //break since we found user is authorized
+          }
+          else {
+            console.log('NA')
           }
         }
+
+        return
       });
 
 
@@ -147,25 +160,22 @@ function get_data(auth) {
       //   });
       // }
     }
-    return
   });
-
 }
 
 
 
 router.get("/", (req, res) => {
-  save_attach_id = []
-  
-  //want to call this and obtain the newst save_attach_id
-  fs.readFile('credentials.json', (err, content) => {
-    if (err) return console.log('Error loading client secret file:', err);
-    //Authorize a client with credentials, then call the Gmail API.
-    authorize(JSON.parse(content), get_data);
-  });
 
-  //can check if this is successful when going to "localhost:13377/"
-  res.status(200).json(save_attach_id)
+fs.readFile('credentials.json', (err, content) => { //get recent data from gobeavDMS@gmail.com
+    save_attach_id = []
+      if (err) return console.log('Error loading client secret file:', err);
+      authorize(JSON.parse(content), get_data); //Authorize a client with credentials, then call the Gmail API.
+    })
+
+
+res.status(200).json(save_attach_id)
+
 });
 
 router.use(cors());
