@@ -110,7 +110,7 @@ async function get_data(auth) {
 
         // check if user is allowed
         for (let u = 0; u < email_p.length; u++) {
-          if(email_p[a] == "vdcampa0@gmail.com") { //check access (need a check for the sender too)
+          if(email_p[u] == "vdcampa0@gmail.com") { //check access (need a check for the sender too)
               // //get id's (we could also assign our own ids to this in order)
               // console.log(res.data.id)
               // console.log(i)
