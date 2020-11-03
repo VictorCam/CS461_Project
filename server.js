@@ -12,15 +12,16 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(upload.array());
 
+
 //imported routes
 const
-  scrape = require('./routes/route_scrape')
+  data = require('./routes/route_data')
 
 // app.use('/', serveStatic(path.join(__dirname, '/dist')))
 
 
 //linked routes (route middleware)
-app.use("/", [scrape]);
+app.use("/", [data]);
 
 
 //port
