@@ -15,7 +15,7 @@ The document management system time stamps documents, documents are immutable on
 ## Lanuch Development
 ```
 (since we are firstly working on the backend just run this below)
-1. nodemon server.js (look at route_scrape.js)
+1. nodemon server.js (look at route_data.js)
 ```
 
 ## Other Commands
