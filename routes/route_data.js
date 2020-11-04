@@ -8,7 +8,7 @@ const {Base64} = require('js-base64');
 const { isBuffer } = require("lodash");
 
 const sqlite3 = require('sqlite3').verbose();
-const db = new sqlite3.Database('./store/beavdms.db');
+const db = new sqlite3.Database('./database/beavdms.db');
 
 const MANAGE = 4; //Permission to grant access to other users
 const CHANGE = 2; //Permission to add document to project, etc...
