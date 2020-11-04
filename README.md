@@ -9,7 +9,8 @@ The document management system time stamps documents, documents are immutable on
 ```
 1. npm install
 2. npm install -g nodemon
-3. npm run serve (starts development server)
+3. create this on root directory "./database/beavdms.db"
+4. npm run serve (starts development server)
 ```
 
 ## Lanuch Development
