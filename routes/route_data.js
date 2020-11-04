@@ -7,6 +7,43 @@ const {google} = require('googleapis');
 const {Base64} = require('js-base64');
 const { isBuffer } = require("lodash");
 
+const sqlite3 = require('sqlite3').verbose();
+const db = new sqlite3.Database('./store/beavdms.db');
+
+const MANAGE = 4; //Permission to grant access to other users
+const CHANGE = 2; //Permission to add document to project, etc...
+const READ = 1; //Permission to read document
+
+db.serialize(function() {
+  db.run(
+    "CREATE TABLE IF NOT EXISTS Projects (ProjID INTEGER PRIMARY KEY, Name TEXT NOT NULL, GitHub TEXT NOT NULL)"
+    );
+  db.run(
+    "CREATE TABLE IF NOT EXISTS Users (UserID INTEGER PRIMARY KEY, Name TEXT NOT NULL, Email TEXT NOT NULL, Major TEXT NOT NULL)"
+    );
+	db.run(
+    "CREATE TABLE IF NOT EXISTS Documents (DocID INTEGER PRIMARY KEY, Name TEXT NOT NULL, Description TEXT, Location TEXT NOT NULL, OwnerID INTEGER NOT NULL, Project INTEGER, DateAdded TEXT NOT NULL, FOREIGN KEY(OwnerID) REFERENCES Users(UserID) ON DELETE CASCADE, FOREIGN KEY(Project) REFERENCES Projects(ProjID) ON DELETE CASCADE)"
+    );
+  db.run(
+    "CREATE TABLE IF NOT EXISTS Permissions (PermID INTEGER PRIMARY KEY, DID INTEGER NOT NULL, UID INTEGER NOT NULL, Permissions INTEGER NOT NULL, FOREIGN KEY(DID) REFERENCES Documents(DocID) ON DELETE CASCADE, FOREIGN KEY(UID) REFERENCES Users(UserID) ON DELETE CASCADE)"
+  );
+});
+
+/**
+ * Example INSERT and SELECT statements
+ */
+
+//Projects: Name, GitHub
+// db.run("INSERT INTO Projects (Name, GitHub) VALUES (?, ?)", ["BeaverDMS", "https://github.com/VictorCam/CS461_Project"]);
+//Users: Name, Email, Major
+// db.run("INSERT INTO Users (Name, Email, Major) VALUES (?, ?, ?)", ["Travis Shands", "shandst@gmail.com", "Computer Science"]);
+//Documents: Name, Description, Location, OwnerID, Project, DateAdded
+// db.run("INSERT INTO Documents (Name, Description, Location, OwnerID, Project, DateAdded) VALUES (?, ?, ?, (SELECT UserID FROM Users WHERE Email=?), (SELECT ProjID FROM Projects WHERE Name=?), (SELECT date('now')))", ["Beaver Doc", "Documentation of our project", "filepath", "shandst@gmail.com", "BeverDMS"]);
+
+// db.get("SELECT DocID, Documents.Name AS Name, Users.Name AS Owner, Description FROM Documents INNER JOIN Users ON OwnerID=UserID WHERE Documents.Name='Beaver Doc'", function(err, dox) {
+//   console.log("Name: ", dox.Name, " Owner: ", dox.Owner, "Description: ", dox.Description);
+// });
+
 var app = express();
 //const connectsql = require("../server_connection"); // no server connection yet
 
