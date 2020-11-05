@@ -9,14 +9,10 @@ The document management system time stamps documents, documents are immutable on
 ```
 1. npm install
 2. npm install -g nodemon
-3. create this on root directory "./database/beavdms.db"
-4. npm run serve (starts development server)
-```
-
-## Lanuch Development
-```
-(since we are firstly working on the backend just run this below)
-1. nodemon server.js (look at route_data.js)
+3. npm install -g @vue/cli
+4. create this on root directory "./database/beavdms.db"
+5. npm run serve (starts localhost for vue)
+6. nodemon server.js (starts database)
 ```
 
 ## Other Commands
