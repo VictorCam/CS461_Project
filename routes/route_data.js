@@ -56,12 +56,6 @@ const SCOPES = ['https://www.googleapis.com/auth/gmail.readonly'];
 // time.
 const TOKEN_PATH = 'token.json';
 
-// Load client secrets from a local file.
-// fs.readFile('credentials.json', (err, content) => {
-//   if (err) return console.log('Error loading client secret file:', err);
-//   authorize(JSON.parse(content), get_data); // Authorize client with credentials, then call the Gmail API.
-// });
-
 /**
  * Create an OAuth2 client with the given credentials, and then execute the
  * given callback function.
@@ -136,7 +130,7 @@ async function get_data(auth) {
         if (err) return console.log('The API returned an error: ' + err);
         var msg_id = res.data.messages
 
-        //api call for obtaining body content
+        //api call for obtaining content
         for (let i = 0; i < msg_id.length; i++) {
             gmail.users.messages.get({
                 userId: 'me',
@@ -145,7 +139,6 @@ async function get_data(auth) {
             }, (err, res) => {
                 if (err) return console.log('The API returned an error: ' + err);
 
-
                 raw_attachments = []
 
                 id = i;
@@ -153,31 +146,35 @@ async function get_data(auth) {
                 sender_name_and_email = res.data.payload.headers[16].value
                 sender_name = sender_name_and_email.replace(/(?:\\[rn]|[\r\n<>"]+)+/g, "")
 
-                const words = sender_name.split(' '); //split by spaces
-                sender_email = words[words.length-1] //email
-                words.splice(-1,1); //slicing last array
-                sender_name = words.join(' ') //merging array together for name
+                var words = sender_name.split(' ')
+                sender_email = words[words.length - 1]
+                words.splice(-1, 1)
+                sender_name = words.join(' ')
 
                 date = res.data.payload.headers[17].value
                 title = res.data.payload.headers[19].value
                 message = ""
 
-                if(res.data.payload.parts[0].body.data) {
-                  //this exists when there is no attachment provided
-                  message = Base64.decode(res.data.payload.parts[0].body.data)
-                  message = message.replace(/(?:\\[rn]|[\r\n]+)+/g, "") //removes \n and \r 
-                }
-                else {
-                  //this exists when there is an attachment provided
-                  message = Base64.decode(res.data.payload.parts[0].parts[0].body.data)
-                  message = message.replace(/(?:\\[rn]|[\r\n]+)+/g, "") //removes \n and \r
+                if (res.data.payload.parts[0].body.data) {
+                    //this exists when there is no attachment provided
+                    message = Base64.decode(res.data.payload.parts[0].body.data)
+                    message = message.replace(/(?:\\[rn]|[\r\n]+)+/g, "") //removes \n and \r 
+                } else {
+                    //this exists when there is an attachment provided
+                    message = Base64.decode(res.data.payload.parts[0].parts[0].body.data)
+                    message = message.replace(/(?:\\[rn]|[\r\n]+)+/g, "") //removes \n and \r
                 }
 
+                p_access = res.data.payload.headers[20].value
+                p_access_regex = p_access.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+)/gi);
+                let account_access = [...new Set(p_access_regex)]
 
                 content = {
                     "id": id,
                     "g_id": id2,
                     "sender_name": sender_name,
+                    "sender_email": sender_email,
+                    "access": account_access,
                     "title": title,
                     "message": message,
                     "raw_attachments": raw_attachments,
@@ -186,43 +183,28 @@ async function get_data(auth) {
 
                 google_data.push(content)
 
-                google_data.sort(function(a, b){
+                google_data.sort(function(a, b) {
                     return a.id - b.id;
                 });
 
-                  for (let a = 0; a < res.data.payload.parts.length; a++) {
-                    if (res.data.payload.parts[a].body.attachmentId != undefined) {
+
+                for (let a = 0; a < res.data.payload.parts.length - 1; a++) {
+                    if (res.data.payload.parts[a + 1].body.attachmentId != undefined) {
                         gmail.users.messages.attachments.get({
-                          userId: 'me',
-                          messageId: id2,
-                          id: res.data.payload.parts[a].body.attachmentId
-                      }, (err, res) => {
-                          if (err) return console.log('The API returned an error: ' + err);
+                            userId: 'me',
+                            messageId: id2,
+                            id: res.data.payload.parts[a + 1].body.attachmentId
+                        }, (err, res) => {
+                            if (err) return console.log('The API returned an error: ' + err);
                             google_data[i].raw_attachments.push(res.data.data)
                         })
-                  }
+                    }
                 }
-                
-                //PLEASE DO NOT REMOVE I WILL NEED THIS FOR CHECKING ACCESS FOR OTHER ACCOUNTS
 
-                //get users allowed (names weridly get double appended sometimes)
-                // info_p = res.data.payload.headers[20].value
-                // email_p = info_p.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+)/gi); //regex parse emails (there is duplicates)
-
-                // for (let u = 0; u < email_p.length; u++) {
-                //     if (email_p[u] == "GoBeavDMS@gmail.com" || sender_name == "GoBeavDMS@gmail.com") { //check access (need a check for the sender too)
-                        //console.log("found email")
-
-
-                        //check attachments ids
-                        // if (res.data.payload.parts[1].headers[4] != undefined) {
-                        //     //find_msg_id.push(res.data.id)
-                        //     for (let a = 0; a < res.data.payload.parts.length - 1; a++) {
-                        //         //console.log(res.data.payload.parts[a+1].headers[4].value)
-                        //         save_attach_id.push([res.data.payload.parts[a + 1].headers[4].value])
-                        //     }
-                        // }
-                //         break //break since we found user is authorized
+                // for (let u = 0; u < account_access.length; u++) {
+                //     if (account_access[u] == "vdcampa0@gmail.com" || sender_name == "") { //check access (need a check for the sender too)
+                //         console.log("found email")
+                //         break
                 //     }
                 // }
             });

@@ -1,7 +1,22 @@
 <template>
   <div class="ledger">
 
-    <p>content from backend: {{gmail}}</p>
+    <!-- <p>content from backend: {{gmail}}</p> -->
+
+    <div v-for="google in gmail" :key="google.id">
+      {{google.id}}
+      <!-- {{google.g_id}} -->
+      {{google.sender_name}}
+      {{google.sender_email}}
+      {{google.title}}
+      {{google.access}}
+      {{google.message}}
+      <!-- {{google.raw_attachments}} -->
+      {{google.date}}
+      <br>
+      <br>
+      <br>
+    </div>
   </div>
 </template>
 
