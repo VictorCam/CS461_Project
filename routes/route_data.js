@@ -50,7 +50,7 @@ var app = express();
 //global variables
 google_data = []
 
-const SCOPES = ['https://www.googleapis.com/auth/gmail.readonly'];
+const SCOPES = ['https://mail.google.com/']; //AUTHORIZATION TO EVERYTHING
 // The file token.json stores the user's access and refresh tokens, and is
 // created automatically when the authorization flow completes for the first
 // time.
@@ -130,18 +130,24 @@ async function get_data(auth) {
         if (err) return console.log('The API returned an error: ' + err);
         var msg_id = res.data.messages
 
-        //api call for obtaining content
+        //check if there are messages
+        if(msg_id == undefined) {
+            return
+        }
+        else if(msg_id.length == 0) {
+            return
+        }
+
         for (let i = 0; i < msg_id.length; i++) {
             gmail.users.messages.get({
                 userId: 'me',
                 id: res.data.messages[i].id,
-                //metadataHeaders: ['id']
             }, (err, res) => {
                 if (err) return console.log('The API returned an error: ' + err);
 
                 raw_attachments = []
 
-                id = i;
+                id1 = i;
                 id2 = res.data.id
                 sender_name_and_email = res.data.payload.headers[16].value
                 sender_name = sender_name_and_email.replace(/(?:\\[rn]|[\r\n<>"]+)+/g, "")
@@ -170,14 +176,14 @@ async function get_data(auth) {
                 let account_access = [...new Set(p_access_regex)]
 
                 content = {
-                    "id": id,
+                    "id": id1,
                     "g_id": id2,
                     "sender_name": sender_name,
                     "sender_email": sender_email,
                     "access": account_access,
                     "title": title,
                     "message": message,
-                    "raw_attachments": raw_attachments,
+                    "raw_attachments": [],
                     "date": date
                 }
 
@@ -201,8 +207,24 @@ async function get_data(auth) {
                     }
                 }
 
+                //STORE GOOGLE_DATA TO DATABASE HERE
+                //
+                //DATABASE QUERY TO STORE INFORMATION
+                //
+                
+
+                //UNCOMMENT THIS WHEN DATA IS BEING PROPERLY STORED IN DATABASE
+                // gmail.users.messages.trash({
+                //     userId: 'me',
+                //     id: id2
+                // }, (err, res) => {
+                //     if (err) return console.log('The API returned an error: ' + err);  
+                //     console.log("DELETED", res.data)
+                // })
+
+                //MIGHT NOT USE THIS COMMENTED LOOP BELOW (DO NOT DELETE NOR UNCOMMENT)
                 // for (let u = 0; u < account_access.length; u++) {
-                //     if (account_access[u] == "vdcampa0@gmail.com" || sender_name == "") { //check access (need a check for the sender too)
+                //     if (account_access[u] == "email@gmail.com" || sender_name == "") { //check access (need a check for the sender too)
                 //         console.log("found email")
                 //         break
                 //     }
@@ -231,7 +253,7 @@ router.get("/", (req, res) => {
     //     }
     // })
 
-    res.status(200).send(google_data)
+    res.status(200).send(google_data) //we should change this to point to our database rather than google's api
 });
 
 router.use(cors());
