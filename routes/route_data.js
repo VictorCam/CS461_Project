@@ -190,13 +190,12 @@ async function get_data(auth) {
                     return a.id - b.id;
                 });
 
-                  for (let a = 0; a < res.data.payload.parts.length-1; a++) {
-                    if (res.data.payload.parts[1].body.attachmentId != undefined) {
-                      //attach_id.push([res.data.payload.parts[a+1].body.attachmentId])
+                  for (let a = 0; a < res.data.payload.parts.length; a++) {
+                    if (res.data.payload.parts[a].body.attachmentId != undefined) {
                         gmail.users.messages.attachments.get({
                           userId: 'me',
                           messageId: id2,
-                          id: res.data.payload.parts[a+1].body.attachmentId
+                          id: res.data.payload.parts[a].body.attachmentId
                       }, (err, res) => {
                           if (err) return console.log('The API returned an error: ' + err);
                             google_data[i].raw_attachments.push(res.data.data)
