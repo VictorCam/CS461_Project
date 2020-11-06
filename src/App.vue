@@ -1,16 +1,17 @@
 <template>
   <div id="app">
     <img alt="Vue logo" src="./assets/logo.png">
-    <HelloWorld msg="Welcome to Your Vue.js App"/>
+    <ledger></ledger>
   </div>
 </template>
 
 <script>
-import HelloWorld from './components/HelloWorld.vue'
+import ledger from './components/ledger.vue'
+
 export default {
   name: 'App',
   components: {
-    HelloWorld
+    ledger: ledger
   }
 }
 </script>
