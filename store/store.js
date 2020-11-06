@@ -17,6 +17,9 @@ export default new vuex.Store({
         
     },
     mutations: { //used to update info (updates state given)
-
+        SET_GMAIL(state, payload) {
+            //console.log(typeof payload)
+            state.gmail = payload
+        }
     }
 })
