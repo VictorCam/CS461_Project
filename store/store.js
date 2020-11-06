@@ -6,17 +6,21 @@ Vue.use(vuex, axios)
 
 export default new vuex.Store({
     state: { //used for holding info
-        temp: ["dummy data", "more data"],
-        temp2: ["tempdata2"],
-        data: []
+        gmail: []
     },
-    getters: { //used for calling a small function 
-
+    getters: { //used for calling a small function  (I don't think we'll need this)
     },
     actions: { //used to preform operations (calls mutations)
-        
+        load_gmail({ commit }) {
+            axios.get("http://localhost:13377/").then(res => {
+            console.log(res.data)
+              commit("SET_GMAIL", res.data);
+            })
+        }
     },
     mutations: { //used to update info (updates state given)
-
+        SET_GMAIL(state, payload) {
+            state.gmail = payload
+        }
     }
 })

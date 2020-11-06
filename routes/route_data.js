@@ -6,7 +6,6 @@ const readline = require('readline');
 const {google} = require('googleapis');
 const {Base64} = require('js-base64');
 const { isBuffer } = require("lodash");
-
 const sqlite3 = require('sqlite3').verbose();
 const db = new sqlite3.Database('./database/beavdms.db');
 
@@ -14,20 +13,20 @@ const MANAGE = 4; //Permission to grant access to other users
 const CHANGE = 2; //Permission to add document to project, etc...
 const READ = 1; //Permission to read document
 
-db.serialize(function() {
-  db.run(
-    "CREATE TABLE IF NOT EXISTS Projects (ProjID INTEGER PRIMARY KEY, Name TEXT NOT NULL, GitHub TEXT NOT NULL)"
-    );
-  db.run(
-    "CREATE TABLE IF NOT EXISTS Users (UserID INTEGER PRIMARY KEY, Name TEXT NOT NULL, Email TEXT NOT NULL, Major TEXT NOT NULL)"
-    );
-	db.run(
-    "CREATE TABLE IF NOT EXISTS Documents (DocID INTEGER PRIMARY KEY, Name TEXT NOT NULL, Description TEXT, Location TEXT NOT NULL, OwnerID INTEGER NOT NULL, Project INTEGER, DateAdded TEXT NOT NULL, FOREIGN KEY(OwnerID) REFERENCES Users(UserID) ON DELETE CASCADE, FOREIGN KEY(Project) REFERENCES Projects(ProjID) ON DELETE CASCADE)"
-    );
-  db.run(
-    "CREATE TABLE IF NOT EXISTS Permissions (PermID INTEGER PRIMARY KEY, DID INTEGER NOT NULL, UID INTEGER NOT NULL, Permissions INTEGER NOT NULL, FOREIGN KEY(DID) REFERENCES Documents(DocID) ON DELETE CASCADE, FOREIGN KEY(UID) REFERENCES Users(UserID) ON DELETE CASCADE)"
-  );
-});
+// db.serialize(function() {
+//   db.run(
+//     "CREATE TABLE IF NOT EXISTS Projects (ProjID INTEGER PRIMARY KEY, Name TEXT NOT NULL, GitHub TEXT NOT NULL)"
+//     );
+//   db.run(
+//     "CREATE TABLE IF NOT EXISTS Users (UserID INTEGER PRIMARY KEY, Name TEXT NOT NULL, Email TEXT NOT NULL, Major TEXT NOT NULL)"
+//     );
+// 	db.run(
+//     "CREATE TABLE IF NOT EXISTS Documents (DocID INTEGER PRIMARY KEY, Name TEXT NOT NULL, Description TEXT, Location TEXT NOT NULL, OwnerID INTEGER NOT NULL, Project INTEGER, DateAdded TEXT NOT NULL, FOREIGN KEY(OwnerID) REFERENCES Users(UserID) ON DELETE CASCADE, FOREIGN KEY(Project) REFERENCES Projects(ProjID) ON DELETE CASCADE)"
+//     );
+//   db.run(
+//     "CREATE TABLE IF NOT EXISTS Permissions (PermID INTEGER PRIMARY KEY, DID INTEGER NOT NULL, UID INTEGER NOT NULL, Permissions INTEGER NOT NULL, FOREIGN KEY(DID) REFERENCES Documents(DocID) ON DELETE CASCADE, FOREIGN KEY(UID) REFERENCES Users(UserID) ON DELETE CASCADE)"
+//   );
+// });
 
 /**
  * Example INSERT and SELECT statements
@@ -146,8 +145,13 @@ async function get_data(auth) {
         //NOTE: MISSING THE SENDER EMAIL TOO!
 
         // check if user is allowed
+        console.log(email_p.length)
+        console.log(email_p)
+        console.log(" ")
+        console.log(" ")
         for (let u = 0; u < email_p.length; u++) {
-          if(email_p[u] == "vdcampa0@gmail.com") { //check access (need a check for the sender too)
+          if(email_p[u] == "GoBeavDMS@gmail.com") { //check access (need a check for the sender too)
+            console.log("found email")
               // //get id's (we could also assign our own ids to this in order)
               // console.log(res.data.id)
               // console.log(i)
@@ -174,11 +178,9 @@ async function get_data(auth) {
                   //console.log(res.data.payload.parts[a+1].headers[4].value)
                   save_attach_id.push([res.data.payload.parts[a+1].headers[4].value])
                 }
-              }
+               }
+            
             break //break since we found user is authorized
-          }
-          else {
-            console.log('NA')
           }
         }
 
@@ -204,14 +206,13 @@ async function get_data(auth) {
 
 router.get("/", (req, res) => {
 
-fs.readFile('credentials.json', (err, content) => { //get recent data from gobeavDMS@gmail.com
-    save_attach_id = []
-      if (err) return console.log('Error loading client secret file:', err);
-      authorize(JSON.parse(content), get_data); //Authorize a client with credentials, then call the Gmail API.
-    })
+// fs.readFile('credentials.json', (err, content) => { //get recent data from gobeavDMS@gmail.com
+//     save_attach_id = []
+//       if (err) return console.log('Error loading client secret file:', err);
+//       authorize(JSON.parse(content), get_data); //Authorize a client with credentials, then call the Gmail API.
+//     })
 
-
-res.status(200).json(save_attach_id)
+res.status(200).json(["WOAH I GOT MY QUALITY CONTENT!", "More Data Here"]) //best pratice if data is sent as json (easier to manipulate in vue)
 
 });
 
