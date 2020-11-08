@@ -1,28 +1,58 @@
 <template>
   <div id="app">
-    <img alt="Vue logo" src="./assets/logo.png">
-    <ledger></ledger>
+    <Header/>
+    <Ledger/>
+    <!-- Pass in "documents" as a prop -->
+    <Documents v-bind:documents="documents"/> 
   </div>
 </template>
 
 <script>
-import ledger from './components/ledger.vue'
+import Ledger from './components/Ledger'
+import Header from './components/layout/Header';
+import Documents from './components/Documents'
 
 export default {
   name: 'App',
   components: {
-    ledger: ledger
+    Header,
+    Ledger,
+    Documents
+  },
+  data() {
+    return {
+      documents: [
+        {
+          id: 1,
+          title: "Document 1",
+          content: "This is the first document"
+        },
+        {
+          id: 2,
+          title: "Document 2",
+          content: "This is the second document"
+        },
+        {
+          id: 3,
+          title: "Document 3",
+          content: "This is the third document"
+        }
+      ]
+    }
   }
 }
 </script>
 
 <style>
-#app {
-  font-family: Avenir, Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-align: center;
-  color: #2c3e50;
-  margin-top: 60px;
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  line-height: 1.5;
+  background-color: #eee;
 }
 </style>

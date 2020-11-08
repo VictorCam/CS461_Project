@@ -5,7 +5,7 @@
 
     <div v-for="google in gmail" :key="google.id">
       {{google.id}}
-      <!-- {{google.g_id}} -->
+      {{google.g_id}}
       {{google.sender_name}}
       {{google.sender_email}}
       {{google.title}}
