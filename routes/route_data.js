@@ -146,6 +146,7 @@ async function get_data(auth) {
                 if (err) return console.log('The API returned an error: ' + err);
 
                 raw_attachments = []
+                attach_mime_name = []
 
                 id1 = i;
                 id2 = res.data.id
@@ -183,6 +184,7 @@ async function get_data(auth) {
                     "access": account_access,
                     "title": title,
                     "message": message,
+                    "attach_mime_name": [],
                     "raw_attachments": [],
                     "date": date
                 }
@@ -193,7 +195,14 @@ async function get_data(auth) {
                     return a.id - b.id;
                 });
 
+                //get mime and filename
+                // for (let n = 0; n < res.data.payload.parts.length; n++) {
+                //     if(res.data.payload.parts[n+1].mimeType != undefined || res.data.payload.parts[n+1].filename != undefined) {
+                //         google_data[i].attach_mime_name.push([res.data.payload.parts[n+1].mimeType, res.data.payload.parts[n+1].filename])
+                //     }
+                // }
 
+                //get raw data
                 for (let a = 0; a < res.data.payload.parts.length - 1; a++) {
                     if (res.data.payload.parts[a + 1].body.attachmentId != undefined) {
                         gmail.users.messages.attachments.get({
