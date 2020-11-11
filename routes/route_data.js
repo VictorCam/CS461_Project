@@ -3,9 +3,9 @@ const router = express.Router();
 const cors = require("cors");
 const fs = require('fs');
 const readline = require('readline');
-const {google} = require('googleapis');
-const {Base64} = require('js-base64');
-const {isBuffer, isNull} = require("lodash");
+const { google } = require('googleapis');
+const { Base64 } = require('js-base64');
+const { isBuffer, isNull } = require("lodash");
 const sqlite3 = require('sqlite3').verbose();
 const db = new sqlite3.Database('./database/beavdms.db');
 
@@ -13,19 +13,19 @@ const MANAGE = 4; //Permission to grant access to other users
 const CHANGE = 2; //Permission to add document to project, etc...
 const READ = 1; //Permission to read document
 
-db.serialize(function() {
-  db.run(
-    "CREATE TABLE IF NOT EXISTS Projects (ProjID INTEGER PRIMARY KEY, Name TEXT NOT NULL, GitHub TEXT NOT NULL)"
+db.serialize(function () {
+    db.run(
+        "CREATE TABLE IF NOT EXISTS Projects (ProjID INTEGER PRIMARY KEY, Name TEXT NOT NULL, GitHub TEXT NOT NULL)"
     );
-  db.run(
-    "CREATE TABLE IF NOT EXISTS Users (UserID INTEGER PRIMARY KEY, Name TEXT NOT NULL, Email TEXT NOT NULL, Major TEXT NOT NULL)"
+    db.run(
+        "CREATE TABLE IF NOT EXISTS Users (UserID INTEGER PRIMARY KEY, Name TEXT NOT NULL, Email TEXT NOT NULL, Major TEXT NOT NULL)"
     );
-	db.run(
-    "CREATE TABLE IF NOT EXISTS Documents (DocID INTEGER PRIMARY KEY, Name TEXT NOT NULL, Description TEXT, Location TEXT NOT NULL, OwnerID INTEGER NOT NULL, Project INTEGER, DateAdded TEXT NOT NULL, FOREIGN KEY(OwnerID) REFERENCES Users(UserID) ON DELETE CASCADE, FOREIGN KEY(Project) REFERENCES Projects(ProjID) ON DELETE CASCADE)"
+    db.run(
+        "CREATE TABLE IF NOT EXISTS Documents (DocID INTEGER PRIMARY KEY, Name TEXT NOT NULL, Description TEXT, Location TEXT NOT NULL, OwnerID INTEGER NOT NULL, Project INTEGER, DateAdded TEXT NOT NULL, FOREIGN KEY(OwnerID) REFERENCES Users(UserID) ON DELETE CASCADE, FOREIGN KEY(Project) REFERENCES Projects(ProjID) ON DELETE CASCADE)"
     );
-  db.run(
-    "CREATE TABLE IF NOT EXISTS Permissions (PermID INTEGER PRIMARY KEY, DID INTEGER NOT NULL, UID INTEGER NOT NULL, Permissions INTEGER NOT NULL, FOREIGN KEY(DID) REFERENCES Documents(DocID) ON DELETE CASCADE, FOREIGN KEY(UID) REFERENCES Users(UserID) ON DELETE CASCADE)"
-  );
+    db.run(
+        "CREATE TABLE IF NOT EXISTS Permissions (PermID INTEGER PRIMARY KEY, DID INTEGER NOT NULL, UID INTEGER NOT NULL, Permissions INTEGER NOT NULL, FOREIGN KEY(DID) REFERENCES Documents(DocID) ON DELETE CASCADE, FOREIGN KEY(UID) REFERENCES Users(UserID) ON DELETE CASCADE)"
+    );
 });
 
 /**
@@ -131,10 +131,10 @@ async function get_data(auth) {
         var msg_id = res.data.messages
 
         //check if there are messages
-        if(msg_id == undefined) {
+        if (msg_id == undefined) {
             return
         }
-        else if(msg_id.length == 0) {
+        else if (msg_id.length == 0) {
             return
         }
 
@@ -191,7 +191,7 @@ async function get_data(auth) {
 
                 google_data.push(content)
 
-                google_data.sort(function(a, b) {
+                google_data.sort(function (a, b) {
                     return a.id - b.id;
                 });
 
@@ -219,12 +219,17 @@ async function get_data(auth) {
                                         return console.log(err);
                                     }
                                 });
-                                db.get(`SELECT * FROM Users WHERE Email=${google_data[i].sender_email}`, function (err) {
-                                    if(err){
-                                        db.run("INSERT INTO Users (Name, Email, Major) VALUES (?, ?, ?)", ["Anonymous", `${google_data[i].sender_email}`, "Unkown"]);
-                                    }
+                                db.serialize(function () {
+                                    db.get(`SELECT * FROM Users WHERE Email='${google_data[i].sender_email}'`, function (err, user) {
+                                        if (err) {
+                                            console.log(err);
+                                        }
+                                        if(!user){
+                                            db.run("INSERT INTO Users (Name, Email, Major) VALUES (?, ?, ?)", ["Anonymous", `${google_data[i].sender_email}`, "Unkown"]);
+                                        }
+                                    });
+                                    db.run("INSERT INTO Documents (Name, Description, Location, OwnerID, Project, DateAdded) VALUES (?, ?, ?, (SELECT UserID FROM Users WHERE Email=?), (SELECT ProjID FROM Projects WHERE Name=?), (SELECT date('now')))", [`${google_data[i].title}`, "We should probably have a description field", `./files/${google_data[i].g_id}-${google_data[i].title}-${j}.pdf`, `${google_data[i].sender_email}`, "BeverDMS"]);
                                 });
-                                db.run("INSERT INTO Documents (Name, Description, Location, OwnerID, Project, DateAdded) VALUES (?, ?, ?, (SELECT UserID FROM Users WHERE Email=?), (SELECT ProjID FROM Projects WHERE Name=?), (SELECT date('now')))", [`${google_data[i].title}`, "We should probably have a description field", `./files/${google_data[i].g_id}-${google_data[i].title}-${j}.pdf`, `${google_data[i].sender_email}`, "BeverDMS"]);
                             }
                         });
                     }
@@ -234,7 +239,7 @@ async function get_data(auth) {
                 //
                 //DATABASE QUERY TO STORE INFORMATION
                 //
-                
+
 
                 //UNCOMMENT THIS WHEN DATA IS BEING PROPERLY STORED IN DATABASE
                 // gmail.users.messages.trash({
