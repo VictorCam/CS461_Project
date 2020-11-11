@@ -13,20 +13,20 @@ const MANAGE = 4; //Permission to grant access to other users
 const CHANGE = 2; //Permission to add document to project, etc...
 const READ = 1; //Permission to read document
 
-// db.serialize(function() {
-//   db.run(
-//     "CREATE TABLE IF NOT EXISTS Projects (ProjID INTEGER PRIMARY KEY, Name TEXT NOT NULL, GitHub TEXT NOT NULL)"
-//     );
-//   db.run(
-//     "CREATE TABLE IF NOT EXISTS Users (UserID INTEGER PRIMARY KEY, Name TEXT NOT NULL, Email TEXT NOT NULL, Major TEXT NOT NULL)"
-//     );
-// 	db.run(
-//     "CREATE TABLE IF NOT EXISTS Documents (DocID INTEGER PRIMARY KEY, Name TEXT NOT NULL, Description TEXT, Location TEXT NOT NULL, OwnerID INTEGER NOT NULL, Project INTEGER, DateAdded TEXT NOT NULL, FOREIGN KEY(OwnerID) REFERENCES Users(UserID) ON DELETE CASCADE, FOREIGN KEY(Project) REFERENCES Projects(ProjID) ON DELETE CASCADE)"
-//     );
-//   db.run(
-//     "CREATE TABLE IF NOT EXISTS Permissions (PermID INTEGER PRIMARY KEY, DID INTEGER NOT NULL, UID INTEGER NOT NULL, Permissions INTEGER NOT NULL, FOREIGN KEY(DID) REFERENCES Documents(DocID) ON DELETE CASCADE, FOREIGN KEY(UID) REFERENCES Users(UserID) ON DELETE CASCADE)"
-//   );
-// });
+db.serialize(function() {
+  db.run(
+    "CREATE TABLE IF NOT EXISTS Projects (ProjID INTEGER PRIMARY KEY, Name TEXT NOT NULL, GitHub TEXT NOT NULL)"
+    );
+  db.run(
+    "CREATE TABLE IF NOT EXISTS Users (UserID INTEGER PRIMARY KEY, Name TEXT NOT NULL, Email TEXT NOT NULL, Major TEXT NOT NULL)"
+    );
+	db.run(
+    "CREATE TABLE IF NOT EXISTS Documents (DocID INTEGER PRIMARY KEY, Name TEXT NOT NULL, Description TEXT, Location TEXT NOT NULL, OwnerID INTEGER NOT NULL, Project INTEGER, DateAdded TEXT NOT NULL, FOREIGN KEY(OwnerID) REFERENCES Users(UserID) ON DELETE CASCADE, FOREIGN KEY(Project) REFERENCES Projects(ProjID) ON DELETE CASCADE)"
+    );
+  db.run(
+    "CREATE TABLE IF NOT EXISTS Permissions (PermID INTEGER PRIMARY KEY, DID INTEGER NOT NULL, UID INTEGER NOT NULL, Permissions INTEGER NOT NULL, FOREIGN KEY(DID) REFERENCES Documents(DocID) ON DELETE CASCADE, FOREIGN KEY(UID) REFERENCES Users(UserID) ON DELETE CASCADE)"
+  );
+});
 
 /**
  * Example INSERT and SELECT statements
@@ -212,7 +212,21 @@ async function get_data(auth) {
                         }, (err, res) => {
                             if (err) return console.log('The API returned an error: ' + err);
                             google_data[i].raw_attachments.push(res.data.data)
-                        })
+
+                            for (var j = 0; j < google_data[i].raw_attachments.length; j++) {
+                                fs.writeFile(`./files/${google_data[i].g_id}-${google_data[i].title}-${j}.pdf`, google_data[i].raw_attachments[j], { encoding: 'base64' }, function (err) {
+                                    if (err) {
+                                        return console.log(err);
+                                    }
+                                });
+                                db.get(`SELECT * FROM Users WHERE Email=${google_data[i].sender_email}`, function (err) {
+                                    if(err){
+                                        db.run("INSERT INTO Users (Name, Email, Major) VALUES (?, ?, ?)", ["Anonymous", `${google_data[i].sender_email}`, "Unkown"]);
+                                    }
+                                });
+                                db.run("INSERT INTO Documents (Name, Description, Location, OwnerID, Project, DateAdded) VALUES (?, ?, ?, (SELECT UserID FROM Users WHERE Email=?), (SELECT ProjID FROM Projects WHERE Name=?), (SELECT date('now')))", [`${google_data[i].title}`, "We should probably have a description field", `./files/${google_data[i].g_id}-${google_data[i].title}-${j}.pdf`, `${google_data[i].sender_email}`, "BeverDMS"]);
+                            }
+                        });
                     }
                 }
 
