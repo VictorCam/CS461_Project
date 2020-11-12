@@ -213,7 +213,9 @@ async function get_data(auth) {
                             if (err) return console.log('The API returned an error: ' + err);
                             google_data[i].raw_attachments.push(res.data.data)
 
-                            for (var j = 0; j < google_data[i].raw_attachments.length; j++) {
+                            console.log("P2: a_length:", google_data[i].raw_attachments.length, " id:", google_data[i].id, " index:", i)
+                            // for (var j = 0; j < google_data[i].raw_attachments.length; j++) {
+                                j = Math.random() * 10
                                 fs.writeFile(`./files/${google_data[i].g_id}-${google_data[i].title}-${j}.pdf`, google_data[i].raw_attachments[j], { encoding: 'base64' }, function (err) {
                                     if (err) {
                                         return console.log(err);
@@ -230,15 +232,10 @@ async function get_data(auth) {
                                     });
                                     db.run("INSERT INTO Documents (Name, Description, Location, OwnerID, Project, DateAdded) VALUES (?, ?, ?, (SELECT UserID FROM Users WHERE Email=?), (SELECT ProjID FROM Projects WHERE Name=?), (SELECT date('now')))", [`${google_data[i].title}`, "We should probably have a description field", `./files/${google_data[i].g_id}-${google_data[i].title}-${j}.pdf`, `${google_data[i].sender_email}`, "BeverDMS"]);
                                 });
-                            }
+                            // }
                         });
                     }
                 }
-
-                //STORE GOOGLE_DATA TO DATABASE HERE
-                //
-                //DATABASE QUERY TO STORE INFORMATION
-                //
 
 
                 //UNCOMMENT THIS WHEN DATA IS BEING PROPERLY STORED IN DATABASE
