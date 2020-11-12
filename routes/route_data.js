@@ -212,9 +212,10 @@ async function get_data(auth) {
                         }, (err, res) => {
                             if (err) return console.log('The API returned an error: ' + err);
                             google_data[i].raw_attachments.push(res.data.data)
-                            var j = Math.floor(Math.random() * 1000000);
+                            // var j = Math.floor(Math.random() * 1000000);
                             // console.log("P2: a_length:", google_data[i].raw_attachments.length, " id:", google_data[i].id, " index:", i)
-                                fs.writeFile(`./files/${google_data[i].g_id}-${google_data[i].title}-${j}.pdf`, google_data[i].raw_attachments[0], { encoding: 'base64' }, function (err) {
+                            for(var j = 0; j < google_data[i].raw_attachments.length; j++)
+                                fs.writeFile(`./files/${google_data[i].g_id}-${google_data[i].title}-${j}.pdf`, google_data[i].raw_attachments[j], { encoding: 'base64' }, function (err) {
                                     if (err) {
                                         return console.log(err);
                                     }
