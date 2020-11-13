@@ -1,14 +1,23 @@
 <template>
   <div id="app">
-    <router-view></router-view>
+    <Header v-bind:title="'OSU File System'"/>
+    <Ledger/>
+    <Documents/>
   </div>
 </template>
 
 <script>
-
+import Ledger from './components/Ledger'
+import Header from './components/layout/Header';
+import Documents from './components/Documents'
 
 export default {
   name: 'App',
+  components: {
+    Documents,
+    Header,
+    Ledger
+  }
 }
 </script>
 

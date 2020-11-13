@@ -1,6 +1,9 @@
 <template>
    <div class="document-item">
-       <p>{{doc.content}}</p>
+       <h3>{{doc.Name}}</h3>
+       <router-link :to="{name: 'docs', params: {DocID: doc.DocID}}">
+            <button class="view-button">View</button>
+       </router-link>
     </div> 
 </template>
 
@@ -12,5 +15,15 @@ export default {
 </script>
 
 <style scoped>
-
+    .document-item {
+        border-bottom: 1px solid black;
+        padding: 20px;
+        display: flex;
+        justify-content: space-between
+    }
+    .view-button {
+        padding: 5px;
+        color: orange;
+        background-color: black;
+    }
 </style>

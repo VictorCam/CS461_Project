@@ -1,29 +1,37 @@
 <template>
     <div class="header">
         <h1 class="title">
-            OSU Student File System 
-            <button class="add-btn">Add Document</button>
+            {{title}}
         </h1>
-         
+        <router-link :to="{name: 'home'}">
+            <button class="home-btn">Home</button>
+        </router-link>
     </div>
 </template>
 
 <script>
 export default {
-    name: "Header"
+    name: "Header",
+    props: ["title"]
 }
 </script>
 
 <style scoped>
-    .title {
+    .header {
+        display: flex;
+        align-items: center;
         background-color: #de953c;
+    }
+    .title {
         color: black;
         text-align: center;
         width: 100%;
         padding: 15px;
     }
-    .add-btn {
-        float: right;
-        padding: 3px;
+    .home-btn {
+        align-self: flex-end;
+        margin: 20px;
+        padding: 5px
     }
+    
 </style>

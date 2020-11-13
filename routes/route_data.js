@@ -34,11 +34,11 @@ const READ = 1; //Permission to read document
 
 //Projects: Name, GitHub
 // db.run("INSERT INTO Projects (Name, GitHub) VALUES (?, ?)", ["BeaverDMS", "https://github.com/VictorCam/CS461_Project"]);
-//Users: Name, Email, Major
+// // Users: Name, Email, Major
 // db.run("INSERT INTO Users (Name, Email, Major) VALUES (?, ?, ?)", ["Travis Shands", "shandst@gmail.com", "Computer Science"]);
-//Documents: Name, Description, Location, OwnerID, Project, DateAdded
+// db.run("INSERT INTO Users (Name, Email, Major) VALUES (?, ?, ?)", ["Bryce Albertazzi", "albertab@oregonstate.edu", "Computer Science"]);
+// // Documents: Name, Description, Location, OwnerID, Project, DateAdded
 // db.run("INSERT INTO Documents (Name, Description, Location, OwnerID, Project, DateAdded) VALUES (?, ?, ?, (SELECT UserID FROM Users WHERE Email=?), (SELECT ProjID FROM Projects WHERE Name=?), (SELECT date('now')))", ["Beaver Doc", "Documentation of our project", "filepath", "shandst@gmail.com", "BeverDMS"]);
-
 // db.get("SELECT DocID, Documents.Name AS Name, Users.Name AS Owner, Description FROM Documents INNER JOIN Users ON OwnerID=UserID WHERE Documents.Name='Beaver Doc'", function(err, dox) {
 //   console.log("Name: ", dox.Name, " Owner: ", dox.Owner, "Description: ", dox.Description);
 // });
@@ -268,3 +268,4 @@ router.get("/", (req, res) => {
 router.use(cors());
 
 module.exports = router;
+
