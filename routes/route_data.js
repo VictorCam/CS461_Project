@@ -2,11 +2,10 @@ const express = require("express");
 const router = express.Router();
 const cors = require("cors");
 const fs = require('fs');
-const readline = require('readline');
-const { google } = require('googleapis');
 const { Base64 } = require('js-base64');
-const { isBuffer, isNull } = require("lodash");
+const { isEmpty } = require("lodash");
 const sqlite3 = require('sqlite3').verbose();
+const axios = require("axios")
 const db = new sqlite3.Database('./database/beavdms.db');
 
 const MANAGE = 4; //Permission to grant access to other users
@@ -47,236 +46,203 @@ var app = express();
 //const connectsql = require("../server_connection"); // no server connection yet
 
 
-//global variables
-google_data = []
 
-const SCOPES = ['https://mail.google.com/']; //AUTHORIZATION TO EVERYTHING
-// The file token.json stores the user's access and refresh tokens, and is
-// created automatically when the authorization flow completes for the first
-// time.
-const TOKEN_PATH = 'token.json';
+//global constants
+const userId = "gobeavdms@gmail.com"
 
-/**
- * Create an OAuth2 client with the given credentials, and then execute the
- * given callback function.
- * @param {Object} credentials The authorization client credentials.
- * @param {function} callback The callback to call with the authorized client.
- */
-function authorize(credentials, callback) {
-    const {
-        client_secret,
-        client_id,
-        redirect_uris
-    } = credentials.installed;
-    const oAuth2Client = new google.auth.OAuth2(
-        client_id, client_secret, redirect_uris[0]);
-
-    // Check if we have previously stored a token.
-    fs.readFile(TOKEN_PATH, (err, token) => {
-        if (err) return getNewToken(oAuth2Client, callback);
-        oAuth2Client.setCredentials(JSON.parse(token));
-        callback(oAuth2Client);
-    });
+async function get_token() {
+    try {
+        c_id = "407454790116-p7a8mm51ncd0fpuqmq1rf6fh44184nc7.apps.googleusercontent.com" //client id
+        c_secret = "mWl-YURPy82Dmf3_EkUPFjy2" //client secret
+        c_retoken = "1//06EZSqyMbPOsbCgYIARAAGAYSNwF-L9IrWh_vgBazeV84ZRrZ6dDADXVqFkh_-CCE7GMq18bDM2n1D_RKCKS7fsHxn5VdwGgPC20" //refresh token
+        const api = `https://accounts.google.com/o/oauth2/token?client_id=${c_id}&client_secret=${c_secret}&refresh_token=${c_retoken}&grant_type=refresh_token`
+        return await axios.post(api)
+    } catch (err) {
+        console.log(err)
+    }
 }
 
-/**
- * Get and store new token after prompting for user authorization, and then
- * execute the given callback with the authorized OAuth2 client.
- * @param {google.auth.OAuth2} oAuth2Client The OAuth2 client to get token for.
- * @param {getEventsCallback} callback The callback for the authorized client.
- */
-function getNewToken(oAuth2Client, callback) {
-    const authUrl = oAuth2Client.generateAuthUrl({
-        access_type: 'offline',
-        scope: SCOPES,
-    });
-    console.log('Authorize this app by visiting this url:', authUrl);
-    const rl = readline.createInterface({
-        input: process.stdin,
-        output: process.stdout,
-    });
-    rl.question('Enter the code from that page here: ', (code) => {
-        rl.close();
-        oAuth2Client.getToken(code, (err, token) => {
-            if (err) return console.error('Error retrieving access token', err);
-            oAuth2Client.setCredentials(token);
-            // Store the token to disk for later program executions
-            fs.writeFile(TOKEN_PATH, JSON.stringify(token), (err) => {
-                if (err) return console.error(err);
-                console.log('Token stored to', TOKEN_PATH);
-            });
-            callback(oAuth2Client);
-        });
-    });
+async function get_user(access_tok) {
+    try {
+        const config = {headers: { Authorization: `Bearer ${access_tok}`}}
+        const api = `https://gmail.googleapis.com/gmail/v1/users/${userId}/profile`
+        return await axios.get(api, config)
+    } catch (err) {
+        console.log(err)
+    }
 }
 
-/**
- * Get data from user account
- *
- * @param {google.auth.OAuth2} auth An authorized OAuth2 client.
- * 
- */
-async function get_data(auth) {
-    //used to know what id the attachment corresponds to
-    const gmail = google.gmail({
-        version: 'v1',
-        auth
-    });
-
-    //api call for getting all id's of emails
-    gmail.users.messages.list({
-        userId: 'me',
-    }, (err, res) => {
-        if (err) return console.log('The API returned an error: ' + err);
-        var msg_id = res.data.messages
-
-        //check if there are messages
-        if (msg_id == undefined) {
-            return
-        }
-        else if (msg_id.length == 0) {
-            return
-        }
-
-        for (let i = 0; i < msg_id.length; i++) {
-            gmail.users.messages.get({
-                userId: 'me',
-                id: res.data.messages[i].id,
-            }, (err, res) => {
-                if (err) return console.log('The API returned an error: ' + err);
-
-                raw_attachments = []
-                attach_mime_name = []
-
-                id1 = i;
-                id2 = res.data.id
-                sender_name_and_email = res.data.payload.headers[16].value
-                sender_name = sender_name_and_email.replace(/(?:\\[rn]|[\r\n<>"]+)+/g, "")
-
-                var words = sender_name.split(' ')
-                sender_email = words[words.length - 1]
-                words.splice(-1, 1)
-                sender_name = words.join(' ')
-
-                date = res.data.payload.headers[17].value
-                title = res.data.payload.headers[19].value
-                message = ""
-
-                if (res.data.payload.parts[0].body.data) {
-                    //this exists when there is no attachment provided
-                    message = Base64.decode(res.data.payload.parts[0].body.data)
-                    message = message.replace(/(?:\\[rn]|[\r\n]+)+/g, "") //removes \n and \r 
-                } else {
-                    //this exists when there is an attachment provided
-                    message = Base64.decode(res.data.payload.parts[0].parts[0].body.data)
-                    message = message.replace(/(?:\\[rn]|[\r\n]+)+/g, "") //removes \n and \r
-                }
-
-                p_access = res.data.payload.headers[20].value
-                p_access_regex = p_access.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+)/gi);
-                let account_access = [...new Set(p_access_regex)]
-
-                content = {
-                    "id": id1,
-                    "g_id": id2,
-                    "sender_name": sender_name,
-                    "sender_email": sender_email,
-                    "access": account_access,
-                    "title": title,
-                    "message": message,
-                    "attach_mime_name": [],
-                    "raw_attachments": [],
-                    "date": date
-                }
-
-                google_data.push(content)
-
-                google_data.sort(function (a, b) {
-                    return a.id - b.id;
-                });
-
-                //get mime and filename
-                // for (let n = 0; n < res.data.payload.parts.length; n++) {
-                //     if(res.data.payload.parts[n+1].mimeType != undefined || res.data.payload.parts[n+1].filename != undefined) {
-                //         google_data[i].attach_mime_name.push([res.data.payload.parts[n+1].mimeType, res.data.payload.parts[n+1].filename])
-                //     }
-                // }
-
-                //get raw data
-                for (let a = 0; a < res.data.payload.parts.length - 1; a++) {
-                    if (res.data.payload.parts[a + 1].body.attachmentId != undefined) {
-                        gmail.users.messages.attachments.get({
-                            userId: 'me',
-                            messageId: id2,
-                            id: res.data.payload.parts[a + 1].body.attachmentId
-                        }, (err, res) => {
-                            if (err) return console.log('The API returned an error: ' + err);
-                            google_data[i].raw_attachments.push(res.data.data)
-                            // var j = Math.floor(Math.random() * 1000000);
-                            // console.log("P2: a_length:", google_data[i].raw_attachments.length, " id:", google_data[i].id, " index:", i)
-                            for(var j = 0; j < google_data[i].raw_attachments.length; j++)
-                                fs.writeFile(`./files/${google_data[i].g_id}-${google_data[i].title}-${j}.pdf`, google_data[i].raw_attachments[j], { encoding: 'base64' }, function (err) {
-                                    if (err) {
-                                        return console.log(err);
-                                    }
-                                });
-                                db.serialize(function () {
-                                    db.get(`SELECT * FROM Users WHERE Email='${google_data[i].sender_email}'`, function (err, user) {
-                                        if (err) {
-                                            console.log(err);
-                                        }
-                                        if(!user){
-                                            db.run("INSERT INTO Users (Name, Email, Major) VALUES (?, ?, ?)", ["Anonymous", `${google_data[i].sender_email}`, "Unkown"]);
-                                        }
-                                    });
-                                    db.run("INSERT INTO Documents (Name, Description, Location, OwnerID, Project, DateAdded) VALUES (?, ?, ?, (SELECT UserID FROM Users WHERE Email=?), (SELECT ProjID FROM Projects WHERE Name=?), (SELECT date('now')))", [`${google_data[i].title}`, "We should probably have a description field", `./files/${google_data[i].g_id}-${google_data[i].title}-${j}.pdf`, `${google_data[i].sender_email}`, "BeverDMS"]);
-                                });
-                        });
-                    }
-                }
-
-
-                //UNCOMMENT THIS WHEN DATA IS BEING PROPERLY STORED IN DATABASE
-                // gmail.users.messages.trash({
-                //     userId: 'me',
-                //     id: id2
-                // }, (err, res) => {
-                //     if (err) return console.log('The API returned an error: ' + err);  
-                //     console.log("DELETED", res.data)
-                // })
-
-                //MIGHT NOT USE THIS COMMENTED LOOP BELOW (DO NOT DELETE NOR UNCOMMENT)
-                // for (let u = 0; u < account_access.length; u++) {
-                //     if (account_access[u] == "email@gmail.com" || sender_name == "") { //check access (need a check for the sender too)
-                //         console.log("found email")
-                //         break
-                //     }
-                // }
-            });
-        }
-    });
+async function get_msg_id(access_tok) {
+    try {
+        const config = {headers: { Authorization: `Bearer ${access_tok}`}}
+        const api = `https://gmail.googleapis.com/gmail/v1/users/${userId}/messages`
+        return await axios.get(api, config)
+    } catch (err) {
+        console.log(err)
+    }
 }
+
+async function get_msg_data(access_tok, g_id) {
+    try {
+        const config = {headers: { Authorization: `Bearer ${access_tok}`, "Content-type": `application/json`}}
+        const api = `https://gmail.googleapis.com/gmail/v1/users/${userId}/messages/${g_id}`
+        return await axios.get(api, config)
+    } catch (err) {
+        console.log(err)
+    }
+}
+
+async function get_msg_delete(access_tok, g_id) {
+    try {
+        const config = {Headers: { Authorization: `Bearer ${access_tok}`}}
+        const api = `https://gmail.googleapis.com/gmail/v1/users/gobeavdms@gmail.com/messages/1755682fa73225ee/trash`
+        return await axios.post(api, {}, config)
+    } catch (err) {
+        console.log("err")
+    }
+}
+
+
+async function get_attachments(access_tok, g_id, a_id) {
+    try {
+        const config = {headers: { Authorization: `Bearer ${access_tok}`}}
+        const api = `https://gmail.googleapis.com/gmail/v1/users/${userId}/messages/${g_id}/attachments/${a_id}`
+        return await axios.get(api, config)
+    } catch (err) {
+        console.log(err)
+    }
+}
+
+async function parse_data(g_raw, idx, g_access) {
+
+    g_id = g_raw.data.id
+    sender_name_and_email = g_raw.data.payload.headers[16].value
+    sender_name = sender_name_and_email.replace(/(?:\\[rn]|[\r\n<>"]+)+/g, "")
+
+    var words = sender_name.split(' ')
+    sender_email = words[words.length - 1]
+    words.splice(-1, 1)
+    sender_name = words.join(' ')
+
+    date = g_raw.data.payload.headers[17].value
+    title = g_raw.data.payload.headers[19].value
+
+    message = ""
+    if (g_raw.data.payload.parts[0].body.data) {
+        //this exists when there is no attachment provided
+        message = Base64.decode(g_raw.data.payload.parts[0].body.data)
+        message = message.replace(/(?:\\[rn]|[\r\n]+)+/g, "") //removes \n and \r 
+    } else {
+        //this exists when there is an attachment provided
+        message = Base64.decode(g_raw.data.payload.parts[0].parts[0].body.data)
+        message = message.replace(/(?:\\[rn]|[\r\n]+)+/g, "") //removes \n and \r
+    }
+
+    p_access = g_raw.data.payload.headers[20].value
+    p_access_regex = p_access.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+)/gi);
+    let account_access = [...new Set(p_access_regex)]
+
+    attachments = []
+    for (let n = 0; n < g_raw.data.payload.parts.length-1; n++) {
+        if(g_raw.data.payload.parts[n+1].mimeType == "application/pdf") { //MUST BE PDF!
+            var test = {"mime": g_raw.data.payload.parts[n+1].mimeType, "filename": g_raw.data.payload.parts[n+1].filename, "attach_id": g_raw.data.payload.parts[n+1].body.attachmentId, "raw": null}
+            attachments.push(test)
+        }
+    }
+
+    if(!isEmpty(attachments)) {
+        for (let a = 0; a < attachments.length; a++) {
+            var raw = await get_attachments(g_access, g_id, attachments[a].attach_id) //DO API REQUEST FOR ATTACHMENT!
+            attachments[a].raw = raw.data.data
+        }
+    }
+
+    content = {
+        "id": idx,
+        "g_id": g_id,
+        "sender_name": sender_name,
+        "sender_email": sender_email,
+        "access": account_access,
+        "title": title,
+        "message": message,
+        "attachments": attachments,
+        "date": date
+    }
+
+    return content
+}
+
+
 
 
 
 router.get("/", (req, res) => {
+});
 
-    fs.readFile('credentials.json', (err, content) => { //get recent data from gobeavDMS@gmail.com
-        google_data = []
-        if (err) return console.log('Error loading client secret file:', err);
-        authorize(JSON.parse(content), get_data); //Authorize a client with credentials, then call the Gmail API.
-    })
 
-    // fs.writeFile("./database/file1.pdf",google_data[4].raw_attachments[0],{encoding: 'base64'},function(err) {
-    //     if(err) {
-    //         console.log(err)
-    //     }
-    //     else {
-    //         console.log("file created")
-    //     }
+router.get("/test", (req, res) => {
+
+    async function g_request() {
+        const g_access = await get_token()
+        console.log("gaccses", g_access)
+        const g_id = await get_msg_id(g_access.data.access_token)
+        
+        if (g_id.data.resultSizeEstimate == 0) {
+            return res.status(200).json({"No Content": "There is not content to display"})
+        }
+
+        beav_data = []
+        for (let idx = 0; idx < g_id.data.resultSizeEstimate; idx++) {
+            var g_raw = await get_msg_data(g_access.data.access_token, g_id.data.messages[idx].id)
+            await get_msg_delete(g_access.data.access_token, g_id.data.messages[idx].id)
+            var g_data = await parse_data(g_raw, idx, g_access.data.access_token)
+
+    
+            for(var j = 0; j < Object.keys(g_data.attachments).length; j++) {
+
+            fs.writeFile(`./files/${g_data.g_id}-${j}.pdf`, g_data.attachments[j].raw, { encoding: 'base64' }, function (err) {
+                if (err) {
+                    return console.log(err);
+                }
+            });
+            
+            db.serialize(function () {
+                db.get(`SELECT * FROM Users WHERE Email='${g_data.sender_email}'`, function (err, user) {
+                    if (err) {
+                        console.log(err);
+                    }
+                    if(!user){
+                        db.run("INSERT INTO Users (Name, Email, Major) VALUES (?, ?, ?)", ["Anonymous", `${g_data.sender_email}`, "Unkown"]);
+                    }
+                });
+                db.run("INSERT INTO Documents (Name, Description, Location, OwnerID, Project, DateAdded) VALUES (?, ?, ?, (SELECT UserID FROM Users WHERE Email=?), (SELECT ProjID FROM Projects WHERE Name=?), (SELECT date('now')))", [`${g_data.title}`, "We should probably have a description field", `./files/${g_data.g_id}-${j}.pdf`, `${g_data.sender_email}`, "BeverDMS"]);
+            });
+        }
+
+        beav_data.push(g_data)
+        //console.log(g_access.data.access_token)
+        //console.log(g_id.data.messages[idx].id)
+    }
+
+
+        res.status(200).json(beav_data)
+    }
+
+    g_request()
+
+
+    // db.serialize(function () {
+    //     db.all(`SELECT Documents.Location FROM Documents WHERE Documents.OwnerID = ${1}`, function (err, row, col) {
+    //         if (err) {
+    //             console.log(err);
+    //         }
+    //         else {
+    //             console.log(row)
+    //             res.status(200).send(row)
+    //         }
+    //     })
     // })
 
-    res.status(200).send(google_data) //we should change this to point to our database rather than google's api
 });
 
 router.use(cors());
