@@ -41,6 +41,12 @@ db.serialize(function () {
 // db.get("SELECT DocID, Documents.Name AS Name, Users.Name AS Owner, Description FROM Documents INNER JOIN Users ON OwnerID=UserID WHERE Documents.Name='Beaver Doc'", function(err, dox) {
 //   console.log("Name: ", dox.Name, " Owner: ", dox.Owner, "Description: ", dox.Description);
 // });
+// var currentDate = new Date();
+// db.run("DELETE FROM Documents");
+// db.run("INSERT INTO Documents (Name, Description, Location, OwnerID, Project, DateAdded) VALUES (?, ?, ?, ?, ?, ?)", ["TechProject", "A tech project", "Corvallis", 1, null, currentDate]);
+// db.run("INSERT INTO Documents (Name, Description, Location, OwnerID, Project, DateAdded) VALUES (?, ?, ?, ?, ?, ?)", ["SportsProject", "A sports project", "Portland", 1, null, currentDate]);
+// db.run("INSERT INTO Documents (Name, Description, Location, OwnerID, Project, DateAdded) VALUES (?, ?, ?, ?, ?, ?)", ["ExerciseProject", "An exercise project", "Seattle", 1, null, currentDate]);
+
 
 var app = express();
 //const connectsql = require("../server_connection"); // no server connection yet
@@ -243,9 +249,6 @@ async function parse_data(g_raw, idx, g_access) {
 
 
 
-router.get("/pizza", (req, res) => {
-    res.status(200).json("data")
-});
 
 
 router.get("/", (req, res) => {
@@ -283,7 +286,7 @@ router.get("/", (req, res) => {
                         db.run("INSERT INTO Users (Name, Email, Major) VALUES (?, ?, ?)", ["Anonymous", `${g_data.sender_email}`, "Unkown"]);
                     }
                 });
-                db.run("INSERT INTO Documents (Name, Description, Location, OwnerID, Project, DateAdded) VALUES (?, ?, ?, (SELECT UserID FROM Users WHERE Email=?), (SELECT ProjID FROM Projects WHERE Name=?), (SELECT date('now')))", [`${g_data.title}`, "We should probably have a description field", `./files/${g_data.g_id}-${j}.pdf`, `${g_data.sender_email}`, "BeverDMS"]);
+                // db.run("INSERT INTO Documents (Name, Description, Location, OwnerID, Project, DateAdded) VALUES (?, ?, ?, (SELECT UserID FROM Users WHERE Email=?), (SELECT ProjID FROM Projects WHERE Name=?), (SELECT date('now')))", [`${g_data.title}`, "We should probably have a description field", `./files/${g_data.g_id}-${j}.pdf`, `${g_data.sender_email}`, "BeverDMS"]);
             });
         }
         beav_data.push(g_data)
@@ -306,6 +309,26 @@ router.get("/", (req, res) => {
     //     })
     // })
 
+});
+
+router.get("/home", (req, res) => {
+    async function load_documents_from_DB() {
+        var loaded_documents = [];
+        db.serialize(function () {
+            db.all("SELECT * FROM Documents", function (err, docs) {
+                if (err) {
+                    console.log(err);
+                }
+                if(!docs){
+                    console.log("No documents exist!");
+                } else {
+                    loaded_documents = docs;
+                }
+                res.status(200).json(loaded_documents);
+            });
+        });
+    }
+    load_documents_from_DB();
 });
 
 router.use(cors());
