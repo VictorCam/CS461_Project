@@ -21,6 +21,9 @@ export default new vuex.Store({
     mutations: { //used to update info (updates state given)
         SET_GMAIL(state, payload) {
             state.gmail = payload
+        },
+        SET_PIZZA(state, payload) {
+            state.data = payload
         }
     }
 })

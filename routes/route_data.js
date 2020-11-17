@@ -45,7 +45,15 @@ db.serialize(function () {
 var app = express();
 //const connectsql = require("../server_connection"); // no server connection yet
 
-
+/*
+(does not work when sending follow up email)
+sender_name
+sender_email
+access
+title (gets date weirdly)
+date
+ * 
+*/
 
 //global constants
 const userId = "gobeavdms@gmail.com"
@@ -55,18 +63,8 @@ async function get_token() {
         c_id = "407454790116-p7a8mm51ncd0fpuqmq1rf6fh44184nc7.apps.googleusercontent.com" //client id
         c_secret = "mWl-YURPy82Dmf3_EkUPFjy2" //client secret
         c_retoken = "1//06EZSqyMbPOsbCgYIARAAGAYSNwF-L9IrWh_vgBazeV84ZRrZ6dDADXVqFkh_-CCE7GMq18bDM2n1D_RKCKS7fsHxn5VdwGgPC20" //refresh token
-        const api = `https://accounts.google.com/o/oauth2/token?client_id=${c_id}&client_secret=${c_secret}&refresh_token=${c_retoken}&grant_type=refresh_token`
-        return await axios.post(api)
-    } catch (err) {
-        console.log(err)
-    }
-}
-
-async function get_user(access_tok) {
-    try {
-        const config = {headers: { Authorization: `Bearer ${access_tok}`}}
-        const api = `https://gmail.googleapis.com/gmail/v1/users/${userId}/profile`
-        return await axios.get(api, config)
+        const url = `https://accounts.google.com/o/oauth2/token?client_id=${c_id}&client_secret=${c_secret}&refresh_token=${c_retoken}&grant_type=refresh_token`
+        return await axios.post(url)
     } catch (err) {
         console.log(err)
     }
@@ -74,9 +72,9 @@ async function get_user(access_tok) {
 
 async function get_msg_id(access_tok) {
     try {
+        const url = `https://gmail.googleapis.com/gmail/v1/users/${userId}/messages`
         const config = {headers: { Authorization: `Bearer ${access_tok}`}}
-        const api = `https://gmail.googleapis.com/gmail/v1/users/${userId}/messages`
-        return await axios.get(api, config)
+        return await axios.get(url, config)
     } catch (err) {
         console.log(err)
     }
@@ -84,19 +82,20 @@ async function get_msg_id(access_tok) {
 
 async function get_msg_data(access_tok, g_id) {
     try {
+        const url = `https://gmail.googleapis.com/gmail/v1/users/${userId}/messages/${g_id}`
         const config = {headers: { Authorization: `Bearer ${access_tok}`, "Content-type": `application/json`}}
-        const api = `https://gmail.googleapis.com/gmail/v1/users/${userId}/messages/${g_id}`
-        return await axios.get(api, config)
+        return await axios.get(url, config)
     } catch (err) {
         console.log(err)
     }
 }
 
-async function get_msg_delete(access_tok, g_id) {
+async function post_msg_delete(access_tok, g_id) { //apparently axios does not work for this/
     try {
-        const config = {Headers: { Authorization: `Bearer ${access_tok}`}}
-        const api = `https://gmail.googleapis.com/gmail/v1/users/gobeavdms@gmail.com/messages/1755682fa73225ee/trash`
-        return await axios.post(api, {}, config)
+        const url = `https://gmail.googleapis.com/gmail/v1/users/${userId}/messages/${g_id}/trash`
+        const data = {}
+        const config = {headers: { Authorization: `Bearer ${access_tok}`}}
+        return await axios.post(url, data, config)
     } catch (err) {
         console.log("err")
     }
@@ -105,9 +104,9 @@ async function get_msg_delete(access_tok, g_id) {
 
 async function get_attachments(access_tok, g_id, a_id) {
     try {
+        const url = `https://gmail.googleapis.com/gmail/v1/users/${userId}/messages/${g_id}/attachments/${a_id}`
         const config = {headers: { Authorization: `Bearer ${access_tok}`}}
-        const api = `https://gmail.googleapis.com/gmail/v1/users/${userId}/messages/${g_id}/attachments/${a_id}`
-        return await axios.get(api, config)
+        return await axios.get(url, config)
     } catch (err) {
         console.log(err)
     }
@@ -116,33 +115,53 @@ async function get_attachments(access_tok, g_id, a_id) {
 async function parse_data(g_raw, idx, g_access) {
 
     g_id = g_raw.data.id
-    sender_name_and_email = g_raw.data.payload.headers[16].value
-    sender_name = sender_name_and_email.replace(/(?:\\[rn]|[\r\n<>"]+)+/g, "")
+    console.log("GOOGLE IDENTIFICATION: ", g_raw.data.id)
+    sender_name_and_email = []
+    sender_email = []
+    sender_name = []
+    date = []
+    title = []
+    account_access = []
+    attachments = []
+    //sender_name_and_email = g_raw.data.payload.headers[16].value
+    //sender_name = sender_name_and_email.replace(/(?:\\[rn]|[\r\n<>"]+)+/g, "")
 
-    var words = sender_name.split(' ')
-    sender_email = words[words.length - 1]
-    words.splice(-1, 1)
-    sender_name = words.join(' ')
+    // var words = sender_name.split(' ')
+    // sender_email = words[words.length - 1]
+    // words.splice(-1, 1)
+    // sender_name = words.join(' ')
 
+    if(g_raw.data.payload.hasOwnProperty('headers[17]')) {
     date = g_raw.data.payload.headers[17].value
-    title = g_raw.data.payload.headers[19].value
+    }
 
-    message = ""
+    if(g_raw.data.payload.hasOwnProperty('headers[19]')) {
+    title = g_raw.data.payload.headers[19].value
+    }
+
+    
     if (g_raw.data.payload.parts[0].body.data) {
         //this exists when there is no attachment provided
         message = Base64.decode(g_raw.data.payload.parts[0].body.data)
         message = message.replace(/(?:\\[rn]|[\r\n]+)+/g, "") //removes \n and \r 
-    } else {
+    } 
+    else if(g_raw.data.payload.parts[0].parts[0].body.data) {
         //this exists when there is an attachment provided
         message = Base64.decode(g_raw.data.payload.parts[0].parts[0].body.data)
         message = message.replace(/(?:\\[rn]|[\r\n]+)+/g, "") //removes \n and \r
     }
+    else {
+        message = Base64.decode(g_raw.data.snippet) //if all else false well snippet should work fine
+        message = message.replace(/(?:\\[rn]|[\r\n]+)+/g, "") //removes \n and \r
+    }
 
-    p_access = g_raw.data.payload.headers[20].value
-    p_access_regex = p_access.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+)/gi);
-    let account_access = [...new Set(p_access_regex)]
 
-    attachments = []
+    if(g_raw.data.payload.hasOwnProperty('headers[20]')) {
+        p_access = g_raw.data.payload.headers[20].value
+        p_access_regex = p_access.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+)/gi);
+        let account_access = [...new Set(p_access_regex)]
+        }
+
     for (let n = 0; n < g_raw.data.payload.parts.length-1; n++) {
         if(g_raw.data.payload.parts[n+1].mimeType == "application/pdf") { //MUST BE PDF!
             var test = {"mime": g_raw.data.payload.parts[n+1].mimeType, "filename": g_raw.data.payload.parts[n+1].filename, "attach_id": g_raw.data.payload.parts[n+1].body.attachmentId, "raw": null}
@@ -152,7 +171,7 @@ async function parse_data(g_raw, idx, g_access) {
 
     if(!isEmpty(attachments)) {
         for (let a = 0; a < attachments.length; a++) {
-            var raw = await get_attachments(g_access, g_id, attachments[a].attach_id) //DO API REQUEST FOR ATTACHMENT!
+            var raw = await get_attachments(g_access, g_id, attachments[a].attach_id) //DO url REQUEST FOR ATTACHMENT!
             attachments[a].raw = raw.data.data
         }
     }
@@ -176,25 +195,26 @@ async function parse_data(g_raw, idx, g_access) {
 
 
 
-router.get("/", (req, res) => {
+router.get("/pizza", (req, res) => {
+    res.status(200).json("data")
 });
 
 
-router.get("/test", (req, res) => {
+router.get("/", (req, res) => {
 
     async function g_request() {
-        const g_access = await get_token()
-        console.log("gaccses", g_access)
-        const g_id = await get_msg_id(g_access.data.access_token)
+        const g_access = await get_token() //getting access token 
+        const g_id = await get_msg_id(g_access.data.access_token) //getting messages
         
-        if (g_id.data.resultSizeEstimate == 0) {
+        if (g_id.data.resultSizeEstimate == 0) { //no content meaning there is no need to preform requests
             return res.status(200).json({"No Content": "There is not content to display"})
         }
 
         beav_data = []
-        for (let idx = 0; idx < g_id.data.resultSizeEstimate; idx++) {
+        console.log(g_id.data.resultSizeEstimate)
+        for (let idx = 0; idx < Object.keys(g_id.data.messages).length; idx++) {
             var g_raw = await get_msg_data(g_access.data.access_token, g_id.data.messages[idx].id)
-            await get_msg_delete(g_access.data.access_token, g_id.data.messages[idx].id)
+            //await post_msg_delete(g_access.data.access_token, g_id.data.messages[idx].id)
             var g_data = await parse_data(g_raw, idx, g_access.data.access_token)
 
     
@@ -218,13 +238,8 @@ router.get("/test", (req, res) => {
                 db.run("INSERT INTO Documents (Name, Description, Location, OwnerID, Project, DateAdded) VALUES (?, ?, ?, (SELECT UserID FROM Users WHERE Email=?), (SELECT ProjID FROM Projects WHERE Name=?), (SELECT date('now')))", [`${g_data.title}`, "We should probably have a description field", `./files/${g_data.g_id}-${j}.pdf`, `${g_data.sender_email}`, "BeverDMS"]);
             });
         }
-
         beav_data.push(g_data)
-        //console.log(g_access.data.access_token)
-        //console.log(g_id.data.messages[idx].id)
     }
-
-
         res.status(200).json(beav_data)
     }
 
