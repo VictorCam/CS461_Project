@@ -47,8 +47,6 @@ var app = express();
 
 /*
 (does not work when sending follow up email)
-sender_name
-sender_email
 access
 title (gets date weirdly)
 date
@@ -112,6 +110,17 @@ async function get_attachments(access_tok, g_id, a_id) {
     }
 }
 
+function parse_from(index, g_raw){
+    sender_name_and_email = g_raw.data.payload.headers[index].value
+    sender_name = sender_name_and_email.replace(/(?:\\[rn]|[\r\n<>"]+)+/g, "")
+
+    var words = sender_name.split(' ')
+    sender_email = words[words.length - 1]
+    words.splice(-1, 1)
+    sender_name = words.join(' ')
+    return sender_name + "=" + sender_email
+}
+
 async function parse_data(g_raw, idx, g_access) {
 
     g_id = g_raw.data.id
@@ -123,13 +132,32 @@ async function parse_data(g_raw, idx, g_access) {
     title = []
     account_access = []
     attachments = []
-    //sender_name_and_email = g_raw.data.payload.headers[16].value
-    //sender_name = sender_name_and_email.replace(/(?:\\[rn]|[\r\n<>"]+)+/g, "")
 
-    // var words = sender_name.split(' ')
-    // sender_email = words[words.length - 1]
-    // words.splice(-1, 1)
-    // sender_name = words.join(' ')
+    if(typeof g_raw.data.payload.headers[16] != 'undefined') {
+        if(g_raw.data.payload.headers[16].name == "From") {
+            var raw_from = parse_from(16, g_raw)
+            var words = raw_from.split('=')
+            sender_name = words[0]
+            sender_email = words[1]
+        }
+    }
+    if(typeof g_raw.data.payload.headers[4] != 'undefined') {
+        if(g_raw.data.payload.headers[4].name == "From") {
+            var raw_from = parse_from(4, g_raw)
+            var words = raw_from.split('=')
+            sender_name = words[0]
+            sender_email = words[1]
+        }
+    }
+    if(typeof g_raw.data.payload.headers[18] != 'undefined') {
+        if(g_raw.data.payload.headers[18].name == "From") {
+            var raw_from = parse_from(18, g_raw)
+            var words = raw_from.split('=')
+            sender_name = words[0]
+            sender_email = words[1]
+        }
+    }
+
 
     if(g_raw.data.payload.hasOwnProperty('headers[17]')) {
     date = g_raw.data.payload.headers[17].value
@@ -150,17 +178,37 @@ async function parse_data(g_raw, idx, g_access) {
         message = Base64.decode(g_raw.data.payload.parts[0].parts[0].body.data)
         message = message.replace(/(?:\\[rn]|[\r\n]+)+/g, "") //removes \n and \r
     }
-    else {
-        message = Base64.decode(g_raw.data.snippet) //if all else false well snippet should work fine
+    else if(g_raw.data.payload.parts[0].parts[0].parts[0].body.data) {
+        message = Base64.decode(g_raw.data.payload.parts[0].parts[0].parts[0].body.data)
         message = message.replace(/(?:\\[rn]|[\r\n]+)+/g, "") //removes \n and \r
+    }
+    else {
+        message = g_raw.data.snippet.replace(/(?:\\[rn]|[\r\n]+)+/g, "") //removes \n and \r
     }
 
 
-    if(g_raw.data.payload.hasOwnProperty('headers[20]')) {
-        p_access = g_raw.data.payload.headers[20].value
-        p_access_regex = p_access.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+)/gi);
-        let account_access = [...new Set(p_access_regex)]
+    if(typeof g_raw.data.payload.headers[20] != 'undefined') {
+        console.log("wew made it")
+        if(g_raw.data.payload.headers[20].name == "To") {
+            p_access = g_raw.data.payload.headers[20].value
+            p_access_regex = p_access.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+)/gi);
+            account_access = [...new Set(p_access_regex)]
         }
+    }
+    if(typeof g_raw.data.payload.headers[22] != 'undefined') {
+        if(g_raw.data.payload.headers[22].name == "To") {
+            p_access = g_raw.data.payload.headers[22].value
+            p_access_regex = p_access.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+)/gi);
+            account_access = [...new Set(p_access_regex)]
+        }
+    }
+    if(typeof g_raw.data.payload.headers[5] != 'undefined') {
+        if(g_raw.data.payload.headers[5].name == "To") {
+            p_access = g_raw.data.payload.headers[5].value
+            p_access_regex = p_access.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+)/gi);
+            account_access = [...new Set(p_access_regex)]
+        }
+    }
 
     for (let n = 0; n < g_raw.data.payload.parts.length-1; n++) {
         if(g_raw.data.payload.parts[n+1].mimeType == "application/pdf") { //MUST BE PDF!
