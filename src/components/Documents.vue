@@ -1,27 +1,28 @@
 <template>
     <div class="documents">
-        <div v-bind:key="doc.id" v-for="doc in documents" class="doc">
-            <h3>{{doc.title}}</h3>
+        <div v-bind:key="doc.DocID" v-for="doc in loadedDocuments">
             <DocumentItem v-bind:doc="doc"/>
         </div>
     </div>
 </template>
 
 <script>
-import DocumentItem from './DocumentItem';
-
+import DocumentItem from './DocumentItem'
+// import loadedDocuments from '../../routes/route_data.js'
+// Name, Description, Location, OwnerID, Project, DateAdded
 export default {
     name: "Documents",
     components: {
         DocumentItem
     },
-    props: ["documents"]
+    computed: {
+        loadedDocuments() {
+            return this.$store.state.loadedDocuments;
+        }
+    }
 }
 </script>
 
 <style scoped>
-    .doc {
-        padding: 10px;
-        border-bottom: 1px, solid, black;
-    }
+    
 </style>
