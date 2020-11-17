@@ -45,14 +45,6 @@ db.serialize(function () {
 var app = express();
 //const connectsql = require("../server_connection"); // no server connection yet
 
-/*
-(does not work when sending follow up email)
-access
-title (gets date weirdly)
-date
- * 
-*/
-
 //global constants
 const userId = "gobeavdms@gmail.com"
 
@@ -133,6 +125,7 @@ async function parse_data(g_raw, idx, g_access) {
     account_access = []
     attachments = []
 
+    //sender name and sender email
     if(typeof g_raw.data.payload.headers[16] != 'undefined') {
         if(g_raw.data.payload.headers[16].name == "From") {
             var raw_from = parse_from(16, g_raw)
@@ -158,16 +151,35 @@ async function parse_data(g_raw, idx, g_access) {
         }
     }
 
-
-    if(g_raw.data.payload.hasOwnProperty('headers[17]')) {
-    date = g_raw.data.payload.headers[17].value
+    //date
+    if(typeof g_raw.data.payload.headers[17] != 'undefined') {
+        if(g_raw.data.payload.headers[17].name == "Date")
+            date = g_raw.data.payload.headers[17].value
+    }
+    if(typeof g_raw.data.payload.headers[1] != 'undefined') {
+        if(g_raw.data.payload.headers[1].name == "Date")
+            date = g_raw.data.payload.headers[1].value
+    }
+    if(typeof g_raw.data.payload.headers[19] != 'undefined') {
+        if(g_raw.data.payload.headers[19].name == "Date")
+            date = g_raw.data.payload.headers[19].value
     }
 
-    if(g_raw.data.payload.hasOwnProperty('headers[19]')) {
-    title = g_raw.data.payload.headers[19].value
+    //subject
+    if(typeof g_raw.data.payload.headers[19] != 'undefined') {
+        if(g_raw.data.payload.headers[19].name == "Subject")
+            title = g_raw.data.payload.headers[19].value
     }
-
+    if(typeof g_raw.data.payload.headers[21] != 'undefined') {
+        if(g_raw.data.payload.headers[21].name == "Subject")
+            title = g_raw.data.payload.headers[21].value
+    }
+    if(typeof g_raw.data.payload.headers[3] != 'undefined') {
+        if(g_raw.data.payload.headers[3].name == "Subject")
+            title = g_raw.data.payload.headers[3].value
+    }
     
+    //message (body)
     if (g_raw.data.payload.parts[0].body.data) {
         //this exists when there is no attachment provided
         message = Base64.decode(g_raw.data.payload.parts[0].body.data)
@@ -186,9 +198,8 @@ async function parse_data(g_raw, idx, g_access) {
         message = g_raw.data.snippet.replace(/(?:\\[rn]|[\r\n]+)+/g, "") //removes \n and \r
     }
 
-
+    //who has access to this document
     if(typeof g_raw.data.payload.headers[20] != 'undefined') {
-        console.log("wew made it")
         if(g_raw.data.payload.headers[20].name == "To") {
             p_access = g_raw.data.payload.headers[20].value
             p_access_regex = p_access.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+)/gi);
@@ -210,6 +221,7 @@ async function parse_data(g_raw, idx, g_access) {
         }
     }
 
+    //get attachments that are pdfs
     for (let n = 0; n < g_raw.data.payload.parts.length-1; n++) {
         if(g_raw.data.payload.parts[n+1].mimeType == "application/pdf") { //MUST BE PDF!
             var test = {"mime": g_raw.data.payload.parts[n+1].mimeType, "filename": g_raw.data.payload.parts[n+1].filename, "attach_id": g_raw.data.payload.parts[n+1].body.attachmentId, "raw": null}
@@ -217,13 +229,15 @@ async function parse_data(g_raw, idx, g_access) {
         }
     }
 
+    //query to get raw base64 attachments added in order to save them
     if(!isEmpty(attachments)) {
         for (let a = 0; a < attachments.length; a++) {
-            var raw = await get_attachments(g_access, g_id, attachments[a].attach_id) //DO url REQUEST FOR ATTACHMENT!
+            var raw = await get_attachments(g_access, g_id, attachments[a].attach_id) //DO API REQUEST FOR ATTACHMENT!
             attachments[a].raw = raw.data.data
         }
     }
 
+    //json format
     content = {
         "id": idx,
         "g_id": g_id,
