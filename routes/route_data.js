@@ -150,6 +150,14 @@ async function parse_data(g_raw, idx, g_access) {
             sender_email = words[1]
         }
     }
+    if(typeof g_raw.data.payload.headers[5] != 'undefined') {
+        if(g_raw.data.payload.headers[5].name == "From") {
+            var raw_from = parse_from(5, g_raw)
+            var words = raw_from.split('=')
+            sender_name = words[0]
+            sender_email = words[1]
+        }
+    }
 
     //date
     if(typeof g_raw.data.payload.headers[17] != 'undefined') {
@@ -177,6 +185,10 @@ async function parse_data(g_raw, idx, g_access) {
     if(typeof g_raw.data.payload.headers[3] != 'undefined') {
         if(g_raw.data.payload.headers[3].name == "Subject")
             title = g_raw.data.payload.headers[3].value
+    }
+    if(typeof g_raw.data.payload.headers[4] != 'undefined') {
+        if(g_raw.data.payload.headers[4].name == "Subject")
+            title = g_raw.data.payload.headers[4].value
     }
     
     //message (body)
@@ -216,6 +228,13 @@ async function parse_data(g_raw, idx, g_access) {
     if(typeof g_raw.data.payload.headers[5] != 'undefined') {
         if(g_raw.data.payload.headers[5].name == "To") {
             p_access = g_raw.data.payload.headers[5].value
+            p_access_regex = p_access.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+)/gi);
+            account_access = [...new Set(p_access_regex)]
+        }
+    }
+    if(typeof g_raw.data.payload.headers[6] != 'undefined') {
+        if(g_raw.data.payload.headers[6].name == "To") {
+            p_access = g_raw.data.payload.headers[6].value
             p_access_regex = p_access.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+)/gi);
             account_access = [...new Set(p_access_regex)]
         }
