@@ -86,14 +86,14 @@ async function get_msg_data(access_tok, g_id) {
     }
 }
 
-async function post_msg_delete(access_tok, g_id) { //apparently axios does not work for this/
+async function post_msg_delete(access_tok, g_id) {
     try {
         const url = `https://gmail.googleapis.com/gmail/v1/users/${userId}/messages/${g_id}/trash`
         const data = {}
         const config = {headers: { Authorization: `Bearer ${access_tok}`}}
         return await axios.post(url, data, config)
     } catch (err) {
-        console.log("err")
+        console.log(err)
     }
 }
 
@@ -106,6 +106,31 @@ async function get_attachments(access_tok, g_id, a_id) {
     } catch (err) {
         console.log(err)
     }
+}
+
+async function post_send_msg(access_tok, raw) {
+    try {
+        const url = `https://gmail.googleapis.com/upload/gmail/v1/users/${userId}/messages/send`
+        const data = { "raw": raw}
+        const config = {headers: { Authorization: `Bearer ${access_tok}`}}
+        return await axios.post(url, data, config)
+    } catch (err) {
+        console.log("err on msg", err)
+    }
+}
+
+function makeBody(to, from, subject, message) {
+    var str = ["Content-Type: text/plain; charset=\"UTF-8\"\n",
+        "MIME-Version: 1.0\n",
+        "Content-Transfer-Encoding: 7bit\n",
+        "to: ", to, "\n",
+        "from: ", from, "\n",
+        "subject: ", subject, "\n\n",
+        message
+    ].join('');
+
+    var encodedMail = new Buffer.from(str).toString("base64").replace(/\+/g, '-').replace(/\//g, '_');
+        return encodedMail;
 }
 
 function parse_from(index, g_raw){
@@ -130,56 +155,19 @@ async function parse_data(g_raw, idx, g_access) {
     title = []
     account_access = []
     attachments = []
+    message = []
 
-    //sender name and sender email
-    if(typeof g_raw.data.payload.headers[16] != 'undefined') {
-        if(g_raw.data.payload.headers[16].name == "From") {
-            var raw_from = parse_from(16, g_raw)
-            var words = raw_from.split('=')
-            sender_name = words[0]
-            sender_email = words[1]
-        }
-    }
-    if(typeof g_raw.data.payload.headers[4] != 'undefined') {
-        if(g_raw.data.payload.headers[4].name == "From") {
-            var raw_from = parse_from(4, g_raw)
-            var words = raw_from.split('=')
-            sender_name = words[0]
-            sender_email = words[1]
-        }
-    }
-    if(typeof g_raw.data.payload.headers[18] != 'undefined') {
-        if(g_raw.data.payload.headers[18].name == "From") {
-            var raw_from = parse_from(18, g_raw)
-            var words = raw_from.split('=')
-            sender_name = words[0]
-            sender_email = words[1]
-        }
-    }
-    if(typeof g_raw.data.payload.headers[5] != 'undefined') {
-        if(g_raw.data.payload.headers[5].name == "From") {
-            var raw_from = parse_from(5, g_raw)
-            var words = raw_from.split('=')
-            sender_name = words[0]
-            sender_email = words[1]
+    found_cmd = "no_cmd"
+
+    //get attachments that are pdfs (this must be outside of loop)
+    for (let n = 0; n < g_raw.data.payload.parts.length-1; n++) {
+        if(g_raw.data.payload.parts[n+1].mimeType == "application/pdf") { //MUST BE PDF!
+            var attach_json = {"mime": g_raw.data.payload.parts[n+1].mimeType, "filename": g_raw.data.payload.parts[n+1].filename, "attach_id": g_raw.data.payload.parts[n+1].body.attachmentId, "raw": null}
+            attachments.push(attach_json)
         }
     }
 
-    //date
-    if(typeof g_raw.data.payload.headers[17] != 'undefined') {
-        if(g_raw.data.payload.headers[17].name == "Date")
-            date = g_raw.data.payload.headers[17].value
-    }
-    if(typeof g_raw.data.payload.headers[1] != 'undefined') {
-        if(g_raw.data.payload.headers[1].name == "Date")
-            date = g_raw.data.payload.headers[1].value
-    }
-    if(typeof g_raw.data.payload.headers[19] != 'undefined') {
-        if(g_raw.data.payload.headers[19].name == "Date")
-            date = g_raw.data.payload.headers[19].value
-    }
-
-    //subject
+    //subject (outside of loop so I can check first cmd on the title if not then I don't do any parsing)
     if(typeof g_raw.data.payload.headers[19] != 'undefined') {
         if(g_raw.data.payload.headers[19].name == "Subject")
             title = g_raw.data.payload.headers[19].value
@@ -196,71 +184,143 @@ async function parse_data(g_raw, idx, g_access) {
         if(g_raw.data.payload.headers[4].name == "Subject")
             title = g_raw.data.payload.headers[4].value
     }
-    
-    //message (body)
-    if (g_raw.data.payload.parts[0].body.data) {
-        //this exists when there is no attachment provided
-        message = Base64.decode(g_raw.data.payload.parts[0].body.data)
-        message = message.replace(/(?:\\[rn]|[\r\n]+)+/g, "") //removes \n and \r 
-    } 
-    else if(g_raw.data.payload.parts[0].parts[0].body.data) {
-        //this exists when there is an attachment provided
-        message = Base64.decode(g_raw.data.payload.parts[0].parts[0].body.data)
-        message = message.replace(/(?:\\[rn]|[\r\n]+)+/g, "") //removes \n and \r
-    }
-    else if(g_raw.data.payload.parts[0].parts[0].parts[0].body.data) {
-        message = Base64.decode(g_raw.data.payload.parts[0].parts[0].parts[0].body.data)
-        message = message.replace(/(?:\\[rn]|[\r\n]+)+/g, "") //removes \n and \r
-    }
-    else {
-        message = g_raw.data.snippet.replace(/(?:\\[rn]|[\r\n]+)+/g, "") //removes \n and \r
-    }
 
-    //who has access to this document
-    if(typeof g_raw.data.payload.headers[20] != 'undefined') {
-        if(g_raw.data.payload.headers[20].name == "To") {
-            p_access = g_raw.data.payload.headers[20].value
-            p_access_regex = p_access.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+)/gi);
-            account_access = [...new Set(p_access_regex)]
+    //commands: help, save, get
+    if(!isEmpty(title)) {
+        f_cmd = title.split(' ')
+
+        console.log(f_cmd)
+        
+        //save attachments to db
+        if(f_cmd[0] == "save") {
+            found_cmd = "save"
         }
-    }
-    if(typeof g_raw.data.payload.headers[22] != 'undefined') {
-        if(g_raw.data.payload.headers[22].name == "To") {
-            p_access = g_raw.data.payload.headers[22].value
-            p_access_regex = p_access.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+)/gi);
-            account_access = [...new Set(p_access_regex)]
+        else if(f_cmd[0] == "help") {
+            found_cmd = "help"
         }
-    }
-    if(typeof g_raw.data.payload.headers[5] != 'undefined') {
-        if(g_raw.data.payload.headers[5].name == "To") {
-            p_access = g_raw.data.payload.headers[5].value
-            p_access_regex = p_access.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+)/gi);
-            account_access = [...new Set(p_access_regex)]
+        else if(f_cmd[0] == "get") {
+            found_cmd = "get"
         }
-    }
-    if(typeof g_raw.data.payload.headers[6] != 'undefined') {
-        if(g_raw.data.payload.headers[6].name == "To") {
-            p_access = g_raw.data.payload.headers[6].value
-            p_access_regex = p_access.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+)/gi);
-            account_access = [...new Set(p_access_regex)]
+        else {
+            found_cmd = "no_cmd"
         }
     }
 
-    //get attachments that are pdfs
-    for (let n = 0; n < g_raw.data.payload.parts.length-1; n++) {
-        if(g_raw.data.payload.parts[n+1].mimeType == "application/pdf") { //MUST BE PDF!
-            var test = {"mime": g_raw.data.payload.parts[n+1].mimeType, "filename": g_raw.data.payload.parts[n+1].filename, "attach_id": g_raw.data.payload.parts[n+1].body.attachmentId, "raw": null}
-            attachments.push(test)
-        }
-    }
 
-    //query to get raw base64 attachments added in order to save them
-    if(!isEmpty(attachments)) {
+    //get the new title now
+    if(found_cmd != "no_cmd") {
+        f_cmd.shift()
+        console.log("msg", f_cmd)
+        title = f_cmd.join(" ")
+    }
+    //if attachments is empty or if cmd not found then there is no point in parsing the rest of the data :/
+    if(!isEmpty(attachments) && found_cmd != "no_cmd") {
+
+
+        //query to get raw base64 attachments added in order to save them
         for (let a = 0; a < attachments.length; a++) {
-            var raw = await get_attachments(g_access, g_id, attachments[a].attach_id) //DO API REQUEST FOR ATTACHMENT!
+            var raw = await get_attachments(g_access, g_id, attachments[a].attach_id)
             attachments[a].raw = raw.data.data
         }
+
+        //sender name and sender email
+        if(typeof g_raw.data.payload.headers[16] != 'undefined') {
+            if(g_raw.data.payload.headers[16].name == "From") {
+                var raw_from = parse_from(16, g_raw)
+                var words = raw_from.split('=')
+                sender_name = words[0]
+                sender_email = words[1]
+            }
+        }
+        if(typeof g_raw.data.payload.headers[4] != 'undefined') {
+            if(g_raw.data.payload.headers[4].name == "From") {
+                var raw_from = parse_from(4, g_raw)
+                var words = raw_from.split('=')
+                sender_name = words[0]
+                sender_email = words[1]
+            }
+        }
+        if(typeof g_raw.data.payload.headers[18] != 'undefined') {
+            if(g_raw.data.payload.headers[18].name == "From") {
+                var raw_from = parse_from(18, g_raw)
+                var words = raw_from.split('=')
+                sender_name = words[0]
+                sender_email = words[1]
+            }
+        }
+        if(typeof g_raw.data.payload.headers[5] != 'undefined') {
+            if(g_raw.data.payload.headers[5].name == "From") {
+                var raw_from = parse_from(5, g_raw)
+                var words = raw_from.split('=')
+                sender_name = words[0]
+                sender_email = words[1]
+            }
+        }
+
+        //date
+        if(typeof g_raw.data.payload.headers[17] != 'undefined') {
+            if(g_raw.data.payload.headers[17].name == "Date")
+                date = g_raw.data.payload.headers[17].value
+        }
+        if(typeof g_raw.data.payload.headers[1] != 'undefined') {
+            if(g_raw.data.payload.headers[1].name == "Date")
+                date = g_raw.data.payload.headers[1].value
+        }
+        if(typeof g_raw.data.payload.headers[19] != 'undefined') {
+            if(g_raw.data.payload.headers[19].name == "Date")
+                date = g_raw.data.payload.headers[19].value
+        }
+        
+        //message (body)
+        if (g_raw.data.payload.parts[0].body.data) {
+            //this exists when there is no attachment provided
+            message = Base64.decode(g_raw.data.payload.parts[0].body.data)
+            message = message.replace(/(?:\\[rn]|[\r\n]+)+/g, "") //removes \n and \r 
+        } 
+        else if(g_raw.data.payload.parts[0].parts[0].body.data) {
+            //this exists when there is an attachment provided
+            message = Base64.decode(g_raw.data.payload.parts[0].parts[0].body.data)
+            message = message.replace(/(?:\\[rn]|[\r\n]+)+/g, "") //removes \n and \r
+        }
+        else if(g_raw.data.payload.parts[0].parts[0].parts[0].body.data) {
+            message = Base64.decode(g_raw.data.payload.parts[0].parts[0].parts[0].body.data)
+            message = message.replace(/(?:\\[rn]|[\r\n]+)+/g, "") //removes \n and \r
+        }
+        else {
+            message = g_raw.data.snippet.replace(/(?:\\[rn]|[\r\n]+)+/g, "") //removes \n and \r
+        }
+
+        //who has access to this document
+        if(typeof g_raw.data.payload.headers[20] != 'undefined') {
+            if(g_raw.data.payload.headers[20].name == "To") {
+                p_access = g_raw.data.payload.headers[20].value
+                p_access_regex = p_access.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+)/gi);
+                account_access = [...new Set(p_access_regex)]
+            }
+        }
+        if(typeof g_raw.data.payload.headers[22] != 'undefined') {
+            if(g_raw.data.payload.headers[22].name == "To") {
+                p_access = g_raw.data.payload.headers[22].value
+                p_access_regex = p_access.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+)/gi);
+                account_access = [...new Set(p_access_regex)]
+            }
+        }
+        if(typeof g_raw.data.payload.headers[5] != 'undefined') {
+            if(g_raw.data.payload.headers[5].name == "To") {
+                p_access = g_raw.data.payload.headers[5].value
+                p_access_regex = p_access.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+)/gi);
+                account_access = [...new Set(p_access_regex)]
+            }
+        }
+        if(typeof g_raw.data.payload.headers[6] != 'undefined') {
+            if(g_raw.data.payload.headers[6].name == "To") {
+                p_access = g_raw.data.payload.headers[6].value
+                p_access_regex = p_access.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+)/gi);
+                account_access = [...new Set(p_access_regex)]
+            }
+        }
     }
+
 
     //json format
     content = {
@@ -272,15 +332,12 @@ async function parse_data(g_raw, idx, g_access) {
         "title": title,
         "message": message,
         "attachments": attachments,
-        "date": date
+        "date": date,
+        "cmd": found_cmd
     }
 
     return content
 }
-
-
-
-
 
 
 
@@ -301,34 +358,49 @@ router.get("/", (req, res) => {
             //await post_msg_delete(g_access.data.access_token, g_id.data.messages[idx].id)
             var g_data = await parse_data(g_raw, idx, g_access.data.access_token)
 
-    
-            for(var j = 0; j < Object.keys(g_data.attachments).length; j++) {
+            if(g_data.cmd != "no_cmd") {
+                for(var j = 0; j < Object.keys(g_data.attachments).length; j++) {
 
-            fs.writeFile(`./files/${g_data.g_id}-${j}.pdf`, g_data.attachments[j].raw, { encoding: 'base64' }, function (err) {
-                if (err) {
-                    return console.log(err);
-                }
-            });
-            
-            db.serialize(function () {
-                db.get(`SELECT * FROM Users WHERE Email='${g_data.sender_email}'`, function (err, user) {
+                fs.writeFile(`./files/${g_data.g_id}-${j}.pdf`, g_data.attachments[j].raw, { encoding: 'base64' }, function (err) {
                     if (err) {
-                        console.log(err);
-                    }
-                    if(!user){
-                        db.run("INSERT INTO Users (Name, Email, Major) VALUES (?, ?, ?)", ["Anonymous", `${g_data.sender_email}`, "Unkown"]);
+                        return console.log(err);
                     }
                 });
-                // db.run("INSERT INTO Documents (Name, Description, Location, OwnerID, Project, DateAdded) VALUES (?, ?, ?, (SELECT UserID FROM Users WHERE Email=?), (SELECT ProjID FROM Projects WHERE Name=?), (SELECT date('now')))", [`${g_data.title}`, "We should probably have a description field", `./files/${g_data.g_id}-${j}.pdf`, `${g_data.sender_email}`, "BeverDMS"]);
-            });
+                
+                db.serialize(function () {
+                    db.get(`SELECT * FROM Users WHERE Email='${g_data.sender_email}'`, function (err, user) {
+                        if (err) {
+                            console.log(err);
+                        }
+                        if(!user){
+                            db.run("INSERT INTO Users (Name, Email, Major) VALUES (?, ?, ?)", ["Anonymous", `${g_data.sender_email}`, "Unkown"]);
+                        }
+                    });
+                    db.run("INSERT INTO Documents (Name, Description, Location, OwnerID, Project, DateAdded) VALUES (?, ?, ?, (SELECT UserID FROM Users WHERE Email=?), (SELECT ProjID FROM Projects WHERE Name=?), (SELECT date('now')))", [`${g_data.title}`, `${g_data.message}`, `./files/${g_data.g_id}-${j}.pdf`, `${g_data.sender_email}`, "BeverDMS"]);
+                });
+            }
+            beav_data.push(g_data)
         }
-        beav_data.push(g_data)
     }
-        res.status(200).json(beav_data)
-    }
+    //this is a api test for sending a message
+    raw = makeBody("vdcampa0@gmailcom", "gobeavdms@gmail.com", "hello loser", "hi ugly")
+    await post_send_msg(g_access, raw)
+
+    res.status(200).json(beav_data)
+}
 
     g_request()
+});
 
+router.get("/test", (req, res) => {
+    // async function g_request() {
+    //     const g_access = await get_token() //getting access token 
+
+
+    //     res.status(200).json("ok")
+    // }
+
+    // g_request()
 
     // db.serialize(function () {
     //     db.all(`SELECT Documents.Location FROM Documents WHERE Documents.OwnerID = ${1}`, function (err, row, col) {
@@ -342,26 +414,105 @@ router.get("/", (req, res) => {
     //     })
     // })
 
-});
+    content =  {
+        "id": 0,
+        "g_id": "175e1655290f7f8f",
+        "sender_name": "Beaver DMS",
+        "sender_email": "gobeavdms@gmail.com",
+        "access": [
+          "vdcampa0@gmail.com",
+          "gobeavdms@gmail.com"
+        ],
+        "title": "hello team here is a pdf",
+        "message": "I attached it here",
+        "attachments": [
+          {
+            "mime": "application/pdf",
+            "filename": "W7L5-AuthenticationProtocols-II.pdf",
+            "attach_id": "ANGjdJ8w4X5Q-MOIhPyyzdNl-YIVW_VRhQqcf70Uurc9IjPmH3zaP5hvltkrClp38CjPdEP5dYFA8u1S6orONuX1g61KvZrF8Pi0f06cidXZdYXOAEOcLNPms_oXI-0hklYKrbIaX906u5CB8pWxHJuLL4e3gkMKznkpopVmo7vPVYHEpk30zzJpImhHktbZCSj1xzdSOZBQN5wVw8CGtu3n87zJO0wN70yHOU1W-g",
+            "raw": "rawrxd"
+          }
+        ],
+        "date": "Thu, 19 Nov 2020 16:45:16 +0000",
+        "cmd": "save"
+      }
 
-router.get("/home", (req, res) => {
-    async function load_documents_from_DB() {
+    location_test = "./files/175e1655290f7f8f-0.pdf"
+
+
+
+    //assume the UID is already saved
+
+
+    //how to get data when user requests it
+    //USERS: get their userID by (using their email)
+    //PERMISSIONS: get their get DID they have access to (using their userID)
+    //DOCUMENTS: grab thoses specific DID and give them Location aka "FILE" if the email matches request from user
+
+
+    var currentDate = new Date();
+
         var loaded_documents = [];
+        
         db.serialize(function () {
-            db.all("SELECT * FROM Documents", function (err, docs) {
+            db.all(`SELECT DocID, OwnerID, Location FROM Documents WHERE Location = "${location_test}"`, function (err, docs) {
                 if (err) {
+                    console.log('going to print err')
                     console.log(err);
                 }
                 if(!docs){
                     console.log("No documents exist!");
                 } else {
-                    loaded_documents = docs;
+                    //console.log(this.lastID)
+                    //assigning documents to corresponding permissions
+                    for (let a = 0; a < Object.keys(content.access).length; a++) {
+                        //query saving the user who has access
+                        //test = db.run("INSERT INTO Users (Name, Email, Major) VALUES (?, ?, ?)", ["Anonymous", `${content.access[a]}`, "Unkown"])
+    
+                            db.all("INSERT INTO Users (Name, Email, Major) VALUES (?, ?, ?)", ["Anonymous", `${content.access[a]}`, "Unkown"], function (err, user) {
+                                if (err) {
+                                    console.log(err);
+                                }
+                                if(!user){
+                                    //console.log(this.lastID)
+                                    console.log(user)
+                                    //db.run("INSERT INTO Users (Name, Email, Major) VALUES (?, ?, ?)", ["Anonymous", `${g_data.sender_email}`, "Unkown"]);
+                                }
+                            });
+
+                        //console.log(test)
+                        for (let u = 0; u < docs.length; u++) {
+                            console.log("assigning", content.access[a], " ->", docs[u].Location)
+                            db.run("INSERT INTO Permissions (DID, UID, Permissions) VALUES (?, ?, ?)", [`${docs[u].DocID}`, `no_id_yet`, 1])
+                        }
+                    }
                 }
-                res.status(200).json(loaded_documents);
-            });
-        });
-    }
-    load_documents_from_DB();
+            })
+        })
+
+
+
+        res.status(200).json("hello");
+
+    // console.log(test)
+    // db.run("INSERT INTO Permissions (DID, UID, Permissions) VALUES (?, ?, ?)", [`${}`])
+})
+
+router.get("/home", (req, res) => {
+    //no need to do an async call
+    db.serialize(function () {
+        db.all("SELECT * FROM Documents", function (err, docs) {
+            if (err) {
+                console.log(err);
+            }
+            if(!docs){
+                console.log("No documents exist!");
+            } else {
+                loaded_documents = docs;
+            }
+            res.status(200).json(loaded_documents);
+        })
+    })
 });
 
 router.use(cors());
