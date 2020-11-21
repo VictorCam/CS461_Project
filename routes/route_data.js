@@ -7,7 +7,6 @@ const { isEmpty } = require("lodash");
 const sqlite3 = require('sqlite3').verbose();
 const axios = require("axios")
 const db = new sqlite3.Database('./database/beavdms.db');
-var createBody = require('gmail-api-create-message-body');
 
 const MANAGE = 4; //Permission to grant access to other users
 const CHANGE = 2; //Permission to add document to project, etc...
