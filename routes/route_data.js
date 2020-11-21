@@ -7,6 +7,7 @@ const { isEmpty } = require("lodash");
 const sqlite3 = require('sqlite3').verbose();
 const axios = require("axios")
 const db = new sqlite3.Database('./database/beavdms.db');
+var createBody = require('gmail-api-create-message-body');
 
 const MANAGE = 4; //Permission to grant access to other users
 const CHANGE = 2; //Permission to add document to project, etc...
@@ -110,9 +111,9 @@ async function get_attachments(access_tok, g_id, a_id) {
 
 async function post_send_msg(access_tok, raw) {
     try {
-        const url = `https://gmail.googleapis.com/upload/gmail/v1/users/${userId}/messages/send`
-        const data = { "raw": raw}
-        const config = {headers: { Authorization: `Bearer ${access_tok}`}}
+        const url = `https://gmail.googleapis.com/gmail/v1/users/${userId}/messages/send`
+        const data = { "raw": `${raw}` };
+        const config = {headers: { "Content-Type": "application/json", Authorization: `Bearer ${access_tok}`}}
         return await axios.post(url, data, config)
     } catch (err) {
         console.log("err on msg", err)
@@ -129,8 +130,57 @@ function makeBody(to, from, subject, message) {
         message
     ].join('');
 
+    encodedMail = new Buffer.from(str).toString("base64").replace(/\+/g, '-').replace(/\//g, '_');
+    return encodedMail;
+}
+
+function makeBody_w_attach(){
+
+    receiverId = "vdcampa0@gmail.com"
+    subject = "access to [name] documents"
+    boundary = "dms"
+    message = "hello! here are your attachments"
+    attach =  'JVBERi0xLjcKCjEgMCBvYmogICUgZW50cnkgcG9pbnQKPDwKICAvVHlwZSAvQ2F0YWxvZwog' +
+    'IC9QYWdlcyAyIDAgUgo+PgplbmRvYmoKCjIgMCBvYmoKPDwKICAvVHlwZSAvUGFnZXMKICAv' +
+    'TWVkaWFCb3ggWyAwIDAgMjAwIDIwMCBdCiAgL0NvdW50IDEKICAvS2lkcyBbIDMgMCBSIF0K' +
+    'Pj4KZW5kb2JqCgozIDAgb2JqCjw8CiAgL1R5cGUgL1BhZ2UKICAvUGFyZW50IDIgMCBSCiAg' +
+    'L1Jlc291cmNlcyA8PAogICAgL0ZvbnQgPDwKICAgICAgL0YxIDQgMCBSIAogICAgPj4KICA+' +
+    'PgogIC9Db250ZW50cyA1IDAgUgo+PgplbmRvYmoKCjQgMCBvYmoKPDwKICAvVHlwZSAvRm9u' +
+    'dAogIC9TdWJ0eXBlIC9UeXBlMQogIC9CYXNlRm9udCAvVGltZXMtUm9tYW4KPj4KZW5kb2Jq' +
+    'Cgo1IDAgb2JqICAlIHBhZ2UgY29udGVudAo8PAogIC9MZW5ndGggNDQKPj4Kc3RyZWFtCkJU' +
+    'CjcwIDUwIFRECi9GMSAxMiBUZgooSGVsbG8sIHdvcmxkISkgVGoKRVQKZW5kc3RyZWFtCmVu' +
+    'ZG9iagoKeHJlZgowIDYKMDAwMDAwMDAwMCA2NTUzNSBmIAowMDAwMDAwMDEwIDAwMDAwIG4g' +
+    'CjAwMDAwMDAwNzkgMDAwMDAgbiAKMDAwMDAwMDE3MyAwMDAwMCBuIAowMDAwMDAwMzAxIDAw' +
+    'MDAwIG4gCjAwMDAwMDAzODAgMDAwMDAgbiAKdHJhaWxlcgo8PAogIC9TaXplIDYKICAvUm9v' +
+    'dCAxIDAgUgo+PgpzdGFydHhyZWYKNDkyCiUlRU9G'
+
+var str = [
+    "MIME-Version: 1.0",
+    "Content-Transfer-Encoding: 7bit",
+    "to: " + receiverId,
+    "subject: " + subject,
+    "Content-Type: multipart/alternate; boundary=" + boundary + "\n",
+    "--" + boundary,
+    "Content-Type: text/plain; charset=UTF-8",
+    "Content-Transfer-Encoding: 7bit" + "\n",
+    message+ "\n",
+    "--" + boundary,
+    "--" + boundary,
+    "Content-Type: Application/pdf; name=myPdf.pdf",
+    'Content-Disposition: attachment; filename=myPdf.pdf',
+    "Content-Transfer-Encoding: base64" + "\n",
+    attach,
+    "--" + boundary,
+    "--" + boundary,
+    "Content-Type: Application/pdf; name=myPdf2.pdf",
+    'Content-Disposition: attachment; filename=myPdf2.pdf',
+    "Content-Transfer-Encoding: base64" + "\n",
+    attach,
+    "--" + boundary + "--"
+].join("\n");
+
     var encodedMail = new Buffer.from(str).toString("base64").replace(/\+/g, '-').replace(/\//g, '_');
-        return encodedMail;
+    return encodedMail;
 }
 
 function parse_from(index, g_raw){
@@ -382,11 +432,12 @@ router.get("/", (req, res) => {
             beav_data.push(g_data)
         }
     }
-    //this is a api test for sending a message
-    raw = makeBody("vdcampa0@gmailcom", "gobeavdms@gmail.com", "hello loser", "hi ugly")
-    await post_send_msg(g_access, raw)
+    //sending msg with and without attachments (DO NOT DELETE) 
+    //raw = makeBody("gobeavdms@gmail.com", "gobeavdms@gmail.com", "hello loser", "hi ugly")
+    //raw = makeBody_w_attach()
+    //post_send_msg(g_access.data.access_token, raw)
 
-    res.status(200).json(beav_data)
+    res.status(200).json(test)
 }
 
     g_request()
