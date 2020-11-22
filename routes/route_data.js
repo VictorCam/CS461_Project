@@ -47,7 +47,7 @@ async function get_token() {
         const url = `https://accounts.google.com/o/oauth2/token?client_id=${c_id}&client_secret=${c_secret}&refresh_token=${c_retoken}&grant_type=refresh_token`
         return await axios.post(url)
     } catch (err) {
-        console.log("err with get_token()")
+        console.log(err)
     }
 }
 
@@ -57,7 +57,7 @@ async function get_msg_id(access_tok) {
         const config = {headers: { Authorization: `Bearer ${access_tok}`}}
         return await axios.get(url, config)
     } catch (err) {
-        console.log("err with get_msg_id()")
+        console.log(err)
     }
 }
 
@@ -67,7 +67,7 @@ async function get_msg_data(access_tok, g_id) {
         const config = {headers: { Authorization: `Bearer ${access_tok}`, "Content-type": `application/json`}}
         return await axios.get(url, config)
     } catch (err) {
-        console.log("err with get_msg_data()")
+        console.log(err)
     }
 }
 
@@ -78,7 +78,7 @@ async function post_msg_delete(access_tok, g_id) {
         const config = {headers: { Authorization: `Bearer ${access_tok}`}}
         return await axios.post(url, data, config)
     } catch (err) {
-        console.log("err with post_msg_delete()")
+        console.log(err)
     }
 }
 
@@ -89,7 +89,7 @@ async function get_attachments(access_tok, g_id, a_id) {
         const config = {headers: { Authorization: `Bearer ${access_tok}`}}
         return await axios.get(url, config)
     } catch (err) {
-        console.log("err with get_attachments()")
+        console.log(err)
     }
 }
 
@@ -100,7 +100,7 @@ async function post_send_msg(access_tok, raw) {
         const config = {headers: { "Content-Type": "application/json", Authorization: `Bearer ${access_tok}`}}
         return await axios.post(url, data, config)
     } catch (err) {
-        console.log("err with post_send_msg()")
+        console.log("err on msg", err)
     }
 }
 
@@ -214,6 +214,8 @@ async function parse_data(g_raw, idx, g_access) {
     //commands: help, save, get
     if(!isEmpty(title)) {
         f_cmd = title.split(' ')
+
+        console.log("gmail msg here")
         
         //save attachments to db
         if(f_cmd[0].toLowerCase() == "save") {
@@ -278,7 +280,7 @@ async function parse_data(g_raw, idx, g_access) {
 
         //seperate title and command
         f_cmd.shift()
-        //console.log("msg", f_cmd)
+        console.log("msg", f_cmd)
         title = f_cmd.join(" ")
 
         //query to get raw base64 attachments added in order to save them
@@ -369,108 +371,99 @@ async function parse_data(g_raw, idx, g_access) {
     return content
 }
 
-async function g_request(callback) {
-    const g_access = await get_token() //getting access token 
-    const g_id = await get_msg_id(g_access.data.access_token) //getting messages
-
-    if (g_id.data.resultSizeEstimate == 0) { //no content meaning there is no need to preform requests
-        return callback()
-        //return res.status(200).json({"No Content": "There is not content to display"})
-    }
-    
-    beav_data = []
-    
-    for (let idx = 0; idx < Object.keys(g_id.data.messages).length; idx++) {
-        var g_raw = await get_msg_data(g_access.data.access_token, g_id.data.messages[idx].id)
-        await post_msg_delete(g_access.data.access_token, g_id.data.messages[idx].id) //(DO NOT DELETE)
-        var g_data = await parse_data(g_raw, idx, g_access.data.access_token)
-
-
-        //inside here we will save users/documents
-        if(g_data.cmd == "save") {
-            for(var j = 0; j < Object.keys(g_data.attachments).length; j++) {
-                fs.writeFile(`./files/${g_data.g_id}-${j}.pdf`, g_data.attachments[j].raw, { encoding: 'base64' }, function (err) {
-                    if (err) {
-                        return console.log(err);
-                    }
-                });
-                const get_user = db.prepare("SELECT * FROM Users WHERE Email= ?")
-                const insert_user = db.prepare("INSERT INTO Users (Name, Email, Major) VALUES (?, ?, ?)")
-                const insert_doc = db.prepare("INSERT INTO Documents (Name, Description, Location, OwnerID, Project, DateAdded) VALUES (?, ?, ?, ?, ?, ?)")
-                const find_doc = db.prepare("SELECT * FROM Documents WHERE Location = ?")
-                const insert_perm = db.prepare("INSERT INTO Permissions (DID, UID, Permissions) VALUES (?, ?, ?)")
-
-                //save or grab user and save document location
-                user = get_user.get(`${g_data.sender_email}`)
-                if(!user) {
-                    insert_user.run(`${g_data.sender_name}`, `${g_data.sender_email}`, "Unknown") //create new user
-                }
-                user = get_user.get(`${g_data.sender_email}`)
-                insert_doc.run(`${g_data.title}`, `${g_data.message}`, `./files/${g_data.g_id}-${j}.pdf`, `${user.UserID}`, null, currentDate.toString())   
-                doc = find_doc.get(`./files/${g_data.g_id}-${j}.pdf`)
-
-                //save new users and give permissions
-                for (let a = 0; a < Object.keys(g_data.access).length; a++) {
-                    user = get_user.get(`${g_data.access[a]}`)
-                    if(!user) {
-                        insert_user.run(`Unknown`, `${g_data.access[a]}`, "Unknown") //create new user
-                    }
-                    user = get_user.get(`${g_data.access[a]}`)
-                    insert_perm.run(doc.DocID, user.UserID, READ)
-                }
-            }
-
-
-            //case in where g_data has empty data
-            if(!isEmpty(g_data.sender_email) && !isEmpty(g_data.attachments)) {
-                raw = makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[AUTO MESSAGE] SAVED ATTACHMENTS`, `Success: Saved data successfully to gobeavdms! \n\n Origin of Message: ${g_data.title}`)
-                // raw = makeBody_w_attach() //do not delete
-                await post_send_msg(g_access.data.access_token, raw)
-            }
-            else {
-                raw = makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[AUTO MESSAGE] ERROR SAVING ATTACHMENTS`, `Error: No attachments were added or invalid email format \n\n Origin of Message: ${g_data.title}`)
-                // raw = makeBody_w_attach() //do not delete
-                await post_send_msg(g_access.data.access_token, raw)
-            }
-
-        beav_data.push(g_data)
-        }
-        else {
-            if(!isEmpty(g_data.sender_email)) { //case where cmd is not specified
-                raw = makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[AUTO MESSAGE] ERROR SAVING ATTACHMENTS`, `Error: Did not specify a command on the subject line \n\n Origin of Message: ${g_data.title}`)
-                // raw = makeBody_w_attach() //do not delete
-                await post_send_msg(g_access.data.access_token, raw)
-            }
-        }
-
-        //inside here we will check if user has access to document
-        if(g_data.cmd == "access") {
-            console.log("we want to do some queries then compose a msg if they have access or not ")
-        }
-    }
-    return callback()
-//return "msg sent"
-//res.status(200).json(beav_data)
-}
-
-async function recall() {
-    await g_request(recall)
-}
-
-recall()
-
-
 
 
 router.get("/", (req, res) => {
 
+    async function g_request() {
+        const g_access = await get_token() //getting access token 
+        const g_id = await get_msg_id(g_access.data.access_token) //getting messages
+        
+        if (g_id.data.resultSizeEstimate == 0) { //no content meaning there is no need to preform requests
+            return res.status(200).json({"No Content": "There is not content to display"})
+        }
+
+        beav_data = []
+
+        for (let idx = 0; idx < Object.keys(g_id.data.messages).length; idx++) {
+            var g_raw = await get_msg_data(g_access.data.access_token, g_id.data.messages[idx].id)
+            await post_msg_delete(g_access.data.access_token, g_id.data.messages[idx].id) //(DO NOT DELETE)
+            var g_data = await parse_data(g_raw, idx, g_access.data.access_token)
+
+
+            //inside here we will save users/documents
+            if(g_data.cmd == "save") {
+                for(var j = 0; j < Object.keys(g_data.attachments).length; j++) {
+                    fs.writeFile(`./files/${g_data.g_id}-${j}.pdf`, g_data.attachments[j].raw, { encoding: 'base64' }, function (err) {
+                        if (err) {
+                            return console.log(err);
+                        }
+                    });
+                    const get_user = db.prepare("SELECT * FROM Users WHERE Email= ?")
+                    const insert_user = db.prepare("INSERT INTO Users (Name, Email, Major) VALUES (?, ?, ?)")
+                    const insert_doc = db.prepare("INSERT INTO Documents (Name, Description, Location, OwnerID, Project, DateAdded) VALUES (?, ?, ?, ?, ?, ?)")
+                    const find_doc = db.prepare("SELECT * FROM Documents WHERE Location = ?")
+                    const insert_perm = db.prepare("INSERT INTO Permissions (DID, UID, Permissions) VALUES (?, ?, ?)")
+
+                    //save or grab user and save document location
+                    user = get_user.get(`${g_data.sender_email}`)
+                    if(!user) {
+                        insert_user.run(`${g_data.sender_name}`, `${g_data.sender_email}`, "Unknown") //create new user
+                    }
+                    user = get_user.get(`${g_data.sender_email}`)
+                    insert_doc.run(`${g_data.title}`, `${g_data.message}`, `./files/${g_data.g_id}-${j}.pdf`, `${user.UserID}`, null, currentDate.toString())   
+                    doc = find_doc.get(`./files/${g_data.g_id}-${j}.pdf`)
+
+                    //save new users and give permissions
+                    for (let a = 0; a < Object.keys(g_data.access).length; a++) {
+                        user = get_user.get(`${g_data.access[a]}`)
+                        if(!user) {
+                            insert_user.run(`Unknown`, `${g_data.access[a]}`, "Unknown") //create new user
+                        }
+                        user = get_user.get(`${g_data.access[a]}`)
+                        insert_perm.run(doc.DocID, user.UserID, READ)
+                    }
+                }
+
+
+                //case in where g_data has empty data
+                if(!isEmpty(g_data.sender_email) && !isEmpty(g_data.attachments)) {
+                    raw = makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[AUTO MESSAGE] SAVED ATTACHMENTS`, `Success: Saved data successfully to gobeavdms! \n\n Origin of Message: ${g_data.title}`)
+                    // raw = makeBody_w_attach() //do not delete
+                    await post_send_msg(g_access.data.access_token, raw)
+                }
+                else {
+                    raw = makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[AUTO MESSAGE] ERROR SAVING ATTACHMENTS`, `Error: No attachments were added or invalid email format \n\n Origin of Message: ${g_data.title}`)
+                    // raw = makeBody_w_attach() //do not delete
+                    await post_send_msg(g_access.data.access_token, raw)
+                }
+
+            beav_data.push(g_data)
+            }
+            else {
+                if(!isEmpty(g_data.sender_email)) { //case where cmd is not specified
+                    raw = makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[AUTO MESSAGE] ERROR SAVING ATTACHMENTS`, `Error: Did not specify a command on the subject line \n\n Origin of Message: ${g_data.title}`)
+                    // raw = makeBody_w_attach() //do not delete
+                    await post_send_msg(g_access.data.access_token, raw)
+                }
+            }
+
+            //inside here we will check if user has access to document
+            if(g_data.cmd == "access") {
+                console.log("we want to do some queries then compose a msg if they have access or not ")
+            }
+        }
+    res.status(200).json(beav_data)
+}
+
+    g_request()
 });
 
 
 router.get("/home", (req, res) => {
     const get_docs = db.prepare("SELECT * FROM Documents")
-    docs = get_docs.all()
-    res.status(200).json(docs)
+    docs = get_docs.get()
+    res.status(200).json([docs])
 });
 
 router.use(cors());
