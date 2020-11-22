@@ -193,14 +193,6 @@ async function parse_data(g_raw, idx, g_access) {
 
     found_cmd = "no_cmd"
 
-    //get attachments that are pdfs (this must be outside of loop)
-    for (let n = 0; n < g_raw.data.payload.parts.length-1; n++) {
-        if(g_raw.data.payload.parts[n+1].mimeType == "application/pdf") { //MUST BE PDF!
-            var attach_json = {"mime": g_raw.data.payload.parts[n+1].mimeType, "filename": g_raw.data.payload.parts[n+1].filename, "attach_id": g_raw.data.payload.parts[n+1].body.attachmentId, "raw": null}
-            attachments.push(attach_json)
-        }
-    }
-
     //subject (outside of loop so I can check first cmd on the title if not then I don't do any parsing)
     if(typeof g_raw.data.payload.headers[19] != 'undefined') {
         if(g_raw.data.payload.headers[19].name == "Subject")
@@ -226,13 +218,13 @@ async function parse_data(g_raw, idx, g_access) {
         console.log(f_cmd)
         
         //save attachments to db
-        if(f_cmd[0] == "save") {
+        if(f_cmd[0].toLowerCase() == "save") {
             found_cmd = "save"
         }
-        else if(f_cmd[0] == "help") {
+        else if(f_cmd[0].toLowerCase() == "help") {
             found_cmd = "help"
         }
-        else if(f_cmd[0] == "access") {
+        else if(f_cmd[0].toLowerCase() == "access") {
             found_cmd = "access"
         }
         else {
@@ -240,55 +232,61 @@ async function parse_data(g_raw, idx, g_access) {
         }
     }
 
-
-    //get the new title now
-    if(found_cmd != "no_cmd") {
-        f_cmd.shift()
-        console.log("msg", f_cmd)
-        title = f_cmd.join(" ")
+    //get attachments that are pdfs (this must be outside of loop)
+    if(g_raw.data.payload.parts != undefined) {
+    for (let n = 0; n < g_raw.data.payload.parts.length-1; n++) {
+        if(g_raw.data.payload.parts[n+1].mimeType == "application/pdf") { //MUST BE PDF!
+            var attach_json = {"mime": g_raw.data.payload.parts[n+1].mimeType, "filename": g_raw.data.payload.parts[n+1].filename, "attach_id": g_raw.data.payload.parts[n+1].body.attachmentId, "raw": null}
+            attachments.push(attach_json)
+        }
     }
+}
+            //sender name and sender email (outside loop so we can determine error)
+            if(typeof g_raw.data.payload.headers[16] != 'undefined') {
+                if(g_raw.data.payload.headers[16].name == "From") {
+                    var raw_from = parse_from(16, g_raw)
+                    var words = raw_from.split('=')
+                    sender_name = words[0]
+                    sender_email = words[1]
+                }
+            }
+            if(typeof g_raw.data.payload.headers[4] != 'undefined') {
+                if(g_raw.data.payload.headers[4].name == "From") {
+                    var raw_from = parse_from(4, g_raw)
+                    var words = raw_from.split('=')
+                    sender_name = words[0]
+                    sender_email = words[1]
+                }
+            }
+            if(typeof g_raw.data.payload.headers[18] != 'undefined') {
+                if(g_raw.data.payload.headers[18].name == "From") {
+                    var raw_from = parse_from(18, g_raw)
+                    var words = raw_from.split('=')
+                    sender_name = words[0]
+                    sender_email = words[1]
+                }
+            }
+            if(typeof g_raw.data.payload.headers[5] != 'undefined') {
+                if(g_raw.data.payload.headers[5].name == "From") {
+                    var raw_from = parse_from(5, g_raw)
+                    var words = raw_from.split('=')
+                    sender_name = words[0]
+                    sender_email = words[1]
+                }
+            }
+
     //if attachments is empty or if cmd not found then there is no point in parsing the rest of the data :/
     if(!isEmpty(attachments) && found_cmd != "no_cmd") {
 
+        //seperate title and ocmmand
+        f_cmd.shift()
+        console.log("msg", f_cmd)
+        title = f_cmd.join(" ")
 
         //query to get raw base64 attachments added in order to save them
         for (let a = 0; a < attachments.length; a++) {
             var raw = await get_attachments(g_access, g_id, attachments[a].attach_id)
             attachments[a].raw = raw.data.data
-        }
-
-        //sender name and sender email
-        if(typeof g_raw.data.payload.headers[16] != 'undefined') {
-            if(g_raw.data.payload.headers[16].name == "From") {
-                var raw_from = parse_from(16, g_raw)
-                var words = raw_from.split('=')
-                sender_name = words[0]
-                sender_email = words[1]
-            }
-        }
-        if(typeof g_raw.data.payload.headers[4] != 'undefined') {
-            if(g_raw.data.payload.headers[4].name == "From") {
-                var raw_from = parse_from(4, g_raw)
-                var words = raw_from.split('=')
-                sender_name = words[0]
-                sender_email = words[1]
-            }
-        }
-        if(typeof g_raw.data.payload.headers[18] != 'undefined') {
-            if(g_raw.data.payload.headers[18].name == "From") {
-                var raw_from = parse_from(18, g_raw)
-                var words = raw_from.split('=')
-                sender_name = words[0]
-                sender_email = words[1]
-            }
-        }
-        if(typeof g_raw.data.payload.headers[5] != 'undefined') {
-            if(g_raw.data.payload.headers[5].name == "From") {
-                var raw_from = parse_from(5, g_raw)
-                var words = raw_from.split('=')
-                sender_name = words[0]
-                sender_email = words[1]
-            }
         }
 
         //date
@@ -426,7 +424,32 @@ router.get("/", (req, res) => {
                         insert_perm.run(doc.DocID, user.UserID, READ)
                     }
                 }
+
+
+                //case in where g_data has empty data
+                if(!isEmpty(g_data.sender_email) && !isEmpty(g_data.attachments)) {
+                    raw = makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[AUTO MESSAGE] SAVED ATTACHMENTS`, `Success: Saved data successfully to gobeavdms! \n\n Origin of Message: ${g_data.title}`)
+                    // raw = makeBody_w_attach() //do not delete
+                    await post_send_msg(g_access.data.access_token, raw)
+                }
+                else {
+                    raw = makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[AUTO MESSAGE] ERROR SAVING ATTACHMENTS`, `Error: No attachments were added or invalid email format \n\n Origin of Message: ${g_data.title}`)
+                    // raw = makeBody_w_attach() //do not delete
+                    await post_send_msg(g_access.data.access_token, raw)
+                }
+
             beav_data.push(g_data)
+            }
+            else {
+                if(!isEmpty(g_data.sender_email)) { //case where cmd is not specified
+                    raw = makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[AUTO MESSAGE] ERROR SAVING ATTACHMENTS`, `Error: Did not specify a command on the subject line \n\n Origin of Message: ${g_data.title}`)
+                    // raw = makeBody_w_attach() //do not delete
+                    await post_send_msg(g_access.data.access_token, raw)
+                }
+                else {
+                    //(emails sent from beavdms) it will quietly delete sent meails (TEMPORARY: WILL DELETE)
+                    await post_msg_delete(g_access.data.access_token, g_data.g_id)
+                }
             }
 
             //inside here we will check if user has access to document
@@ -434,10 +457,6 @@ router.get("/", (req, res) => {
                 console.log("we want to do some queries then compose a msg if they have access or not ")
             }
         }
-    //sending msg with and without attachments (DO NOT DELETE) 
-    //raw = makeBody("gobeavdms@gmail.com", "gobeavdms@gmail.com", "hello loser", "hi ugly")
-    //raw = makeBody_w_attach()
-    //post_send_msg(g_access.data.access_token, raw)
     res.status(200).json(beav_data)
 }
 
