@@ -2,7 +2,9 @@
    <div class="document-item">
        <h3>{{doc.Name}}</h3>
        <router-link :to="{name: 'docs', params: {DocID: doc.DocID}}">
-            <button class="view-button">View</button>
+            <button class="view-button">
+                <font-awesome-icon icon="file-alt"></font-awesome-icon>
+            </button>
        </router-link>
     </div> 
 </template>

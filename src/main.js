@@ -1,12 +1,20 @@
-import Vue from 'vue'
-import App from './App.vue'
-import VueRouter from 'vue-router'
-import store from "../store/store"
+import Vue from 'vue';
+import App from './App.vue';
+import VueRouter from 'vue-router';
+import store from "../store/store";
 
-import DocumentDetail from './components/DocumentDetail'
+import DocumentDetail from './components/DocumentDetail';
 import Home from './Home';
 
-Vue.config.productionTip = false
+import { library } from '@fortawesome/fontawesome-svg-core';
+import { faHome, faFileAlt } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
+
+library.add(faHome, faFileAlt);
+ 
+Vue.component('font-awesome-icon', FontAwesomeIcon);
+
+Vue.config.productionTip = false;
 
 Vue.use(VueRouter);
 
