@@ -6,26 +6,23 @@ const { Base64 } = require('js-base64');
 const { isEmpty } = require("lodash");
 const sqlite3 = require('sqlite3').verbose();
 const axios = require("axios")
-const db = new sqlite3.Database('./database/beavdms.db');
+const Database = require('better-sqlite3');
+const db = new Database('./database/beavdms.db');
 
+var app = express();
+
+
+//global constants
+var currentDate = new Date(); //current date for database saving
+const userId = "gobeavdms@gmail.com" //user id for api requests
 const MANAGE = 4; //Permission to grant access to other users
 const CHANGE = 2; //Permission to add document to project, etc...
 const READ = 1; //Permission to read document
 
-db.serialize(function () {
-    db.run(
-        "CREATE TABLE IF NOT EXISTS Projects (ProjID INTEGER PRIMARY KEY, Name TEXT NOT NULL, GitHub TEXT NOT NULL)"
-    );
-    db.run(
-        "CREATE TABLE IF NOT EXISTS Users (UserID INTEGER PRIMARY KEY, Name TEXT NOT NULL, Email TEXT NOT NULL, Major TEXT NOT NULL)"
-    );
-    db.run(
-        "CREATE TABLE IF NOT EXISTS Documents (DocID INTEGER PRIMARY KEY, Name TEXT NOT NULL, Description TEXT, Location TEXT NOT NULL, OwnerID INTEGER NOT NULL, Project INTEGER, DateAdded TEXT NOT NULL, FOREIGN KEY(OwnerID) REFERENCES Users(UserID) ON DELETE CASCADE, FOREIGN KEY(Project) REFERENCES Projects(ProjID) ON DELETE CASCADE)"
-    );
-    db.run(
-        "CREATE TABLE IF NOT EXISTS Permissions (PermID INTEGER PRIMARY KEY, DID INTEGER NOT NULL, UID INTEGER NOT NULL, Permissions INTEGER NOT NULL, FOREIGN KEY(DID) REFERENCES Documents(DocID) ON DELETE CASCADE, FOREIGN KEY(UID) REFERENCES Users(UserID) ON DELETE CASCADE)"
-    );
-});
+db.exec("CREATE TABLE IF NOT EXISTS Projects (ProjID INTEGER PRIMARY KEY, Name TEXT NOT NULL, GitHub TEXT NOT NULL)");
+db.exec("CREATE TABLE IF NOT EXISTS Users (UserID INTEGER PRIMARY KEY, Name TEXT NOT NULL, Email TEXT NOT NULL, Major TEXT NOT NULL)");
+db.exec("CREATE TABLE IF NOT EXISTS Documents (DocID INTEGER PRIMARY KEY, Name TEXT NOT NULL, Description TEXT, Location TEXT NOT NULL, OwnerID INTEGER NOT NULL, Project INTEGER, DateAdded TEXT NOT NULL, FOREIGN KEY(OwnerID) REFERENCES Users(UserID) ON DELETE CASCADE, FOREIGN KEY(Project) REFERENCES Projects(ProjID) ON DELETE CASCADE)");
+db.exec("CREATE TABLE IF NOT EXISTS Permissions (PermID INTEGER PRIMARY KEY, DID INTEGER NOT NULL, UID INTEGER NOT NULL, Permissions INTEGER NOT NULL, FOREIGN KEY(DID) REFERENCES Documents(DocID) ON DELETE CASCADE, FOREIGN KEY(UID) REFERENCES Users(UserID) ON DELETE CASCADE)");
 
 /**
  * Example INSERT and SELECT statements
@@ -41,18 +38,6 @@ db.serialize(function () {
 // db.get("SELECT DocID, Documents.Name AS Name, Users.Name AS Owner, Description FROM Documents INNER JOIN Users ON OwnerID=UserID WHERE Documents.Name='Beaver Doc'", function(err, dox) {
 //   console.log("Name: ", dox.Name, " Owner: ", dox.Owner, "Description: ", dox.Description);
 // });
-// var currentDate = new Date();
-// db.run("DELETE FROM Documents");
-// db.run("INSERT INTO Documents (Name, Description, Location, OwnerID, Project, DateAdded) VALUES (?, ?, ?, ?, ?, ?)", ["TechProject", "A tech project", "Corvallis", 1, null, currentDate]);
-// db.run("INSERT INTO Documents (Name, Description, Location, OwnerID, Project, DateAdded) VALUES (?, ?, ?, ?, ?, ?)", ["SportsProject", "A sports project", "Portland", 1, null, currentDate]);
-// db.run("INSERT INTO Documents (Name, Description, Location, OwnerID, Project, DateAdded) VALUES (?, ?, ?, ?, ?, ?)", ["ExerciseProject", "An exercise project", "Seattle", 1, null, currentDate]);
-
-
-var app = express();
-//const connectsql = require("../server_connection"); // no server connection yet
-
-//global constants
-const userId = "gobeavdms@gmail.com"
 
 async function get_token() {
     try {
@@ -247,8 +232,8 @@ async function parse_data(g_raw, idx, g_access) {
         else if(f_cmd[0] == "help") {
             found_cmd = "help"
         }
-        else if(f_cmd[0] == "get") {
-            found_cmd = "get"
+        else if(f_cmd[0] == "access") {
+            found_cmd = "access"
         }
         else {
             found_cmd = "no_cmd"
@@ -401,152 +386,64 @@ router.get("/", (req, res) => {
         }
 
         beav_data = []
-        console.log(g_id.data.resultSizeEstimate)
+
         for (let idx = 0; idx < Object.keys(g_id.data.messages).length; idx++) {
             var g_raw = await get_msg_data(g_access.data.access_token, g_id.data.messages[idx].id)
-            //await post_msg_delete(g_access.data.access_token, g_id.data.messages[idx].id)
+            //await post_msg_delete(g_access.data.access_token, g_id.data.messages[idx].id) //(DO NOT DELETE)
             var g_data = await parse_data(g_raw, idx, g_access.data.access_token)
 
-            if(g_data.cmd != "no_cmd") {
-                for(var j = 0; j < Object.keys(g_data.attachments).length; j++) {
 
-                fs.writeFile(`./files/${g_data.g_id}-${j}.pdf`, g_data.attachments[j].raw, { encoding: 'base64' }, function (err) {
-                    if (err) {
-                        return console.log(err);
-                    }
-                });
-                
-                db.serialize(function () {
-                    db.get(`SELECT * FROM Users WHERE Email='${g_data.sender_email}'`, function (err, user) {
+            //inside here we will save users/documents
+            if(g_data.cmd == "save") {
+                for(var j = 0; j < Object.keys(g_data.attachments).length; j++) {
+                    fs.writeFile(`./files/${g_data.g_id}-${j}.pdf`, g_data.attachments[j].raw, { encoding: 'base64' }, function (err) {
                         if (err) {
-                            console.log(err);
-                        }
-                        if(!user){
-                            db.run("INSERT INTO Users (Name, Email, Major) VALUES (?, ?, ?)", ["Anonymous", `${g_data.sender_email}`, "Unkown"]);
+                            return console.log(err);
                         }
                     });
-                    db.run("INSERT INTO Documents (Name, Description, Location, OwnerID, Project, DateAdded) VALUES (?, ?, ?, (SELECT UserID FROM Users WHERE Email=?), (SELECT ProjID FROM Projects WHERE Name=?), (SELECT date('now')))", [`${g_data.title}`, `${g_data.message}`, `./files/${g_data.g_id}-${j}.pdf`, `${g_data.sender_email}`, "BeverDMS"]);
-                });
-            }
+                    const get_user = db.prepare("SELECT * FROM Users WHERE Email= ?")
+                    const insert_user = db.prepare("INSERT INTO Users (Name, Email, Major) VALUES (?, ?, ?)")
+                    const insert_doc = db.prepare("INSERT INTO Documents (Name, Description, Location, OwnerID, Project, DateAdded) VALUES (?, ?, ?, ?, ?, ?)")
+                    const find_doc = db.prepare("SELECT * FROM Documents WHERE Location = ?")
+                    const insert_perm = db.prepare("INSERT INTO Permissions (DID, UID, Permissions) VALUES (?, ?, ?)")
+
+                    //save or grab user and save document location
+                    user = get_user.get(`${g_data.sender_email}`)
+                    if(!user) {
+                        insert_user.run(`${g_data.sender_name}`, `${g_data.sender_email}`, "Unknown") //create new user
+                    }
+                    user = get_user.get(`${g_data.sender_email}`)
+                    insert_doc.run(`${g_data.title}`, `${g_data.message}`, `./files/${g_data.g_id}-${j}.pdf`, `${user.UserID}`, null, currentDate.toString())   
+                    doc = find_doc.get(`./files/${g_data.g_id}-${j}.pdf`)
+
+                    //save new users and give permissions
+                    for (let a = 0; a < Object.keys(g_data.access).length; a++) {
+                        user = get_user.get(`${g_data.access[a]}`)
+                        if(!user) {
+                            insert_user.run(`Unknown`, `${g_data.access[a]}`, "Unknown") //create new user
+                        }
+                        user = get_user.get(`${g_data.access[a]}`)
+                        insert_perm.run(doc.DocID, user.UserID, READ)
+                    }
+                }
             beav_data.push(g_data)
+            }
+
+            //inside here we will check if user has access to document
+            if(g_data.cmd == "access") {
+                console.log("we want to do some queries then compose a msg if they have access or not ")
+            }
         }
-    }
     //sending msg with and without attachments (DO NOT DELETE) 
     //raw = makeBody("gobeavdms@gmail.com", "gobeavdms@gmail.com", "hello loser", "hi ugly")
     //raw = makeBody_w_attach()
     //post_send_msg(g_access.data.access_token, raw)
-
-    res.status(200).json(test)
+    res.status(200).json(beav_data)
 }
 
     g_request()
 });
 
-router.get("/test", (req, res) => {
-    // async function g_request() {
-    //     const g_access = await get_token() //getting access token 
-
-
-    //     res.status(200).json("ok")
-    // }
-
-    // g_request()
-
-    // db.serialize(function () {
-    //     db.all(`SELECT Documents.Location FROM Documents WHERE Documents.OwnerID = ${1}`, function (err, row, col) {
-    //         if (err) {
-    //             console.log(err);
-    //         }
-    //         else {
-    //             console.log(row)
-    //             res.status(200).send(row)
-    //         }
-    //     })
-    // })
-
-    content =  {
-        "id": 0,
-        "g_id": "175e1655290f7f8f",
-        "sender_name": "Beaver DMS",
-        "sender_email": "gobeavdms@gmail.com",
-        "access": [
-          "vdcampa0@gmail.com",
-          "gobeavdms@gmail.com"
-        ],
-        "title": "hello team here is a pdf",
-        "message": "I attached it here",
-        "attachments": [
-          {
-            "mime": "application/pdf",
-            "filename": "W7L5-AuthenticationProtocols-II.pdf",
-            "attach_id": "ANGjdJ8w4X5Q-MOIhPyyzdNl-YIVW_VRhQqcf70Uurc9IjPmH3zaP5hvltkrClp38CjPdEP5dYFA8u1S6orONuX1g61KvZrF8Pi0f06cidXZdYXOAEOcLNPms_oXI-0hklYKrbIaX906u5CB8pWxHJuLL4e3gkMKznkpopVmo7vPVYHEpk30zzJpImhHktbZCSj1xzdSOZBQN5wVw8CGtu3n87zJO0wN70yHOU1W-g",
-            "raw": "rawrxd"
-          }
-        ],
-        "date": "Thu, 19 Nov 2020 16:45:16 +0000",
-        "cmd": "save"
-      }
-
-    location_test = "./files/175e1655290f7f8f-0.pdf"
-
-
-
-    //assume the UID is already saved
-
-
-    //how to get data when user requests it
-    //USERS: get their userID by (using their email)
-    //PERMISSIONS: get their get DID they have access to (using their userID)
-    //DOCUMENTS: grab thoses specific DID and give them Location aka "FILE" if the email matches request from user
-
-
-    var currentDate = new Date();
-
-        var loaded_documents = [];
-        
-        db.serialize(function () {
-            db.all(`SELECT DocID, OwnerID, Location FROM Documents WHERE Location = "${location_test}"`, function (err, docs) {
-                if (err) {
-                    console.log('going to print err')
-                    console.log(err);
-                }
-                if(!docs){
-                    console.log("No documents exist!");
-                } else {
-                    //console.log(this.lastID)
-                    //assigning documents to corresponding permissions
-                    for (let a = 0; a < Object.keys(content.access).length; a++) {
-                        //query saving the user who has access
-                        //test = db.run("INSERT INTO Users (Name, Email, Major) VALUES (?, ?, ?)", ["Anonymous", `${content.access[a]}`, "Unkown"])
-    
-                            db.all("INSERT INTO Users (Name, Email, Major) VALUES (?, ?, ?)", ["Anonymous", `${content.access[a]}`, "Unkown"], function (err, user) {
-                                if (err) {
-                                    console.log(err);
-                                }
-                                if(!user){
-                                    //console.log(this.lastID)
-                                    console.log(user)
-                                    //db.run("INSERT INTO Users (Name, Email, Major) VALUES (?, ?, ?)", ["Anonymous", `${g_data.sender_email}`, "Unkown"]);
-                                }
-                            });
-
-                        //console.log(test)
-                        for (let u = 0; u < docs.length; u++) {
-                            console.log("assigning", content.access[a], " ->", docs[u].Location)
-                            db.run("INSERT INTO Permissions (DID, UID, Permissions) VALUES (?, ?, ?)", [`${docs[u].DocID}`, `no_id_yet`, 1])
-                        }
-                    }
-                }
-            })
-        })
-
-
-
-        res.status(200).json("hello");
-
-    // console.log(test)
-    // db.run("INSERT INTO Permissions (DID, UID, Permissions) VALUES (?, ?, ?)", [`${}`])
-})
 
 router.get("/home", (req, res) => {
     //no need to do an async call
