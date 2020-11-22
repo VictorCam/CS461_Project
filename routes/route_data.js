@@ -215,7 +215,7 @@ async function parse_data(g_raw, idx, g_access) {
     if(!isEmpty(title)) {
         f_cmd = title.split(' ')
 
-        console.log(f_cmd)
+        console.log("gmail msg here")
         
         //save attachments to db
         if(f_cmd[0].toLowerCase() == "save") {
@@ -278,7 +278,7 @@ async function parse_data(g_raw, idx, g_access) {
     //if attachments is empty or if cmd not found then there is no point in parsing the rest of the data :/
     if(!isEmpty(attachments) && found_cmd != "no_cmd") {
 
-        //seperate title and ocmmand
+        //seperate title and command
         f_cmd.shift()
         console.log("msg", f_cmd)
         title = f_cmd.join(" ")
@@ -387,7 +387,7 @@ router.get("/", (req, res) => {
 
         for (let idx = 0; idx < Object.keys(g_id.data.messages).length; idx++) {
             var g_raw = await get_msg_data(g_access.data.access_token, g_id.data.messages[idx].id)
-            //await post_msg_delete(g_access.data.access_token, g_id.data.messages[idx].id) //(DO NOT DELETE)
+            await post_msg_delete(g_access.data.access_token, g_id.data.messages[idx].id) //(DO NOT DELETE)
             var g_data = await parse_data(g_raw, idx, g_access.data.access_token)
 
 
@@ -445,10 +445,6 @@ router.get("/", (req, res) => {
                     raw = makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[AUTO MESSAGE] ERROR SAVING ATTACHMENTS`, `Error: Did not specify a command on the subject line \n\n Origin of Message: ${g_data.title}`)
                     // raw = makeBody_w_attach() //do not delete
                     await post_send_msg(g_access.data.access_token, raw)
-                }
-                else {
-                    //(emails sent from beavdms) it will quietly delete sent meails (TEMPORARY: WILL DELETE)
-                    await post_msg_delete(g_access.data.access_token, g_data.g_id)
                 }
             }
 
