@@ -446,20 +446,9 @@ router.get("/", (req, res) => {
 
 
 router.get("/home", (req, res) => {
-    //no need to do an async call
-    db.serialize(function () {
-        db.all("SELECT * FROM Documents", function (err, docs) {
-            if (err) {
-                console.log(err);
-            }
-            if(!docs){
-                console.log("No documents exist!");
-            } else {
-                loaded_documents = docs;
-            }
-            res.status(200).json(loaded_documents);
-        })
-    })
+    const get_docs = db.prepare("SELECT * FROM Documents")
+    docs = get_docs.get()
+    res.status(200).json([docs])
 });
 
 router.use(cors());
