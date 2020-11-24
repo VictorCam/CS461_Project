@@ -193,88 +193,93 @@ async function parse_data(g_raw, idx, g_access) {
     found_cmd = "no_cmd"
 
     //subject (outside of loop so I can check first cmd on the title if not then I don't do any parsing)
-    if(typeof g_raw.data.payload.headers[19] != 'undefined') {
-        if(g_raw.data.payload.headers[19].name == "Subject")
+    if (typeof g_raw.data.payload.headers[19] != 'undefined') {
+        if (g_raw.data.payload.headers[19].name == "Subject") {
             title = g_raw.data.payload.headers[19].value
+        }
     }
-    if(typeof g_raw.data.payload.headers[21] != 'undefined') {
-        if(g_raw.data.payload.headers[21].name == "Subject")
+    if (typeof g_raw.data.payload.headers[21] != 'undefined') {
+        if (g_raw.data.payload.headers[21].name == "Subject") {
             title = g_raw.data.payload.headers[21].value
+        }
     }
-    if(typeof g_raw.data.payload.headers[3] != 'undefined') {
-        if(g_raw.data.payload.headers[3].name == "Subject")
+    if (typeof g_raw.data.payload.headers[3] != 'undefined') {
+        if (g_raw.data.payload.headers[3].name == "Subject") {
             title = g_raw.data.payload.headers[3].value
+        }
     }
-    if(typeof g_raw.data.payload.headers[4] != 'undefined') {
-        if(g_raw.data.payload.headers[4].name == "Subject")
+    if (typeof g_raw.data.payload.headers[4] != 'undefined') {
+        if (g_raw.data.payload.headers[4].name == "Subject") {
             title = g_raw.data.payload.headers[4].value
+        }
     }
 
     //commands: help, save, get
-    if(!isEmpty(title)) {
+    if (!isEmpty(title)) {
         f_cmd = title.split(' ')
-        
+
         //save attachments to db
-        if(f_cmd[0].toLowerCase() == "save") {
+        if (f_cmd[0].toLowerCase() == "save") {
             found_cmd = "save"
-        }
-        else if(f_cmd[0].toLowerCase() == "help") {
+        } else if (f_cmd[0].toLowerCase() == "help") {
             found_cmd = "help"
-        }
-        else if(f_cmd[0].toLowerCase() == "access") {
+        } else if (f_cmd[0].toLowerCase() == "access") {
             found_cmd = "access"
-        }
-        else {
+        } else {
             found_cmd = "no_cmd"
         }
     }
 
     //get attachments that are pdfs (this must be outside of loop)
-    if(g_raw.data.payload.parts != undefined) {
-    for (let n = 0; n < g_raw.data.payload.parts.length-1; n++) {
-        if(g_raw.data.payload.parts[n+1].mimeType == "application/pdf") { //MUST BE PDF!
-            var attach_json = {"mime": g_raw.data.payload.parts[n+1].mimeType, "filename": g_raw.data.payload.parts[n+1].filename, "attach_id": g_raw.data.payload.parts[n+1].body.attachmentId, "raw": null}
-            attachments.push(attach_json)
+    if (g_raw.data.payload.parts != undefined) {
+        for (let n = 0; n < g_raw.data.payload.parts.length - 1; n++) {
+            if (g_raw.data.payload.parts[n + 1].mimeType == "application/pdf") { //MUST BE PDF!
+                var attach_json = {
+                    "mime": g_raw.data.payload.parts[n + 1].mimeType,
+                    "filename": g_raw.data.payload.parts[n + 1].filename,
+                    "attach_id": g_raw.data.payload.parts[n + 1].body.attachmentId,
+                    "raw": null
+                }
+                attachments.push(attach_json)
+            }
         }
     }
-}
-            //sender name and sender email (outside loop so we can determine error)
-            if(typeof g_raw.data.payload.headers[16] != 'undefined') {
-                if(g_raw.data.payload.headers[16].name == "From") {
-                    var raw_from = parse_from(16, g_raw)
-                    var words = raw_from.split('=')
-                    sender_name = words[0]
-                    sender_email = words[1]
-                }
-            }
-            if(typeof g_raw.data.payload.headers[4] != 'undefined') {
-                if(g_raw.data.payload.headers[4].name == "From") {
-                    var raw_from = parse_from(4, g_raw)
-                    var words = raw_from.split('=')
-                    sender_name = words[0]
-                    sender_email = words[1]
-                }
-            }
-            if(typeof g_raw.data.payload.headers[18] != 'undefined') {
-                if(g_raw.data.payload.headers[18].name == "From") {
-                    var raw_from = parse_from(18, g_raw)
-                    var words = raw_from.split('=')
-                    sender_name = words[0]
-                    sender_email = words[1]
-                }
-            }
-            if(typeof g_raw.data.payload.headers[5] != 'undefined') {
-                if(g_raw.data.payload.headers[5].name == "From") {
-                    var raw_from = parse_from(5, g_raw)
-                    var words = raw_from.split('=')
-                    sender_name = words[0]
-                    sender_email = words[1]
-                }
-            }
+    //sender name and sender email (outside loop so we can determine error)
+    if (typeof g_raw.data.payload.headers[16] != 'undefined') {
+        if (g_raw.data.payload.headers[16].name == "From") {
+            var raw_from = parse_from(16, g_raw)
+            var words = raw_from.split('=')
+            sender_name = words[0]
+            sender_email = words[1]
+        }
+    }
+    if (typeof g_raw.data.payload.headers[4] != 'undefined') {
+        if (g_raw.data.payload.headers[4].name == "From") {
+            var raw_from = parse_from(4, g_raw)
+            var words = raw_from.split('=')
+            sender_name = words[0]
+            sender_email = words[1]
+        }
+    }
+    if (typeof g_raw.data.payload.headers[18] != 'undefined') {
+        if (g_raw.data.payload.headers[18].name == "From") {
+            var raw_from = parse_from(18, g_raw)
+            var words = raw_from.split('=')
+            sender_name = words[0]
+            sender_email = words[1]
+        }
+    }
+    if (typeof g_raw.data.payload.headers[5] != 'undefined') {
+        if (g_raw.data.payload.headers[5].name == "From") {
+            var raw_from = parse_from(5, g_raw)
+            var words = raw_from.split('=')
+            sender_name = words[0]
+            sender_email = words[1]
+        }
+    }
 
     //if attachments is empty or if cmd not found then there is no point in parsing the rest of the data :/
-    if(!isEmpty(attachments) && found_cmd != "no_cmd") {
-
+    if (!isEmpty(attachments) && found_cmd != "no_cmd") {
         //seperate title and command
         f_cmd.shift()
         //console.log("msg", f_cmd)
@@ -287,69 +292,65 @@ async function parse_data(g_raw, idx, g_access) {
         }
 
         //date
-        if(typeof g_raw.data.payload.headers[17] != 'undefined') {
-            if(g_raw.data.payload.headers[17].name == "Date")
+        if (typeof g_raw.data.payload.headers[17] != 'undefined') {
+            if (g_raw.data.payload.headers[17].name == "Date")
                 date = g_raw.data.payload.headers[17].value
         }
-        if(typeof g_raw.data.payload.headers[1] != 'undefined') {
-            if(g_raw.data.payload.headers[1].name == "Date")
+        if (typeof g_raw.data.payload.headers[1] != 'undefined') {
+            if (g_raw.data.payload.headers[1].name == "Date")
                 date = g_raw.data.payload.headers[1].value
         }
-        if(typeof g_raw.data.payload.headers[19] != 'undefined') {
-            if(g_raw.data.payload.headers[19].name == "Date")
+        if (typeof g_raw.data.payload.headers[19] != 'undefined') {
+            if (g_raw.data.payload.headers[19].name == "Date")
                 date = g_raw.data.payload.headers[19].value
         }
-        
+
         //message (body)
         if (g_raw.data.payload.parts[0].body.data) {
             //this exists when there is no attachment provided
             message = Base64.decode(g_raw.data.payload.parts[0].body.data)
             message = message.replace(/(?:\\[rn]|[\r\n]+)+/g, "") //removes \n and \r 
-        } 
-        else if(g_raw.data.payload.parts[0].parts[0].body.data) {
+        } else if (g_raw.data.payload.parts[0].parts[0].body.data) {
             //this exists when there is an attachment provided
             message = Base64.decode(g_raw.data.payload.parts[0].parts[0].body.data)
             message = message.replace(/(?:\\[rn]|[\r\n]+)+/g, "") //removes \n and \r
-        }
-        else if(g_raw.data.payload.parts[0].parts[0].parts[0].body.data) {
+        } else if (g_raw.data.payload.parts[0].parts[0].parts[0].body.data) {
             message = Base64.decode(g_raw.data.payload.parts[0].parts[0].parts[0].body.data)
             message = message.replace(/(?:\\[rn]|[\r\n]+)+/g, "") //removes \n and \r
-        }
-        else {
+        } else {
             message = g_raw.data.snippet.replace(/(?:\\[rn]|[\r\n]+)+/g, "") //removes \n and \r
         }
 
         //who has access to this document
-        if(typeof g_raw.data.payload.headers[20] != 'undefined') {
-            if(g_raw.data.payload.headers[20].name == "To") {
+        if (typeof g_raw.data.payload.headers[20] != 'undefined') {
+            if (g_raw.data.payload.headers[20].name == "To") {
                 p_access = g_raw.data.payload.headers[20].value
                 p_access_regex = p_access.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+)/gi);
                 account_access = [...new Set(p_access_regex)]
             }
         }
-        if(typeof g_raw.data.payload.headers[22] != 'undefined') {
-            if(g_raw.data.payload.headers[22].name == "To") {
+        if (typeof g_raw.data.payload.headers[22] != 'undefined') {
+            if (g_raw.data.payload.headers[22].name == "To") {
                 p_access = g_raw.data.payload.headers[22].value
                 p_access_regex = p_access.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+)/gi);
                 account_access = [...new Set(p_access_regex)]
             }
         }
-        if(typeof g_raw.data.payload.headers[5] != 'undefined') {
-            if(g_raw.data.payload.headers[5].name == "To") {
+        if (typeof g_raw.data.payload.headers[5] != 'undefined') {
+            if (g_raw.data.payload.headers[5].name == "To") {
                 p_access = g_raw.data.payload.headers[5].value
                 p_access_regex = p_access.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+)/gi);
                 account_access = [...new Set(p_access_regex)]
             }
         }
-        if(typeof g_raw.data.payload.headers[6] != 'undefined') {
-            if(g_raw.data.payload.headers[6].name == "To") {
+        if (typeof g_raw.data.payload.headers[6] != 'undefined') {
+            if (g_raw.data.payload.headers[6].name == "To") {
                 p_access = g_raw.data.payload.headers[6].value
                 p_access_regex = p_access.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+)/gi);
                 account_access = [...new Set(p_access_regex)]
             }
         }
     }
-
 
     //json format
     content = {
@@ -369,32 +370,22 @@ async function parse_data(g_raw, idx, g_access) {
 }
 
 async function g_request(callback) {
-    await new Promise(r => setTimeout(r, 2000));
     const g_access = await get_token() //getting access token 
-    await new Promise(r => setTimeout(r, 2000));
     const g_id = await get_msg_id(g_access.data.access_token) //getting messages
 
-    if (g_id.data.resultSizeEstimate == 0) { //no content meaning there is no need to preform requests
-        return callback()
-        //return res.status(200).json({"No Content": "There is not content to display"})
-    }
-    
-    beav_data = []
-    
-    for (let idx = 0; idx < Object.keys(g_id.data.messages).length; idx++) {
-        var g_raw = await get_msg_data(g_access.data.access_token, g_id.data.messages[idx].id)
-        await post_msg_delete(g_access.data.access_token, g_id.data.messages[idx].id)
-        var g_data = await parse_data(g_raw, idx, g_access.data.access_token)
+    if (g_id.data.resultSizeEstimate == 0) { return callback() } //called when there is no maills to look through
 
+    //loop through all messages and save them
+    for (let idx = 0; idx < Object.keys(g_id.data.messages).length; idx++) {
+        var g_raw = await get_msg_data(g_access.data.access_token, g_id.data.messages[idx].id) //getting data
+        await post_msg_delete(g_access.data.access_token, g_id.data.messages[idx].id) //delete msg to trash
+        var g_data = await parse_data(g_raw, idx, g_access.data.access_token) //parse data
 
         //inside here we will save users/documents
-        if(g_data.cmd == "save") {
-            for(var j = 0; j < Object.keys(g_data.attachments).length; j++) {
-                fs.writeFile(`./files/${g_data.g_id}-${j}.pdf`, g_data.attachments[j].raw, { encoding: 'base64' }, function (err) {
-                    if (err) {
-                        return console.log(err);
-                    }
-                });
+        if (g_data.cmd == "save") {
+            for (var j = 0; j < Object.keys(g_data.attachments).length; j++) {
+                fs.writeFile(`./files/${g_data.g_id}-${j}.pdf`, g_data.attachments[j].raw, { encoding: 'base64' }, function(err) { if (err) { return console.log("err with writing pdf file") } })
+
                 const get_user = db.prepare("SELECT * FROM Users WHERE Email= ?")
                 const insert_user = db.prepare("INSERT INTO Users (Name, Email, Major) VALUES (?, ?, ?)")
                 const insert_doc = db.prepare("INSERT INTO Documents (Name, Description, Location, OwnerID, Project, DateAdded) VALUES (?, ?, ?, ?, ?, ?)")
@@ -403,55 +394,40 @@ async function g_request(callback) {
 
                 //save or grab user and save document location
                 user = get_user.get(`${g_data.sender_email}`)
-                if(!user) {
-                    insert_user.run(`${g_data.sender_name}`, `${g_data.sender_email}`, "Unknown") //create new user
-                }
+                if (!user) { insert_user.run(`${g_data.sender_name}`, `${g_data.sender_email}`, "Unknown") } 
+                //create a new user
                 user = get_user.get(`${g_data.sender_email}`)
-                insert_doc.run(`${g_data.title}`, `${g_data.message}`, `./files/${g_data.g_id}-${j}.pdf`, `${user.UserID}`, null, currentDate.toString())   
+                insert_doc.run(`${g_data.title}`, `${g_data.message}`, `./files/${g_data.g_id}-${j}.pdf`, `${user.UserID}`, null, currentDate.toString())
                 doc = find_doc.get(`./files/${g_data.g_id}-${j}.pdf`)
 
                 //save new users and give permissions
                 for (let a = 0; a < Object.keys(g_data.access).length; a++) {
                     user = get_user.get(`${g_data.access[a]}`)
-                    if(!user) {
-                        insert_user.run(`Unknown`, `${g_data.access[a]}`, "Unknown") //create new user
-                    }
+                    if (!user) { insert_user.run(`Unknown`, `${g_data.access[a]}`, "Unknown") } 
+                    //create a new user
                     user = get_user.get(`${g_data.access[a]}`)
                     insert_perm.run(doc.DocID, user.UserID, READ)
                 }
             }
 
-
-            //case in where g_data has empty data
-            if(!isEmpty(g_data.sender_email) && !isEmpty(g_data.attachments)) {
+            //case in where if the parse data has empty arrays then the parse() function found a formatting issue
+            if (!isEmpty(g_data.sender_email) && !isEmpty(g_data.attachments)) {
                 raw = makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[AUTO MESSAGE] SAVED ATTACHMENTS`, `Success: Saved data successfully to gobeavdms! \n\n Origin of Message: ${g_data.title}`)
-                // raw = makeBody_w_attach() //do not delete
                 await post_send_msg(g_access.data.access_token, raw)
-            }
-            else {
+            } else {
                 raw = makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[AUTO MESSAGE] ERROR SAVING ATTACHMENTS`, `Error: No attachments were added or invalid email format \n\n Origin of Message: ${g_data.title}`)
-                // raw = makeBody_w_attach() //do not delete
                 await post_send_msg(g_access.data.access_token, raw)
             }
-
-        beav_data.push(g_data)
-        }
-        else {
-            if(!isEmpty(g_data.sender_email)) { //case where cmd is not specified
+        } else if (g_data.cmd == "access") {
+            console.log("test")
+        } else {
+            if (!isEmpty(g_data.sender_email)) { //case where cmd is not specified but email can be sent
                 raw = makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[AUTO MESSAGE] ERROR SAVING ATTACHMENTS`, `Error: Did not specify a command on the subject line \n\n Origin of Message: ${g_data.title}`)
-                // raw = makeBody_w_attach() //do not delete
                 await post_send_msg(g_access.data.access_token, raw)
             }
-        }
-
-        //inside here we will check if user has access to document
-        if(g_data.cmd == "access") {
-            console.log("we want to do some queries then compose a msg if they have access or not ")
         }
     }
     return callback()
-//return "msg sent"
-//res.status(200).json(beav_data)
 }
 
 async function recall() {
@@ -461,10 +437,8 @@ async function recall() {
 recall()
 
 
-
-
-router.get("/", (req, res) => {
-
+router.get("/test", (req, res) => {
+    res.status(200).json("this is a test route")
 });
 
 
