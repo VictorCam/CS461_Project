@@ -10,7 +10,6 @@ The document management system time stamps documents, documents are immutable on
 1. npm install
 2. npm install -g nodemon (use sudo on linux/mac)
 3. npm install -g @vue/cli (use sudo on linux/mac)
-4. create this on root directory "./database/beavdms.db"
 5. npm run serve (starts localhost for vue)
 6. nodemon server.js (starts database)
 ```

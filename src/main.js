@@ -19,8 +19,8 @@ Vue.config.productionTip = false;
 Vue.use(VueRouter);
 
 const routes = [
-  { path: '/home', name: "home", component: Home },
-  { path: '/docs/:DocID', name: "docs", component: DocumentDetail }
+  { path: '/home', name: "home", component: Home, meta: {force_redirect: true}},
+  { path: '/docs/:DocID', name: "docs", component: DocumentDetail, meta: {force_redirect: true}}
 ];
 
 const router = new VueRouter({
@@ -29,8 +29,22 @@ const router = new VueRouter({
   mode: 'history' 
 });
 
+router.beforeEach((to,from,next) => {
+  redirections(to,from,next)
+})
+
+function redirections(to,from,next) {
+  if (!to.matched.some(record => record.meta.force_redirect)) {
+    next("/home")
+  }
+  else {
+    next()
+  }
+}
+
+
 new Vue({
   router,
-  render: h => h(App),
-  store
+  store,
+  render: h => h(App)
 }).$mount('#app')
