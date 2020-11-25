@@ -5,6 +5,7 @@ import store from "../store/store";
 
 import DocumentDetail from './components/DocumentDetail';
 import Home from './Home';
+import Tutorial from './components/Tutorial';
 
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faHome, faFileAlt } from '@fortawesome/free-solid-svg-icons';
@@ -20,7 +21,8 @@ Vue.use(VueRouter);
 
 const routes = [
   { path: '/home', name: "home", component: Home, meta: {force_redirect: true}},
-  { path: '/docs/:DocID', name: "docs", component: DocumentDetail, meta: {force_redirect: true}}
+  { path: '/docs/:DocID', name: "docs", component: DocumentDetail, meta: {force_redirect: true}},
+  { path: '/tutorial', name: "tutorial", component: Tutorial, meta: {force_redirect: true}}
 ];
 
 const router = new VueRouter({
