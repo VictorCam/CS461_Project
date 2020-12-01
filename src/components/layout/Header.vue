@@ -8,6 +8,10 @@
         <font-awesome-icon icon="home"></font-awesome-icon>
       </button>
     </router-link>
+    
+    <router-link :to="{ name: 'tutorial' }">
+      <button class="tutorial-btn">Tutorial</button>
+    </router-link>
   </div>
 </template>
 
@@ -31,6 +35,11 @@ export default {
   padding: 15px;
 }
 .home-btn {
+  align-self: flex-start;
+  margin: 20px;
+  padding: 5px;
+}
+.tutorial-btn {
   align-self: flex-end;
   margin: 20px;
   padding: 5px;
