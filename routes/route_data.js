@@ -8,35 +8,12 @@ const axios = require("axios")
 const Database = require('better-sqlite3');
 const db = new Database('./database/beavdms.db');
 
-var app = express();
-
-
 //global constants
 var currentDate = new Date(); //current date for database saving
 const userId = "gobeavdms@gmail.com" //user id for api requests
 const MANAGE = 4; //Permission to grant access to other users
 const CHANGE = 2; //Permission to add document to project, etc...
 const READ = 1; //Permission to read document
-
-db.exec("CREATE TABLE IF NOT EXISTS Projects (ProjID INTEGER PRIMARY KEY, Name TEXT NOT NULL, GitHub TEXT NOT NULL)");
-db.exec("CREATE TABLE IF NOT EXISTS Users (UserID INTEGER PRIMARY KEY, Name TEXT NOT NULL, Email TEXT NOT NULL, Major TEXT NOT NULL)");
-db.exec("CREATE TABLE IF NOT EXISTS Documents (DocID INTEGER PRIMARY KEY, Name TEXT NOT NULL, Description TEXT, Location TEXT NOT NULL, OwnerID INTEGER NOT NULL, Project INTEGER, DateAdded TEXT NOT NULL, FOREIGN KEY(OwnerID) REFERENCES Users(UserID) ON DELETE CASCADE, FOREIGN KEY(Project) REFERENCES Projects(ProjID) ON DELETE CASCADE)");
-db.exec("CREATE TABLE IF NOT EXISTS Permissions (PermID INTEGER PRIMARY KEY, DID INTEGER NOT NULL, UID INTEGER NOT NULL, Permissions INTEGER NOT NULL, FOREIGN KEY(DID) REFERENCES Documents(DocID) ON DELETE CASCADE, FOREIGN KEY(UID) REFERENCES Users(UserID) ON DELETE CASCADE)");
-
-/**
- * Example INSERT and SELECT statements
- */
-
-//Projects: Name, GitHub
-// db.run("INSERT INTO Projects (Name, GitHub) VALUES (?, ?)", ["BeaverDMS", "https://github.com/VictorCam/CS461_Project"]);
-// // Users: Name, Email, Major
-// db.run("INSERT INTO Users (Name, Email, Major) VALUES (?, ?, ?)", ["Travis Shands", "shandst@gmail.com", "Computer Science"]);
-// db.run("INSERT INTO Users (Name, Email, Major) VALUES (?, ?, ?)", ["Bryce Albertazzi", "albertab@oregonstate.edu", "Computer Science"]);
-// // Documents: Name, Description, Location, OwnerID, Project, DateAdded
-// db.run("INSERT INTO Documents (Name, Description, Location, OwnerID, Project, DateAdded) VALUES (?, ?, ?, (SELECT UserID FROM Users WHERE Email=?), (SELECT ProjID FROM Projects WHERE Name=?), (SELECT date('now')))", ["Beaver Doc", "Documentation of our project", "filepath", "shandst@gmail.com", "BeverDMS"]);
-// db.get("SELECT DocID, Documents.Name AS Name, Users.Name AS Owner, Description FROM Documents INNER JOIN Users ON OwnerID=UserID WHERE Documents.Name='Beaver Doc'", function(err, dox) {
-//   console.log("Name: ", dox.Name, " Owner: ", dox.Owner, "Description: ", dox.Description);
-// });
 
 async function get_token() {
     try {
@@ -166,8 +143,8 @@ var str = [
     return encodedMail;
 }
 
-function parse_from(index, g_raw){
-    sender_name_and_email = g_raw.data.payload.headers[index].value
+function parse_from(i, g_raw){
+    sender_name_and_email = g_raw.data.payload.headers[i].value
     sender_name = sender_name_and_email.replace(/(?:\\[rn]|[\r\n<>"]+)+/g, "")
 
     var words = sender_name.split(' ')
@@ -176,57 +153,35 @@ function parse_from(index, g_raw){
     sender_name = words.join(' ')
     return sender_name + "=" + sender_email
 }
+  
 
 async function parse_data(g_raw, idx, g_access) {
-
     g_id = g_raw.data.id
     console.log("GOOGLE IDENTIFICATION: ", g_raw.data.id)
-    sender_name_and_email = []
-    sender_email = []
-    sender_name = []
-    date = []
-    title = []
-    account_access = []
-    attachments = []
-    message = []
-
-    found_cmd = "no_cmd"
+    sender_name_and_email = [], sender_email = [], sender_name = [], date = [], title = [], account_access = [], attachments = [], message = [], found_cmd = "no_cmd"
 
     //subject (outside of loop so I can check first cmd on the title if not then I don't do any parsing)
-    if (typeof g_raw.data.payload.headers[19] != 'undefined') {
-        if (g_raw.data.payload.headers[19].name == "Subject") {
-            title = g_raw.data.payload.headers[19].value
-        }
-    }
-    if (typeof g_raw.data.payload.headers[21] != 'undefined') {
-        if (g_raw.data.payload.headers[21].name == "Subject") {
-            title = g_raw.data.payload.headers[21].value
-        }
-    }
-    if (typeof g_raw.data.payload.headers[3] != 'undefined') {
-        if (g_raw.data.payload.headers[3].name == "Subject") {
-            title = g_raw.data.payload.headers[3].value
-        }
-    }
-    if (typeof g_raw.data.payload.headers[4] != 'undefined') {
-        if (g_raw.data.payload.headers[4].name == "Subject") {
-            title = g_raw.data.payload.headers[4].value
+    find_index = [19,21,3,4]
+    for (let i = 0; i < find_index.length; i++) {
+        const element = find_index[i]
+        if (typeof g_raw.data.payload.headers[element] != 'undefined') {
+            if (g_raw.data.payload.headers[element].name == "Subject") {
+                title = g_raw.data.payload.headers[element].value
+            }
         }
     }
 
     //commands: help, save, get
     if (!isEmpty(title)) {
+        find_name = ["save", "help", "access"]
         f_cmd = title.split(' ')
 
         //save attachments to db
-        if (f_cmd[0].toLowerCase() == "save") {
-            found_cmd = "save"
-        } else if (f_cmd[0].toLowerCase() == "help") {
-            found_cmd = "help"
-        } else if (f_cmd[0].toLowerCase() == "access") {
-            found_cmd = "access"
-        } else {
-            found_cmd = "no_cmd"
+        for (let i = 0; i < find_name.length; i++) {
+            const element = find_name[i];
+            if (f_cmd[0].toLowerCase() == element) {
+                found_cmd = element
+            }
         }
     }
 
@@ -244,37 +199,18 @@ async function parse_data(g_raw, idx, g_access) {
             }
         }
     }
+
     //sender name and sender email (outside loop so we can determine error)
-    if (typeof g_raw.data.payload.headers[16] != 'undefined') {
-        if (g_raw.data.payload.headers[16].name == "From") {
-            var raw_from = parse_from(16, g_raw)
-            var words = raw_from.split('=')
-            sender_name = words[0]
-            sender_email = words[1]
-        }
-    }
-    if (typeof g_raw.data.payload.headers[4] != 'undefined') {
-        if (g_raw.data.payload.headers[4].name == "From") {
-            var raw_from = parse_from(4, g_raw)
-            var words = raw_from.split('=')
-            sender_name = words[0]
-            sender_email = words[1]
-        }
-    }
-    if (typeof g_raw.data.payload.headers[18] != 'undefined') {
-        if (g_raw.data.payload.headers[18].name == "From") {
-            var raw_from = parse_from(18, g_raw)
-            var words = raw_from.split('=')
-            sender_name = words[0]
-            sender_email = words[1]
-        }
-    }
-    if (typeof g_raw.data.payload.headers[5] != 'undefined') {
-        if (g_raw.data.payload.headers[5].name == "From") {
-            var raw_from = parse_from(5, g_raw)
-            var words = raw_from.split('=')
-            sender_name = words[0]
-            sender_email = words[1]
+    find_index = [16,4,18,5]
+    for (let i = 0; i < find_index.length; i++) {
+        const element = find_index[i]
+        if (typeof g_raw.data.payload.headers[element] != 'undefined') {
+            if (g_raw.data.payload.headers[element].name == "From") {
+                var raw_from = parse_from(element, g_raw)
+                var words = raw_from.split('=')
+                sender_name = words[0]
+                sender_email = words[1]
+            }
         }
     }
 
@@ -282,7 +218,6 @@ async function parse_data(g_raw, idx, g_access) {
     if (!isEmpty(attachments) && found_cmd != "no_cmd") {
         //seperate title and command
         f_cmd.shift()
-        //console.log("msg", f_cmd)
         title = f_cmd.join(" ")
 
         //query to get raw base64 attachments added in order to save them
@@ -292,20 +227,16 @@ async function parse_data(g_raw, idx, g_access) {
         }
 
         //date
-        if (typeof g_raw.data.payload.headers[17] != 'undefined') {
-            if (g_raw.data.payload.headers[17].name == "Date")
-                date = g_raw.data.payload.headers[17].value
-        }
-        if (typeof g_raw.data.payload.headers[1] != 'undefined') {
-            if (g_raw.data.payload.headers[1].name == "Date")
-                date = g_raw.data.payload.headers[1].value
-        }
-        if (typeof g_raw.data.payload.headers[19] != 'undefined') {
-            if (g_raw.data.payload.headers[19].name == "Date")
-                date = g_raw.data.payload.headers[19].value
+        find_index = [17,1,19]
+        for (let i = 0; i < find_index.length; i++) {
+            const element = find_index[i]
+            if (typeof g_raw.data.payload.headers[element] != 'undefined') {
+                if (g_raw.data.payload.headers[element].name == "Date")
+                    date = g_raw.data.payload.headers[element].value
+            }
         }
 
-        //message (body)
+        //find message
         if (g_raw.data.payload.parts[0].body.data) {
             //this exists when there is no attachment provided
             message = Base64.decode(g_raw.data.payload.parts[0].body.data)
@@ -322,32 +253,15 @@ async function parse_data(g_raw, idx, g_access) {
         }
 
         //who has access to this document
-        if (typeof g_raw.data.payload.headers[20] != 'undefined') {
-            if (g_raw.data.payload.headers[20].name == "To") {
-                p_access = g_raw.data.payload.headers[20].value
-                p_access_regex = p_access.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+)/gi);
-                account_access = [...new Set(p_access_regex)]
-            }
-        }
-        if (typeof g_raw.data.payload.headers[22] != 'undefined') {
-            if (g_raw.data.payload.headers[22].name == "To") {
-                p_access = g_raw.data.payload.headers[22].value
-                p_access_regex = p_access.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+)/gi);
-                account_access = [...new Set(p_access_regex)]
-            }
-        }
-        if (typeof g_raw.data.payload.headers[5] != 'undefined') {
-            if (g_raw.data.payload.headers[5].name == "To") {
-                p_access = g_raw.data.payload.headers[5].value
-                p_access_regex = p_access.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+)/gi);
-                account_access = [...new Set(p_access_regex)]
-            }
-        }
-        if (typeof g_raw.data.payload.headers[6] != 'undefined') {
-            if (g_raw.data.payload.headers[6].name == "To") {
-                p_access = g_raw.data.payload.headers[6].value
-                p_access_regex = p_access.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+)/gi);
-                account_access = [...new Set(p_access_regex)]
+        find_index = [20,22,5,6]
+        for (let i = 0; i < find_index.length; i++) {
+            const element = find_index[i]
+            if (typeof g_raw.data.payload.headers[element] != 'undefined') {
+                if (g_raw.data.payload.headers[element].name == "To") {
+                    p_access = g_raw.data.payload.headers[element].value
+                    p_access_regex = p_access.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+)/gi);
+                    account_access = [...new Set(p_access_regex)]
+                }
             }
         }
     }
@@ -369,10 +283,15 @@ async function parse_data(g_raw, idx, g_access) {
     return content
 }
 
+const get_user = db.prepare("SELECT * FROM Users WHERE Email= ?")
+const insert_user = db.prepare("INSERT INTO Users (Name, Email, Major) VALUES (?, ?, ?)")
+const insert_doc = db.prepare("INSERT INTO Documents (Name, Description, Location, OwnerID, Project, DateAdded) VALUES (?, ?, ?, ?, ?, ?)")
+const find_doc = db.prepare("SELECT * FROM Documents WHERE Location = ?")
+const insert_perm = db.prepare("INSERT INTO Permissions (DID, UID, Permissions) VALUES (?, ?, ?)")
+
 async function g_request(callback) {
     const g_access = await get_token() //getting access token 
     const g_id = await get_msg_id(g_access.data.access_token) //getting messages
-
     if (g_id.data.resultSizeEstimate == 0) { return callback() } //called when there is no maills to look through
 
     //loop through all messages and save them
@@ -385,12 +304,6 @@ async function g_request(callback) {
         if (g_data.cmd == "save") {
             for (var j = 0; j < Object.keys(g_data.attachments).length; j++) {
                 fs.writeFile(`./files/${g_data.g_id}-${j}.pdf`, g_data.attachments[j].raw, { encoding: 'base64' }, function(err) { if (err) { return console.log("err with writing pdf file") } })
-
-                const get_user = db.prepare("SELECT * FROM Users WHERE Email= ?")
-                const insert_user = db.prepare("INSERT INTO Users (Name, Email, Major) VALUES (?, ?, ?)")
-                const insert_doc = db.prepare("INSERT INTO Documents (Name, Description, Location, OwnerID, Project, DateAdded) VALUES (?, ?, ?, ?, ?, ?)")
-                const find_doc = db.prepare("SELECT * FROM Documents WHERE Location = ?")
-                const insert_perm = db.prepare("INSERT INTO Permissions (DID, UID, Permissions) VALUES (?, ?, ?)")
 
                 //save or grab user and save document location
                 user = get_user.get(`${g_data.sender_email}`)
@@ -418,13 +331,13 @@ async function g_request(callback) {
                 raw = makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[AUTO MESSAGE] ERROR SAVING ATTACHMENTS`, `Error: No attachments were added or invalid email format \n\n Origin of Message: ${g_data.title}`)
                 await post_send_msg(g_access.data.access_token, raw)
             }
-        } else if (g_data.cmd == "access") {
+        } 
+        else if (g_data.cmd == "access") {
             console.log("test")
-        } else {
-            if (!isEmpty(g_data.sender_email)) { //case where cmd is not specified but email can be sent
-                raw = makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[AUTO MESSAGE] ERROR SAVING ATTACHMENTS`, `Error: Did not specify a command on the subject line \n\n Origin of Message: ${g_data.title}`)
-                await post_send_msg(g_access.data.access_token, raw)
-            }
+        }
+        else {
+            raw = makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[AUTO MESSAGE] ERROR SAVING ATTACHMENTS`, `Error: Did not specify a command on the subject line \n\n Origin of Message: ${g_data.title}`)
+            await post_send_msg(g_access.data.access_token, raw)
         }
     }
     return callback()
@@ -433,14 +346,7 @@ async function g_request(callback) {
 async function recall() {
     await g_request(recall)
 }
-
 recall()
-
-
-router.get("/test", (req, res) => {
-    res.status(200).json("this is a test route")
-});
-
 
 router.get("/home", (req, res) => {
     const get_docs = db.prepare("SELECT * FROM Documents")
