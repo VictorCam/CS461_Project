@@ -14,6 +14,10 @@ const userId = "gobeavdms@gmail.com" //user id for api requests
 const MANAGE = 4; //Permission to grant access to other users
 const CHANGE = 2; //Permission to add document to project, etc...
 const READ = 1; //Permission to read document
+db.exec("CREATE TABLE IF NOT EXISTS Projects (ProjID INTEGER PRIMARY KEY, Name TEXT NOT NULL, GitHub TEXT NOT NULL)");
+db.exec("CREATE TABLE IF NOT EXISTS Users (UserID INTEGER PRIMARY KEY, Name TEXT NOT NULL, Email TEXT NOT NULL, Major TEXT NOT NULL)");
+db.exec("CREATE TABLE IF NOT EXISTS Documents (DocID INTEGER PRIMARY KEY, Name TEXT NOT NULL, Description TEXT, Location TEXT NOT NULL, OwnerID INTEGER NOT NULL, Project INTEGER, DateAdded TEXT NOT NULL, FOREIGN KEY(OwnerID) REFERENCES Users(UserID) ON DELETE CASCADE, FOREIGN KEY(Project) REFERENCES Projects(ProjID) ON DELETE CASCADE)");
+db.exec("CREATE TABLE IF NOT EXISTS Permissions (PermID INTEGER PRIMARY KEY, DID INTEGER NOT NULL, UID INTEGER NOT NULL, Permissions INTEGER NOT NULL, FOREIGN KEY(DID) REFERENCES Documents(DocID) ON DELETE CASCADE, FOREIGN KEY(UID) REFERENCES Users(UserID) ON DELETE CASCADE)");
 
 async function get_token() {
     try {
@@ -158,7 +162,7 @@ function parse_from(i, g_raw){
 async function parse_data(g_raw, idx, g_access) {
     g_id = g_raw.data.id
     console.log("GOOGLE IDENTIFICATION: ", g_raw.data.id)
-    sender_name_and_email = [], sender_email = [], sender_name = [], date = [], title = [], account_access = [], attachments = [], message = [], found_cmd = "no_cmd"
+    sender_name_and_email = [], sender_email = [], sender_name = [], date = [], title = [], rec_name = [], rec_email = [], rec_perm = [], attachments = [], message = [], found_cmd = "no_cmd"
 
     //subject (outside of loop so I can check first cmd on the title if not then I don't do any parsing)
     find_index = [19,21,3,4]
@@ -252,17 +256,20 @@ async function parse_data(g_raw, idx, g_access) {
             message = g_raw.data.snippet.replace(/(?:\\[rn]|[\r\n]+)+/g, "") //removes \n and \r
         }
 
-        //who has access to this document
-        find_index = [20,22,5,6]
-        for (let i = 0; i < find_index.length; i++) {
-            const element = find_index[i]
-            if (typeof g_raw.data.payload.headers[element] != 'undefined') {
-                if (g_raw.data.payload.headers[element].name == "To") {
-                    p_access = g_raw.data.payload.headers[element].value
-                    p_access_regex = p_access.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+)/gi);
-                    account_access = [...new Set(p_access_regex)]
+
+        try {
+            c_parse = message.split(",")
+            for (let i = 0; i < c_parse.length; i++) {
+                if(c_parse[i] != "") {
+                    user_data = c_parse[i].split("=")
+                    rec_name.push(user_data[0].replace(/\s/g, ''))  //regex removes spaces
+                    rec_email.push(user_data[1].replace(/\s/g, ''))
+                    rec_perm.push(user_data[2].replace(/\s/g, ''))
                 }
             }
+        }
+        catch(err) {
+            console.log("BAD FORMAT! [SEND A MSG TO USER THAT ERROR OCCURED AND DO NOT ALLOW QUERY]")
         }
     }
 
@@ -272,7 +279,9 @@ async function parse_data(g_raw, idx, g_access) {
         "g_id": g_id,
         "sender_name": sender_name,
         "sender_email": sender_email,
-        "access": account_access,
+        "rec_name": rec_name,
+        "rec_email": rec_email,
+        "rec_perm": rec_perm,
         "title": title,
         "message": message,
         "attachments": attachments,
@@ -314,21 +323,22 @@ async function g_request(callback) {
                 doc = find_doc.get(`./files/${g_data.g_id}-${j}.pdf`)
 
                 //save new users and give permissions
-                for (let a = 0; a < Object.keys(g_data.access).length; a++) {
-                    user = get_user.get(`${g_data.access[a]}`)
-                    if (!user) { insert_user.run(`Unknown`, `${g_data.access[a]}`, "Unknown") } 
-                    //create a new user
-                    user = get_user.get(`${g_data.access[a]}`)
-                    insert_perm.run(doc.DocID, user.UserID, READ)
+                for (let a = 0; a < Object.keys(g_data.rec_email).length; a++) {
+                    user = get_user.get(`${g_data.rec_email[a]}`)
+                    //if user does not exist make a new user
+                    if (!user) { insert_user.run(`${g_data.rec_name[a]}`, `${g_data.rec_email[a]}`, "Unknown") } 
+                    //get the newly created or existing user and insert their permissions
+                    user = get_user.get(`${g_data.rec_email[a]}`)
+                    insert_perm.run(doc.DocID, user.UserID, `${g_data.rec_perm[a]}`)
                 }
             }
 
             //case in where if the parse data has empty arrays then the parse() function found a formatting issue
             if (!isEmpty(g_data.sender_email) && !isEmpty(g_data.attachments)) {
-                raw = makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[AUTO MESSAGE] SAVED ATTACHMENTS`, `Success: Saved data successfully to gobeavdms! \n\n Origin of Message: ${g_data.title}`)
+                raw = makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] SAVED ATTACHMENTS`, `Success: Saved data successfully to gobeavdms! \n\n Origin of Message: ${g_data.title}`)
                 await post_send_msg(g_access.data.access_token, raw)
             } else {
-                raw = makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[AUTO MESSAGE] ERROR SAVING ATTACHMENTS`, `Error: No attachments were added or invalid email format \n\n Origin of Message: ${g_data.title}`)
+                raw = makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] ERROR SAVING ATTACHMENTS`, `Error: No attachments were added or invalid email format \n\n Origin of Message: ${g_data.title}`)
                 await post_send_msg(g_access.data.access_token, raw)
             }
         } 
@@ -336,8 +346,10 @@ async function g_request(callback) {
             console.log("test")
         }
         else {
-            raw = makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[AUTO MESSAGE] ERROR SAVING ATTACHMENTS`, `Error: Did not specify a command on the subject line \n\n Origin of Message: ${g_data.title}`)
-            await post_send_msg(g_access.data.access_token, raw)
+            if (!isEmpty(g_data.sender_email)) { //case is added here to prevent sent messages from being posted again
+                raw = makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] ERROR SAVING ATTACHMENTS`, `Error: Did not specify a command on the subject line \n\n Origin of Message: ${g_data.title}`)
+                await post_send_msg(g_access.data.access_token, raw)
+            }
         }
     }
     return callback()
