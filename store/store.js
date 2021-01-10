@@ -13,13 +13,13 @@ export default new vuex.Store({
     },
     actions: { //used to preform operations (calls mutations)
         load_gmail({ commit }) {
-            axios.get("http://localhost:13377/").then(res => {
+            axios.get("/api/").then(res => {
             console.log(res.data)
               commit("SET_GMAIL", res.data);
             })
         },
         load_documents({commit}) {
-            axios.get("http://localhost:13377/home").then(res => {
+            axios.get("/api/").then(res => {
             console.log(res.data)
               commit("SET_DOCUMENTS", res.data);
             })

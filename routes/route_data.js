@@ -360,7 +360,7 @@ async function recall() {
 }
 recall()
 
-router.get("/home", (req, res) => {
+router.get("/api", (req, res) => {
     const get_docs = db.prepare("SELECT * FROM Documents")
     docs = get_docs.all()
     res.status(200).json(docs)

@@ -20,7 +20,7 @@ Vue.config.productionTip = false;
 Vue.use(VueRouter);
 
 const routes = [
-  { path: '/home', name: "home", component: Home, meta: {force_redirect: true}},
+  { path: '/', name: "home", component: Home, meta: {force_redirect: true}},
   { path: '/docs/:DocID', name: "docs", component: DocumentDetail, meta: {force_redirect: true}},
   { path: '/tutorial', name: "tutorial", component: Tutorial, meta: {force_redirect: true}}
 ];
@@ -37,7 +37,7 @@ router.beforeEach((to,from,next) => {
 
 function redirections(to,from,next) {
   if (!to.matched.some(record => record.meta.force_redirect)) {
-    next("/home")
+    next("/")
   }
   else {
     next()
