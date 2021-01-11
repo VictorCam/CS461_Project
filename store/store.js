@@ -1,6 +1,7 @@
 import Vue from "vue"
 import vuex from "vuex"
 import axios from "axios"
+require('dotenv').config()
 
 Vue.use(vuex, axios)
 

@@ -1,12 +1,13 @@
-const express = require("express");
-const router = express.Router();
-const cors = require("cors");
-const fs = require('fs');
-const { Base64 } = require('js-base64');
-const { isEmpty } = require("lodash");
+const express = require("express")
+const router = express.Router()
+const cors = require("cors")
+const fs = require('fs')
+const { Base64 } = require('js-base64')
+const { isEmpty } = require("lodash")
 const axios = require("axios")
-const Database = require('better-sqlite3');
-const db = new Database('./database/beavdms.db');
+const Database = require('better-sqlite3')
+const db = new Database('./database/beavdms.db')
+require('dotenv').config()
 
 //global constants
 var currentDate = new Date(); //current date for database saving
