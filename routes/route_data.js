@@ -1,12 +1,13 @@
-const express = require("express");
-const router = express.Router();
-const cors = require("cors");
-const fs = require('fs');
-const { Base64 } = require('js-base64');
-const { isEmpty } = require("lodash");
+const express = require("express")
+const router = express.Router()
+const cors = require("cors")
+const fs = require('fs')
+const { Base64 } = require('js-base64')
+const { isEmpty } = require("lodash")
 const axios = require("axios")
-const Database = require('better-sqlite3');
-const db = new Database('./database/beavdms.db');
+const Database = require('better-sqlite3')
+const db = new Database('./database/beavdms.db')
+require('dotenv').config()
 
 //global constants
 var currentDate = new Date(); //current date for database saving
@@ -21,9 +22,9 @@ db.exec("CREATE TABLE IF NOT EXISTS Permissions (PermID INTEGER PRIMARY KEY, DID
 
 async function get_token() {
     try {
-        c_id = "407454790116-p7a8mm51ncd0fpuqmq1rf6fh44184nc7.apps.googleusercontent.com" //client id
-        c_secret = "mWl-YURPy82Dmf3_EkUPFjy2" //client secret
-        c_retoken = "1//06EZSqyMbPOsbCgYIARAAGAYSNwF-L9IrWh_vgBazeV84ZRrZ6dDADXVqFkh_-CCE7GMq18bDM2n1D_RKCKS7fsHxn5VdwGgPC20" //refresh token
+        c_id = process.env.C_ID //client id
+        c_secret = process.env.C_SECRET //client secret
+        c_retoken = process.env.C_RETOKEN //refresh token
         const url = `https://accounts.google.com/o/oauth2/token?client_id=${c_id}&client_secret=${c_secret}&refresh_token=${c_retoken}&grant_type=refresh_token`
         return await axios.post(url)
     } catch (err) {
@@ -360,7 +361,7 @@ async function recall() {
 }
 recall()
 
-router.get("/home", (req, res) => {
+router.get("/api", (req, res) => {
     const get_docs = db.prepare("SELECT * FROM Documents")
     docs = get_docs.all()
     res.status(200).json(docs)
