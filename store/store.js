@@ -4,6 +4,8 @@ import axios from "axios"
 
 Vue.use(vuex, axios)
 
+const prefix = process.env.NODE_ENV === 'production' ? '/' : 'http://localhost:13377/';
+
 export default new vuex.Store({
     state: { //used for holding info
         gmail: [],
@@ -13,13 +15,13 @@ export default new vuex.Store({
     },
     actions: { //used to preform operations (calls mutations)
         load_gmail({ commit }) {
-            axios.get("/api/").then(res => {
+            axios.get(`${prefix}api/`).then(res => {
             console.log(res.data)
               commit("SET_GMAIL", res.data);
             })
         },
         load_documents({commit}) {
-            axios.get("/api/").then(res => {
+            axios.get(`${prefix}api/`).then(res => {
             console.log(res.data)
               commit("SET_DOCUMENTS", res.data);
             })
