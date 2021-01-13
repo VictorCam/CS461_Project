@@ -6,9 +6,9 @@ exports.makeBody = async function(to, from, subject, message) {
     var str = ["Content-Type: text/plain; charset=\"UTF-8\"\n",
         "MIME-Version: 1.0\n",
         "Content-Transfer-Encoding: 7bit\n",
-        "to: ", to, "\n",
-        "from: ", from, "\n",
-        "subject: ", subject, "\n\n",
+        "To: ", to, "\n",
+        "From: ", from, "\n",
+        "Subject: ", subject, "\n\n",
         message
     ].join('');
 
@@ -18,121 +18,94 @@ exports.makeBody = async function(to, from, subject, message) {
 
 //find where the body of the message is
 exports.findBody = function(g_raw) {
-    try {
-        if (g_raw.data.payload.parts[0].body.data) {
-            //this exists when there is no attachment provided
-            message = Base64.decode(g_raw.data.payload.parts[0].body.data)
-            // message = message.replace(/(?:\\[rn]|[\r\n]+)+/g, "") //removes \n and \r 
-        } else if (g_raw.data.payload.parts[0].parts[0].body.data) {
-            //this exists when there is an attachment provided
-            message = Base64.decode(g_raw.data.payload.parts[0].parts[0].body.data)
-            // message = message.replace(/(?:\\[rn]|[\r\n]+)+/g, "") //removes \n and \r
-        } else if (g_raw.data.payload.parts[0].parts[0].parts[0].body.data) {
-            message = Base64.decode(g_raw.data.payload.parts[0].parts[0].parts[0].body.data)
-            // message = message.replace(/(?:\\[rn]|[\r\n]+)+/g, "") //removes \n and \r
-        } else {
-            message = g_raw.data.snippet
-        }
-        return message
+    if (g_raw.data.payload.parts[0].body.data) {
+        message = Base64.decode(g_raw.data.payload.parts[0].body.data)
     }
-    catch(err) { console.log("error in helpers.findBody()") }
+    else if (g_raw.data.payload.parts[0].parts[0].body.data) {
+        message = Base64.decode(g_raw.data.payload.parts[0].parts[0].body.data)
+    } 
+    else if (g_raw.data.payload.parts[0].parts[0].parts[0].body.data) {
+        message = Base64.decode(g_raw.data.payload.parts[0].parts[0].parts[0].body.data)
+    } 
+    else {
+        message = g_raw.data.snippet
+    }
+    return message
 }
 
 //get attachments that are pdfs
 exports.findAttachments = function(g_raw) {
-    try {
-        attachments = []
-        if (g_raw.data.payload.parts != undefined) {
-            for (let n = 0; n < g_raw.data.payload.parts.length - 1; n++) {
-                if (g_raw.data.payload.parts[n+1].mimeType == "application/pdf") { //MUST BE PDF!
-                    var attach_json = {
-                        "mime": g_raw.data.payload.parts[n+1].mimeType,
-                        "filename": g_raw.data.payload.parts[n+1].filename,
-                        "attach_id": g_raw.data.payload.parts[n+1].body.attachmentId,
-                        "raw": null
-                    }
-                    attachments.push(attach_json)
+    attachments = []
+    if (g_raw.data.payload.parts != undefined) { //check if it exists
+        for (let n = 0; n < g_raw.data.payload.parts.length - 1; n++) {
+            if (g_raw.data.payload.parts[n+1].mimeType == "application/pdf") { //MUST BE PDF!
+                var attach_json = {
+                    "mime": g_raw.data.payload.parts[n+1].mimeType,
+                    "filename": g_raw.data.payload.parts[n+1].filename,
+                    "attach_id": g_raw.data.payload.parts[n+1].body.attachmentId,
+                    "raw": null
                 }
+                attachments.push(attach_json)
             }
         }
-        return attachments
     }
-    catch(err) { console.log("error in helpers.findAttachments()") }
+    return attachments
 }
 
 //find the subject title of the email
 exports.findSubject = function(g_raw) {
-    try {
-        find_index = [19,21,3,4]
-        for (let i = 0; i < find_index.length; i++) {
-            const element = find_index[i]
-            if (typeof g_raw.data.payload.headers[element] != 'undefined') {
-                if (g_raw.data.payload.headers[element].name == "Subject") {
-                    title = g_raw.data.payload.headers[element].value
-                }
-            }
-        }
-        return title
-    }
-    catch(err) { console.log("error in helpers.findSubject()") }
-}
-
-//find the command that the user entered in the title
-exports.findCmd = function(title) {
-    try {
-        if (title == []) {
-            find_name = ["save", "help", "access"]
-            f_cmd = title.split(' ')
-
-            //save attachments to db
-            for (let i = 0; i < find_name.length; i++) {
-                const element = find_name[i];
-                if (f_cmd[0].toLowerCase() == element) {
-                    found_cmd = element
-                    return found_cmd
-                }
+    title = "error"
+    find_index = [19,21,3,4]
+    for (let i = 0; i < find_index.length; i++) {
+        const element = find_index[i]
+        if (typeof g_raw.data.payload.headers[element] != 'undefined') { //check if it exists
+            if (g_raw.data.payload.headers[element].name.toLowerCase() == "subject") {
+                title = g_raw.data.payload.headers[element].value
+                return title
             }
         }
     }
-    catch(err) { console.log("error in helpers.found_cmd()") }
+    return title
 }
 
 //want to find the sender email and name
-
 exports.findSenderInfo = function(g_raw) {
-    try {
-        find_index = [16,4,18,5]
-        sender_arr = []
-        for (let i = 0; i < find_index.length; i++) {
-            const element = find_index[i]
-            if (typeof g_raw.data.payload.headers[element] != 'undefined') {
-                if (g_raw.data.payload.headers[element].name == "From") {
-                    sender_data = g_raw.data.payload.headers[element].value
-                    data = sender_data.split(/[\s,<>]+/)
-                    sender_arr.push(data[0] + " " + data[1])
-                    sender_arr.push(data[2])
-                    return sender_arr
-                }
+    find_index = [16,4,18,5]
+    for (let i = 0; i < find_index.length; i++) {
+        const element = find_index[i]
+        if (typeof g_raw.data.payload.headers[element] != 'undefined') {
+            if (g_raw.data.payload.headers[element].name == "From") {
+                var raw_from = parse_from(element, g_raw)
+                var words = raw_from.split('=')
+                return words
             }
         }
     }
-    catch(err) { console.log("error in helpers.findSenderInfo()") }
+    return ["NA", "NA"] //no user was unfortunetly found
+}
+
+function parse_from(i, g_raw){
+    sender_name_and_email = g_raw.data.payload.headers[i].value
+    sender_name = sender_name_and_email.replace(/(?:\\[rn]|[\r\n<>"]+)+/g, "")
+
+    var words = sender_name.split(' ')
+    sender_email = words[words.length - 1]
+    words.splice(-1, 1)
+    sender_name = words.join(' ')
+    return sender_name + "=" + sender_email
 }
 
 //find the date
 exports.findDate = function(g_raw) {
-    try {
-        find_index = [17,1,19]
-        for (let i = 0; i < find_index.length; i++) {
-            const element = find_index[i]
-            if (typeof g_raw.data.payload.headers[element] != 'undefined') {
-                if (g_raw.data.payload.headers[element].name == "Date")
-                    date = g_raw.data.payload.headers[element].value
-                    return date
-            }
+    find_index = [17,1,19]
+    for (let i = 0; i < find_index.length; i++) {
+        const element = find_index[i]
+        if (typeof g_raw.data.payload.headers[element] != 'undefined') { //check if it exists
+            if (g_raw.data.payload.headers[element].name.toLowerCase() == "date")
+                date = g_raw.data.payload.headers[element].value
+                return date
         }
     }
-    catch(err) { console.log("error in helpers.findDate()") }
 }
 
 //parses the message and grabs the emails (is accompanied with function below)
@@ -143,25 +116,25 @@ exports.parseBody = function(message) {
         return el != '';
     })
 
-    for (let i = 0; i < m_parse.size; i++) { //there should be 4 or less things
+    for (let i = 0; i < m_parse.length; i++) { //there should be 4 or less things
         p_arr = m_parse[i].split(":") //parse between the colons
         key = p_arr[0].replace(/\s/g, '') //remove spaces
         value = p_arr[1]
 
-        console.log(key)
         if(value != undefined && value != null) {
-            if(key == 'project') {
-                project = value
+            if(key.toLowerCase() == 'project') {
+                project = value.trim() //remove spaces to front and end of str
+                obj.push({"project": project})
             }
-            else if(key == 'read') {
+            else if(key.toLowerCase() == 'read') {
                 read = loopEmails(value)
                 obj.push({"read": read})
             }
-            else if(key == 'change') {
+            else if(key.toLowerCase() == 'change') {
                 change = loopEmails(value)
                 obj.push({"change": change})
             }
-            else if(key == 'manage') {
+            else if(key.toLowerCase() == 'manage') {
                 manage = loopEmails(value)
                 obj.push({"manage": manage})
             }
@@ -218,8 +191,8 @@ exports.makeBodyAttachments = function(receiverId, subject, message, attach) {
 var str = [
     "MIME-Version: 1.0",
     "Content-Transfer-Encoding: 7bit",
-    "to: " + receiverId,
-    "subject: " + subject,
+    "To: " + receiverId,
+    "Subject: " + subject,
     "Content-Type: multipart/alternate; boundary=" + boundary + "\n",
     "--" + boundary,
     "Content-Type: text/plain; charset=UTF-8",
