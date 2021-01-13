@@ -1,6 +1,7 @@
 <template>
   <div id="app">
     <Header v-bind:title="'OSU File System'"/>
+    <SearchSort/>
     <Documents/>
   </div>
 </template>
@@ -8,12 +9,14 @@
 <script>
 import Header from './components/layout/Header';
 import Documents from './components/Documents'
+import SearchSort from './components/layout/SearchSort';
 
 export default {
   name: 'App',
   components: {
     Documents,
-    Header
+    Header,
+    SearchSort
   }
 }
 </script>

@@ -2,6 +2,9 @@ import Vue from 'vue';
 import App from './App.vue';
 import VueRouter from 'vue-router';
 import store from "../store/store";
+import { BootstrapVue, IconsPlugin } from 'bootstrap-vue'
+import 'bootstrap/dist/css/bootstrap.css'
+import 'bootstrap-vue/dist/bootstrap-vue.css'
 
 import DocumentDetail from './components/DocumentDetail';
 import Home from './Home';
@@ -18,6 +21,10 @@ Vue.component('font-awesome-icon', FontAwesomeIcon);
 Vue.config.productionTip = false;
 
 Vue.use(VueRouter);
+
+// Make BootstrapVue available throughout your project
+Vue.use(BootstrapVue)
+Vue.use(IconsPlugin);
 
 const routes = [
   { path: '/', name: "home", component: Home, meta: {force_redirect: true}},
