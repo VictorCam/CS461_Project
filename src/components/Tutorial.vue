@@ -13,10 +13,10 @@
         </div>
         <div class="steps">
             <h2>
-                2. In the subject field, include the title of the document.
+                2. In the subject field, type "save".
             </h2>
             <br>
-            <b-img src="https://snipboard.io/eha7kQ.jpg" fluid alt="Fluid image" class="image"></b-img>
+            <b-img src="https://snipboard.io/wrYZL2.jpg" fluid alt="Fluid image" class="image"></b-img>
         </div>
         <div class="steps">
             <h2>
