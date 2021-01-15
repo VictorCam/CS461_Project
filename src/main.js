@@ -10,14 +10,6 @@ import DocumentDetail from './components/DocumentDetail';
 import Home from './Home';
 import Tutorial from './components/Tutorial';
 
-import { library } from '@fortawesome/fontawesome-svg-core';
-import { faHome, faFileAlt } from '@fortawesome/free-solid-svg-icons';
-import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
-
-library.add(faHome, faFileAlt);
- 
-Vue.component('font-awesome-icon', FontAwesomeIcon);
-
 Vue.config.productionTip = false;
 
 Vue.use(VueRouter);
