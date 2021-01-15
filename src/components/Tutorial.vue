@@ -1,6 +1,6 @@
 <template>
   <div class="tutorial">
-    <Header v-bind:title="'Tutorial'"/>
+    <Header v-bind:title="'Tutorial'" v-bind:showBackButton="true"/>
     <div class="content">
         <div class="steps">
             <br>

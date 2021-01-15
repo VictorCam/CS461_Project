@@ -1,6 +1,6 @@
 <template>
     <div class="document-detail">
-        <Header v-bind:title="doc.Name"/>
+        <Header v-bind:title="doc.Name" v-bind:showBackButton="true"/>
         <div class="content">
             <div class="text">
                 <p>{{doc.Description}}</p>

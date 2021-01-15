@@ -6,7 +6,9 @@
       </b-input-group>
     </div>
     <div class="sort-btn">
-      <b-button variant="outline-secondary" size="lg">Sort</b-button>
+      <b-button variant="secondary" size="lg">
+        <b-icon-sort-down-alt></b-icon-sort-down-alt>
+      </b-button>
     </div>
   </div>
 </template>
@@ -23,13 +25,11 @@ export default {
   align-items: center;
   justify-content: center;
   padding: 20px;
-  background-color: #ddd;
+  background-color: #cacaca;
   flex-wrap: wrap;
 }
 
 .sort-btn {
-  position: absolute;
-  padding: 2px;
-  margin-left: 90%;
+  padding: 5px;
 }
 </style>
