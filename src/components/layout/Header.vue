@@ -1,11 +1,9 @@
 <template>
   <div class="header">
     <div v-if="showBackButton">
-      <router-link :to="{ name: 'home' }">
-        <b-button variant="secondary" class="back-btn">
+        <b-button @click="goBack" variant="secondary" class="back-btn">
           <b-icon-arrow-left-circle-fill></b-icon-arrow-left-circle-fill>
         </b-button>
-      </router-link>
       
     </div>
     
@@ -28,6 +26,11 @@
 export default {
   name: "Header",
   props: ["title", "showBackButton"],
+  methods: {
+    goBack() {
+      return this.$router.go(-1);
+    }
+  }
 };
 </script>
 
