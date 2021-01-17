@@ -30,10 +30,10 @@ export default new vuex.Store({
     },
     mutations: { //used to update info (updates state given)
         SET_GMAIL(state, payload) {
-            state.gmail = payload
+            state.gmail = payload;
         },
         SET_DOCUMENTS(state, payload) {
-            state.loadedDocuments = payload
+            state.loadedDocuments = payload;
         }
     }
 });
