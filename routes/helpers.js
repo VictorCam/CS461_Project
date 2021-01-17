@@ -68,7 +68,7 @@ exports.findSubject = function(g_raw) {
     return title
 }
 
-//want to find the sender email and name
+//want to find the sender email and name 
 exports.findSenderInfo = function(g_raw) {
     find_index = [16,4,18,5]
     for (let i = 0; i < find_index.length; i++) {
@@ -138,6 +138,10 @@ exports.parseBody = function(message) {
                 manage = loopEmails(value)
                 obj.push({"manage": manage})
             }
+            else if(key.toLowerCase() == 'names') {
+                names = loopArgs(value)
+                obj.push({"names": names})
+            }
             else {
                 console.log("bad input included (ignored)")
             }
@@ -146,7 +150,7 @@ exports.parseBody = function(message) {
     return obj
 }
 
-//loop thorugh all the meails
+//loop thorugh all the emails
 function loopEmails(value) {
     email = value.replace(/\s/g, '') //remove spaces
     email = email.split(",") //parse by commas
@@ -164,6 +168,23 @@ function loopEmails(value) {
         else {
             console.log("match not found") //we will not process this email if its not found
         }
+    }
+
+    return data
+}
+
+//loop thorugh all the args
+function loopArgs(value) {
+    arg = value.replace(/\s/g, '') //remove spaces
+    arg = arg.split(",") //parse by commas
+    data = []
+
+    arg = arg.filter(function (el) { //remove arrays that contain ''
+        return el != ''
+    })
+
+    for (let e = 0; e < arg.length; e++) { //loop though all valid args according to parsing
+        data.push(arg[e])
     }
 
     return data

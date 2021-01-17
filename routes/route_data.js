@@ -80,6 +80,7 @@ async function post_send_msg(access_tok, raw) {
 }
 
 async function parse_data(g_raw, idx, g_access) {
+    //console.log("parsing...")
     g_id = g_raw.data.id
     console.log("GOOGLE ID: ", g_id)
 
@@ -110,7 +111,7 @@ async function parse_data(g_raw, idx, g_access) {
     }
 
     //relay error if the title does not specify a command or the match isn't found
-    var matches = title.match(/save|help|access/g)
+    var matches = title.match(/save|get|update|help/g)
     if(matches == undefined || matches == null || title == undefined || title == null || sender_name == 'NA' || sender_name == 'NA') {
         console.log("matches or title is undefined or null")
         return { "cmd": "relay_error", "sender_email": sender_email }
@@ -124,8 +125,10 @@ async function parse_data(g_raw, idx, g_access) {
     found_cmd = matches[0]
 
     //get attachments that are pdfs
+    //console.log("trying to get attachemtns...")
     try {
         attachments = helpers.findAttachments(g_raw)
+        //console.log("attachments: ", attachments)
     }
     catch(err) {
         console.log("error with helpers.findAttachments()")
@@ -134,7 +137,7 @@ async function parse_data(g_raw, idx, g_access) {
 
 
     //if there is no attachments then we want to send an error since there is nothing to save
-    if(attachments.length == 0) {
+    if(attachments.length == 0 && found_cmd == "save") {
         console.log("there is no attachments in this email")
         return { "cmd": "relay_error", "sender_email": sender_email }
     }
@@ -189,7 +192,8 @@ async function parse_data(g_raw, idx, g_access) {
         "access": email_obj, //list of emails and what access they have
         // "attachments": attachments,
         "date": date, //gets the date when it was sent
-        "cmd": found_cmd //check if the command was found or not
+        "cmd": found_cmd, //check if the command was found or not
+        "attachments": attachments
     }
 
     return content
@@ -198,8 +202,26 @@ async function parse_data(g_raw, idx, g_access) {
 const get_user = db.prepare("SELECT * FROM Users WHERE Email= ?")
 const insert_user = db.prepare("INSERT INTO Users (Name, Email, Major) VALUES (?, ?, ?)")
 const insert_doc = db.prepare("INSERT INTO Documents (Name, Description, Location, OwnerID, Project, DateAdded) VALUES (?, ?, ?, ?, ?, ?)")
+const insert_project = db.prepare("INSERT INTO Projects (Name, GitHub) VALUES (?, ?)")
 const find_doc = db.prepare("SELECT * FROM Documents WHERE Location = ?")
+const find_project = db.prepare("SELECT * FROM Projects WHERE Name = ?")
 const insert_perm = db.prepare("INSERT INTO Permissions (DID, UID, Permissions) VALUES (?, ?, ?)")
+
+function grantPermission(doc, access_list, permission) {
+    //console.log("access_list: ", access_list);
+    for (let a = 0; a < Object.keys(access_list).length; a++) {
+        //console.log("access_list[a]: ", access_list[a])
+        user = get_user.get(`${access_list[a]}`)
+        //console.log("user: ", user)
+
+        //if user does not exist make a new user
+        if (!user) { insert_user.run(`${access_list[a]}`, `${access_list[a]}`, "Unknown") }
+
+        //get the newly created or existing user and insert their permissions
+        user = get_user.get(`${access_list[a]}`)
+        insert_perm.run(doc.DocID, user.UserID, permission)
+    }
+}
 
 async function g_request(callback) {
     const g_access = await get_token() //getting access token 
@@ -223,31 +245,46 @@ async function g_request(callback) {
 
         //inside here we will save users/documents
         if (g_data.cmd == "save") {
-            console.log("SUCCESS!")
-            // for (var j = 0; j < Object.keys(g_data.attachments).length; j++) {
-                // fs.writeFile(`./files/${g_data.g_id}-${j}.pdf`, g_data.attachments[j].raw, { encoding: 'base64' }, function(err) { if (err) { return console.log("err with writing pdf file") } })
+            console.log("SUCCESS!");
+            //console.log("g_data.attachments: ", g_data.attachments);
+            for (var j = 0; j < Object.keys(g_data.attachments).length; j++) {
+                fs.writeFile(`./files/${g_data.g_id}-${j}.pdf`, g_data.attachments[j].raw, { encoding: 'base64' }, function(err) { if (err) { return console.log("err with writing pdf file") } })
 
-                // //save or grab user and save document location
-                // user = get_user.get(`${g_data.sender_email}`)
-                // if (!user) { insert_user.run(`${g_data.sender_name}`, `${g_data.sender_email}`, "Unknown") } 
+                //save or grab user and save document location
+                user = get_user.get(`${g_data.sender_email}`)
+                if (!user) { insert_user.run(`${g_data.sender_name}`, `${g_data.sender_email}`, "Unknown") } 
 
-                // //create a new user
-                // user = get_user.get(`${g_data.sender_email}`)
-                // insert_doc.run(`${g_data.title}`, `${g_data.message}`, `./files/${g_data.g_id}-${j}.pdf`, `${user.UserID}`, null, currentDate.toString())
-                // doc = find_doc.get(`./files/${g_data.g_id}-${j}.pdf`)
+                //create a new user
+                user = get_user.get(`${g_data.sender_email}`)
+                //console.log("g_data: ", g_data)
+                //const insert_doc = db.prepare("INSERT INTO Documents (Name, Description, Location, OwnerID, Project, DateAdded) VALUES (?, ?, ?, ?, ?, ?)")
+                //console.log("g_data.access[4].names[j]: ", g_data.access[4].names[j])
+                docName = g_data.access[4].names[j] ? g_data.access[4].names[j] : g_data.attachments[j].filename //check if a name was given in the body. If not, use the filename
+                
+                //console.log("g_data.access[0].project: ", g_data.access[0].project)
+                if(g_data.access[0].project) {
+                    console.log(`g_data.access[0].project: ${g_data.access[0].project}`)
+                    if(!(proj = find_project.get(`${g_data.access[0].project}`))){
+                        console.log(`proj: ${proj}`)
+                        insert_project.run(`${g_data.access[0].project}`, "github.com")
+                        proj = find_project.get(`${g_data.access[0].project}`)
+                        console.log(`proj: ${proj}`)
+                    }
+                }
+                else { proj = NULL}
+                console.log(`proj: ${proj.Name}`)
+
+                //console.log(`doc_insert: ${docName}, ${g_data.message}, ./files/${g_data.g_id}-${j}.pdf, ${user.UserID}, ${proj}, ${currentDate.toString()}`)
+                insert_doc.run(`${docName}`, `${g_data.message}`, `./files/${g_data.g_id}-${j}.pdf`, `${user.UserID}`, `${proj.ProjID}`, currentDate.toString())
+                doc = find_doc.get(`./files/${g_data.g_id}-${j}.pdf`)
 
                 //save new users and give permissions
-                // for (let a = 0; a < Object.keys(g_data.rec_email).length; a++) {
-                //     user = get_user.get(`${g_data.rec_email[a]}`)
-            
-                //     //if user does not exist make a new user
-                //     if (!user) { insert_user.run(`${g_data.rec_name[a]}`, `${g_data.rec_email[a]}`, "Unknown") }
-
-                //     //get the newly created or existing user and insert their permissions
-                //     user = get_user.get(`${g_data.rec_email[a]}`)
-                //     insert_perm.run(doc.DocID, user.UserID, `${g_data.rec_perm[a]}`)
-                // }
-            // }
+                //console.log("g_data.access: ", g_data.access)
+                
+                grantPermission(doc, g_data.access[1].read, READ)
+                grantPermission(doc, g_data.access[2].change, CHANGE)
+                grantPermission(doc, g_data.access[3].manage, MANAGE)
+            }
 
             //case in where if the parse data has empty arrays then the parse() function found a formatting issue
             if (!isEmpty(g_data.sender_email) && !isEmpty(g_data.attachments)) {
