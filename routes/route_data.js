@@ -27,9 +27,8 @@ async function get_token() {
         c_retoken = process.env.C_RETOKEN //refresh token
         const url = `https://accounts.google.com/o/oauth2/token?client_id=${c_id}&client_secret=${c_secret}&refresh_token=${c_retoken}&grant_type=refresh_token`
         return await axios.post(url)
-    } catch (err) {
-        console.log("err with get_token()")
-    }
+    } 
+    catch (err) { console.log("err with get_token()") }
 }
 
 async function get_msg_id(access_tok) {
@@ -37,9 +36,8 @@ async function get_msg_id(access_tok) {
         const url = `https://gmail.googleapis.com/gmail/v1/users/${userId}/messages`
         const config = {headers: { Authorization: `Bearer ${access_tok}`}}
         return await axios.get(url, config)
-    } catch (err) {
-        console.log("err with get_msg_id()")
-    }
+    } 
+    catch (err) { console.log("err with get_msg_id()") }
 }
 
 async function get_msg_data(access_tok, g_id) {
@@ -47,9 +45,8 @@ async function get_msg_data(access_tok, g_id) {
         const url = `https://gmail.googleapis.com/gmail/v1/users/${userId}/messages/${g_id}`
         const config = {headers: { Authorization: `Bearer ${access_tok}`, "Content-type": `application/json`}}
         return await axios.get(url, config)
-    } catch (err) {
-        console.log("err with get_msg_data()")
     }
+    catch (err) { console.log("err with get_msg_data()") }
 }
 
 async function post_msg_delete(access_tok, g_id) {
@@ -58,9 +55,8 @@ async function post_msg_delete(access_tok, g_id) {
         const data = {}
         const config = {headers: { Authorization: `Bearer ${access_tok}`}}
         return await axios.post(url, data, config)
-    } catch (err) {
-        console.log("err with post_msg_delete()")
-    }
+    } 
+    catch (err) { console.log("err with post_msg_delete()") }
 }
 
 
@@ -69,9 +65,8 @@ async function get_attachments(access_tok, g_id, a_id) {
         const url = `https://gmail.googleapis.com/gmail/v1/users/${userId}/messages/${g_id}/attachments/${a_id}`
         const config = {headers: { Authorization: `Bearer ${access_tok}`}}
         return await axios.get(url, config)
-    } catch (err) {
-        console.log("err with get_attachments()")
-    }
+    } 
+    catch (err) { console.log("err with get_attachments()") }
 }
 
 async function post_send_msg(access_tok, raw) {
@@ -80,214 +75,125 @@ async function post_send_msg(access_tok, raw) {
         const data = { "raw": `${raw}` };
         const config = {headers: { "Content-Type": "application/json", Authorization: `Bearer ${access_tok}`}}
         return await axios.post(url, data, config)
-    } catch (err) {
-        console.log("err with post_send_msg()")
-    }
+    } 
+    catch (err) { console.log("err with post_send_msg()") }
 }
-
-function makeBody(to, from, subject, message) {
-    var str = ["Content-Type: text/plain; charset=\"UTF-8\"\n",
-        "MIME-Version: 1.0\n",
-        "Content-Transfer-Encoding: 7bit\n",
-        "to: ", to, "\n",
-        "from: ", from, "\n",
-        "subject: ", subject, "\n\n",
-        message
-    ].join('');
-
-    encodedMail = new Buffer.from(str).toString("base64").replace(/\+/g, '-').replace(/\//g, '_');
-    return encodedMail;
-}
-
-function makeBody_w_attach(){
-
-    receiverId = "vdcampa0@gmail.com"
-    subject = "access to [name] documents"
-    boundary = "dms"
-    message = "hello! here are your attachments"
-    attach =  'JVBERi0xLjcKCjEgMCBvYmogICUgZW50cnkgcG9pbnQKPDwKICAvVHlwZSAvQ2F0YWxvZwog' +
-    'IC9QYWdlcyAyIDAgUgo+PgplbmRvYmoKCjIgMCBvYmoKPDwKICAvVHlwZSAvUGFnZXMKICAv' +
-    'TWVkaWFCb3ggWyAwIDAgMjAwIDIwMCBdCiAgL0NvdW50IDEKICAvS2lkcyBbIDMgMCBSIF0K' +
-    'Pj4KZW5kb2JqCgozIDAgb2JqCjw8CiAgL1R5cGUgL1BhZ2UKICAvUGFyZW50IDIgMCBSCiAg' +
-    'L1Jlc291cmNlcyA8PAogICAgL0ZvbnQgPDwKICAgICAgL0YxIDQgMCBSIAogICAgPj4KICA+' +
-    'PgogIC9Db250ZW50cyA1IDAgUgo+PgplbmRvYmoKCjQgMCBvYmoKPDwKICAvVHlwZSAvRm9u' +
-    'dAogIC9TdWJ0eXBlIC9UeXBlMQogIC9CYXNlRm9udCAvVGltZXMtUm9tYW4KPj4KZW5kb2Jq' +
-    'Cgo1IDAgb2JqICAlIHBhZ2UgY29udGVudAo8PAogIC9MZW5ndGggNDQKPj4Kc3RyZWFtCkJU' +
-    'CjcwIDUwIFRECi9GMSAxMiBUZgooSGVsbG8sIHdvcmxkISkgVGoKRVQKZW5kc3RyZWFtCmVu' +
-    'ZG9iagoKeHJlZgowIDYKMDAwMDAwMDAwMCA2NTUzNSBmIAowMDAwMDAwMDEwIDAwMDAwIG4g' +
-    'CjAwMDAwMDAwNzkgMDAwMDAgbiAKMDAwMDAwMDE3MyAwMDAwMCBuIAowMDAwMDAwMzAxIDAw' +
-    'MDAwIG4gCjAwMDAwMDAzODAgMDAwMDAgbiAKdHJhaWxlcgo8PAogIC9TaXplIDYKICAvUm9v' +
-    'dCAxIDAgUgo+PgpzdGFydHhyZWYKNDkyCiUlRU9G'
-
-var str = [
-    "MIME-Version: 1.0",
-    "Content-Transfer-Encoding: 7bit",
-    "to: " + receiverId,
-    "subject: " + subject,
-    "Content-Type: multipart/alternate; boundary=" + boundary + "\n",
-    "--" + boundary,
-    "Content-Type: text/plain; charset=UTF-8",
-    "Content-Transfer-Encoding: 7bit" + "\n",
-    message+ "\n",
-    "--" + boundary,
-    "--" + boundary,
-    "Content-Type: Application/pdf; name=myPdf.pdf",
-    'Content-Disposition: attachment; filename=myPdf.pdf',
-    "Content-Transfer-Encoding: base64" + "\n",
-    attach,
-    "--" + boundary,
-    "--" + boundary,
-    "Content-Type: Application/pdf; name=myPdf2.pdf",
-    'Content-Disposition: attachment; filename=myPdf2.pdf',
-    "Content-Transfer-Encoding: base64" + "\n",
-    attach,
-    "--" + boundary + "--"
-].join("\n");
-
-    var encodedMail = new Buffer.from(str).toString("base64").replace(/\+/g, '-').replace(/\//g, '_');
-    return encodedMail;
-}
-
-function parse_from(i, g_raw){
-    sender_name_and_email = g_raw.data.payload.headers[i].value
-    sender_name = sender_name_and_email.replace(/(?:\\[rn]|[\r\n<>"]+)+/g, "")
-
-    var words = sender_name.split(' ')
-    sender_email = words[words.length - 1]
-    words.splice(-1, 1)
-    sender_name = words.join(' ')
-    return sender_name + "=" + sender_email
-}
-  
 
 async function parse_data(g_raw, idx, g_access) {
+    //console.log("parsing...")
     g_id = g_raw.data.id
-    console.log("GOOGLE IDENTIFICATION: ", g_raw.data.id)
-    sender_name_and_email = [], sender_email = [], sender_name = [], date = [], title = [], rec_name = [], rec_email = [], rec_perm = [], attachments = [], message = [], found_cmd = "no_cmd"
+    console.log("GOOGLE ID: ", g_id)
 
-    //subject (outside of loop so I can check first cmd on the title if not then I don't do any parsing)
-    find_index = [19,21,3,4]
-    for (let i = 0; i < find_index.length; i++) {
-        const element = find_index[i]
-        if (typeof g_raw.data.payload.headers[element] != 'undefined') {
-            if (g_raw.data.payload.headers[element].name == "Subject") {
-                title = g_raw.data.payload.headers[element].value
+    //get the subject of the message
+    try {
+        var title = helpers.findSubject(g_raw)
+    }
+    catch(err) {
+        console.log("something went wrong with helpers.findSubject()")
+        return {"cmd": "error"}
+    }
+
+    //ignore messages that are sent from gobeavdms@gmail.com (isn't an error but we still want to ignore it)
+    if(title == "error") {
+        console.log("ignored message from api call")
+        return {"cmd": "error"}
+    }
+
+    //sender_name and sender_email (if we cannot find it then we cannot send a error msg)
+    try {
+        sender_info = helpers.findSenderInfo(g_raw) 
+        sender_name = sender_info[0]
+        sender_email = sender_info[1]
+    }
+    catch(err) {
+        console.log("error with sender_info arr") 
+        return { "cmd": "error" }
+    }
+
+    //relay error if the title does not specify a command or the match isn't found
+    var matches = title.match(/save|get|update|help/g)
+    if(matches == undefined || matches == null || title == undefined || title == null || sender_name == 'NA' || sender_name == 'NA') {
+        console.log("matches or title is undefined or null")
+        return { "cmd": "relay_error", "sender_email": sender_email }
+    }
+    if(sender_email && matches.length != 1) {
+        console.log("no command is specified OR there is more than one command found")
+        return { "cmd": "relay_error", "sender_email": sender_email }
+    }
+
+    //assign the match to the found command
+    found_cmd = matches[0]
+
+    //get attachments that are pdfs
+    //console.log("trying to get attachemtns...")
+    try {
+        attachments = helpers.findAttachments(g_raw)
+        //console.log("attachments: ", attachments)
+    }
+    catch(err) {
+        console.log("error with helpers.findAttachments()")
+        return { "cmd": "relay_error", "sender_email": sender_email }
+    }
+
+
+    //if there is no attachments then we want to send an error since there is nothing to save
+    if(attachments.length == 0 && found_cmd == "save") {
+        console.log("there is no attachments in this email")
+        return { "cmd": "relay_error", "sender_email": sender_email }
+    }
+
+    //date
+    try {
+        date = helpers.findDate(g_raw)
+    }
+    catch(err) {
+        console.log("there was an error finding the date", err)
+        return { "cmd": "relay_error", "sender_email": sender_email }
+    }
+
+    //find the message sent
+    try {
+        message = helpers.findBody(g_raw)
+    }
+    catch(err) {
+        console.log("something went wrong with getting the message")
+        return { "cmd": "relay_error", "sender_email": sender_email }
+    }
+
+    //parse the message in the body
+    try {
+        email_obj = helpers.parseBody(message)
+    }
+    catch(err) {
+        console.log("error with helpers.parseBody() or method above") 
+        return { "cmd": "relay_error", "sender_email": sender_email }
+    }
+
+    //query to get raw base64 attachments added in order to save them
+    try {
+        if (!isEmpty(attachments) && found_cmd != "error") {
+            for (let a = 0; a < attachments.length; a++) {
+                var raw = await get_attachments(g_access, g_id, attachments[a].attach_id)
+                attachments[a].raw = raw.data.data
             }
         }
     }
-
-    //commands: help, save, get
-    if (!isEmpty(title)) {
-        find_name = ["save", "help", "access"]
-        f_cmd = title.split(' ')
-
-        //save attachments to db
-        for (let i = 0; i < find_name.length; i++) {
-            const element = find_name[i];
-            if (f_cmd[0].toLowerCase() == element) {
-                found_cmd = element
-            }
-        }
-    }
-
-    //get attachments that are pdfs (this must be outside of loop)
-    if (g_raw.data.payload.parts != undefined) {
-        for (let n = 0; n < g_raw.data.payload.parts.length - 1; n++) {
-            if (g_raw.data.payload.parts[n + 1].mimeType == "application/pdf") { //MUST BE PDF!
-                var attach_json = {
-                    "mime": g_raw.data.payload.parts[n + 1].mimeType,
-                    "filename": g_raw.data.payload.parts[n + 1].filename,
-                    "attach_id": g_raw.data.payload.parts[n + 1].body.attachmentId,
-                    "raw": null
-                }
-                attachments.push(attach_json)
-            }
-        }
-    }
-
-    //sender name and sender email (outside loop so we can determine error)
-    find_index = [16,4,18,5]
-    for (let i = 0; i < find_index.length; i++) {
-        const element = find_index[i]
-        if (typeof g_raw.data.payload.headers[element] != 'undefined') {
-            if (g_raw.data.payload.headers[element].name == "From") {
-                var raw_from = parse_from(element, g_raw)
-                var words = raw_from.split('=')
-                sender_name = words[0]
-                sender_email = words[1]
-            }
-        }
-    }
-
-    //if attachments is empty or if cmd not found then there is no point in parsing the rest of the data :/
-    if (!isEmpty(attachments) && found_cmd != "no_cmd") {
-        //seperate title and command
-        f_cmd.shift()
-        title = f_cmd.join(" ")
-
-        //query to get raw base64 attachments added in order to save them
-        for (let a = 0; a < attachments.length; a++) {
-            var raw = await get_attachments(g_access, g_id, attachments[a].attach_id)
-            attachments[a].raw = raw.data.data
-        }
-
-        //date
-        find_index = [17,1,19]
-        for (let i = 0; i < find_index.length; i++) {
-            const element = find_index[i]
-            if (typeof g_raw.data.payload.headers[element] != 'undefined') {
-                if (g_raw.data.payload.headers[element].name == "Date")
-                    date = g_raw.data.payload.headers[element].value
-            }
-        }
-
-        //find message
-        if (g_raw.data.payload.parts[0].body.data) {
-            //this exists when there is no attachment provided
-            message = Base64.decode(g_raw.data.payload.parts[0].body.data)
-            message = message.replace(/(?:\\[rn]|[\r\n]+)+/g, "") //removes \n and \r 
-        } else if (g_raw.data.payload.parts[0].parts[0].body.data) {
-            //this exists when there is an attachment provided
-            message = Base64.decode(g_raw.data.payload.parts[0].parts[0].body.data)
-            message = message.replace(/(?:\\[rn]|[\r\n]+)+/g, "") //removes \n and \r
-        } else if (g_raw.data.payload.parts[0].parts[0].parts[0].body.data) {
-            message = Base64.decode(g_raw.data.payload.parts[0].parts[0].parts[0].body.data)
-            message = message.replace(/(?:\\[rn]|[\r\n]+)+/g, "") //removes \n and \r
-        } else {
-            message = g_raw.data.snippet.replace(/(?:\\[rn]|[\r\n]+)+/g, "") //removes \n and \r
-        }
-
-
-        try {
-            c_parse = message.split(",")
-            for (let i = 0; i < c_parse.length; i++) {
-                if(c_parse[i] != "") {
-                    user_data = c_parse[i].split("=")
-                    rec_name.push(user_data[0].replace(/\s/g, ''))  //regex removes spaces
-                    rec_email.push(user_data[1].replace(/\s/g, ''))
-                    rec_perm.push(user_data[2].replace(/\s/g, ''))
-                }
-            }
-        }
-        catch(err) {
-            console.log("BAD FORMAT! [SEND A MSG TO USER THAT ERROR OCCURED AND DO NOT ALLOW QUERY]")
-        }
+    catch(err) {
+        console.log("error with checking attachments") 
+        return { "cmd": "relay_error", "sender_email": sender_email }
     }
 
     //json format
     content = {
-        "id": idx,
-        "g_id": g_id,
-        "sender_name": sender_name,
-        "sender_email": sender_email,
-        "rec_name": rec_name,
-        "rec_email": rec_email,
-        "rec_perm": rec_perm,
-        "title": title,
-        "message": message,
-        "attachments": attachments,
-        "date": date,
-        "cmd": found_cmd
+        "id": idx, //index of for loop
+        "g_id": g_id, //google id
+        "sender_name": sender_name, //person name who sent the email
+        "sender_email": sender_email, //person email who sent the email
+        "access": email_obj, //list of emails and what access they have
+        // "attachments": attachments,
+        "date": date, //gets the date when it was sent
+        "cmd": found_cmd, //check if the command was found or not
+        "attachments": attachments
     }
 
     return content
@@ -296,64 +202,109 @@ async function parse_data(g_raw, idx, g_access) {
 const get_user = db.prepare("SELECT * FROM Users WHERE Email= ?")
 const insert_user = db.prepare("INSERT INTO Users (Name, Email, Major) VALUES (?, ?, ?)")
 const insert_doc = db.prepare("INSERT INTO Documents (Name, Description, Location, OwnerID, Project, DateAdded) VALUES (?, ?, ?, ?, ?, ?)")
+const insert_project = db.prepare("INSERT INTO Projects (Name, GitHub) VALUES (?, ?)")
 const find_doc = db.prepare("SELECT * FROM Documents WHERE Location = ?")
+const find_project = db.prepare("SELECT * FROM Projects WHERE Name = ?")
 const insert_perm = db.prepare("INSERT INTO Permissions (DID, UID, Permissions) VALUES (?, ?, ?)")
+
+function grantPermission(doc, access_list, permission) {
+    //console.log("access_list: ", access_list);
+    for (let a = 0; a < Object.keys(access_list).length; a++) {
+        //console.log("access_list[a]: ", access_list[a])
+        user = get_user.get(`${access_list[a]}`)
+        //console.log("user: ", user)
+
+        //if user does not exist make a new user
+        if (!user) { insert_user.run(`${access_list[a]}`, `${access_list[a]}`, "Unknown") }
+
+        //get the newly created or existing user and insert their permissions
+        user = get_user.get(`${access_list[a]}`)
+        insert_perm.run(doc.DocID, user.UserID, permission)
+    }
+}
 
 async function g_request(callback) {
     const g_access = await get_token() //getting access token 
     const g_id = await get_msg_id(g_access.data.access_token) //getting messages
-    if (g_id.data.resultSizeEstimate == 0) { return callback() } //called when there is no maills to look through
+    if (g_id.data.resultSizeEstimate == 0) { return callback() } //called when there is no mail to look through
 
     //loop through all messages and save them
     for (let idx = 0; idx < Object.keys(g_id.data.messages).length; idx++) {
         var g_raw = await get_msg_data(g_access.data.access_token, g_id.data.messages[idx].id) //getting data
         await post_msg_delete(g_access.data.access_token, g_id.data.messages[idx].id) //delete msg to trash
         var g_data = await parse_data(g_raw, idx, g_access.data.access_token) //parse data
+        
+        if(g_data.cmd == "error") { return await callback() } //will ignore msg sent by gobeavdms@gmail.com 
+
+        //relay a message back mentioning that an error has occurred
+        if(g_data.cmd == "relay_error") {
+            raw = await helpers.makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] ERROR`, `Aw shucks! There was an error with your message sent! :(`)
+            await post_send_msg(g_access.data.access_token, raw)
+            return await callback()
+        }
 
         //inside here we will save users/documents
         if (g_data.cmd == "save") {
+            console.log("SUCCESS!");
+            //console.log("g_data.attachments: ", g_data.attachments);
             for (var j = 0; j < Object.keys(g_data.attachments).length; j++) {
                 fs.writeFile(`./files/${g_data.g_id}-${j}.pdf`, g_data.attachments[j].raw, { encoding: 'base64' }, function(err) { if (err) { return console.log("err with writing pdf file") } })
 
                 //save or grab user and save document location
                 user = get_user.get(`${g_data.sender_email}`)
                 if (!user) { insert_user.run(`${g_data.sender_name}`, `${g_data.sender_email}`, "Unknown") } 
+
                 //create a new user
                 user = get_user.get(`${g_data.sender_email}`)
-                insert_doc.run(`${g_data.title}`, `${g_data.message}`, `./files/${g_data.g_id}-${j}.pdf`, `${user.UserID}`, null, currentDate.toString())
+                //console.log("g_data: ", g_data)
+                //const insert_doc = db.prepare("INSERT INTO Documents (Name, Description, Location, OwnerID, Project, DateAdded) VALUES (?, ?, ?, ?, ?, ?)")
+                //console.log("g_data.access[4].names[j]: ", g_data.access[4].names[j])
+                docName = g_data.access[4].names[j] ? g_data.access[4].names[j] : g_data.attachments[j].filename //check if a name was given in the body. If not, use the filename
+                
+                //console.log("g_data.access[0].project: ", g_data.access[0].project)
+                if(g_data.access[0].project) {
+                    //console.log(`g_data.access[0].project: ${g_data.access[0].project}`)
+                    if(!(proj = find_project.get(`${g_data.access[0].project}`))){
+                        //console.log(`proj: ${proj}`)
+                        insert_project.run(`${g_data.access[0].project}`, "github.com")
+                        proj = find_project.get(`${g_data.access[0].project}`)
+                        //console.log(`proj: ${proj}`)
+                    }
+                }
+                else { proj = NULL}
+                //console.log(`proj: ${proj.Name}`)
+
+                //console.log(`doc_insert: ${docName}, ${g_data.message}, ./files/${g_data.g_id}-${j}.pdf, ${user.UserID}, ${proj}, ${currentDate.toString()}`)
+                insert_doc.run(`${docName}`, `${g_data.message}`, `./files/${g_data.g_id}-${j}.pdf`, `${user.UserID}`, `${proj.ProjID}`, currentDate.toString())
                 doc = find_doc.get(`./files/${g_data.g_id}-${j}.pdf`)
 
                 //save new users and give permissions
-                for (let a = 0; a < Object.keys(g_data.rec_email).length; a++) {
-                    user = get_user.get(`${g_data.rec_email[a]}`)
-                    //if user does not exist make a new user
-                    if (!user) { insert_user.run(`${g_data.rec_name[a]}`, `${g_data.rec_email[a]}`, "Unknown") } 
-                    //get the newly created or existing user and insert their permissions
-                    user = get_user.get(`${g_data.rec_email[a]}`)
-                    insert_perm.run(doc.DocID, user.UserID, `${g_data.rec_perm[a]}`)
-                }
+                //console.log("g_data.access: ", g_data.access)
+                
+                grantPermission(doc, g_data.access[1].read, READ)
+                grantPermission(doc, g_data.access[2].change, CHANGE)
+                grantPermission(doc, g_data.access[3].manage, MANAGE)
             }
 
             //case in where if the parse data has empty arrays then the parse() function found a formatting issue
             if (!isEmpty(g_data.sender_email) && !isEmpty(g_data.attachments)) {
-                raw = makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] SAVED ATTACHMENTS`, `Success: Saved data successfully to gobeavdms! \n\n Origin of Message: ${g_data.title}`)
-                await post_send_msg(g_access.data.access_token, raw)
-            } else {
-                raw = makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] ERROR SAVING ATTACHMENTS`, `Error: No attachments were added or invalid email format \n\n Origin of Message: ${g_data.title}`)
-                await post_send_msg(g_access.data.access_token, raw)
+                // raw = await helpers.makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] SAVED ATTACHMENTS`, `Success: Saved data successfully to gobeavdms! \n\n Origin of Message: ${g_data.project}`)
+                // await post_send_msg(g_access.data.access_token, raw)
+            } 
+            else {
+                // raw = await helpers.makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] ERROR SAVING ATTACHMENTS`, `Error: No attachments were added or invalid email format \n\n Origin of Message: ${g_data.project}`)
+                // await post_send_msg(g_access.data.access_token, raw)
             }
         } 
         else if (g_data.cmd == "access") {
             console.log("test")
         }
         else {
-            if (!isEmpty(g_data.sender_email)) { //case is added here to prevent sent messages from being posted again
-                raw = makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] ERROR SAVING ATTACHMENTS`, `Error: Did not specify a command on the subject line \n\n Origin of Message: ${g_data.title}`)
-                await post_send_msg(g_access.data.access_token, raw)
-            }
+            console.log('went to else')
+            //return callback()
         }
     }
-    return callback()
+    return await callback()
 }
 
 async function recall() {
@@ -366,6 +317,8 @@ router.get("/api", (req, res) => {
     docs = get_docs.all()
     res.status(200).json(docs)
 });
+
+
 
 router.use(cors());
 
