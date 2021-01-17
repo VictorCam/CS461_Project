@@ -2,9 +2,9 @@
    <div class="document-item">
        <h3>{{doc.Name}}</h3>
        <router-link :to="{name: 'docs', params: {DocID: doc.DocID}}">
-            <button class="view-button">
-                <font-awesome-icon icon="file-alt"></font-awesome-icon>
-            </button>
+            <b-button class="view-button" size="lg">
+                <b-icon-file-earmark-medical-fill variant="secondary"></b-icon-file-earmark-medical-fill>
+            </b-button>
        </router-link>
     </div> 
 </template>
@@ -27,5 +27,6 @@ export default {
         padding: 5px;
         color: orange;
         background-color: black;
+        margin-right: 20px;
     }
 </style>

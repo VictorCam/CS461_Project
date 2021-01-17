@@ -1,31 +1,47 @@
 <template>
   <div class="tutorial">
-    <Header v-bind:title="'Tutorial'"/>
+    <Header v-bind:title="'Tutorial'" v-bind:showBackButton="true"/>
     <div class="content">
         <div class="steps">
+            <br>
             <h2>
-                1. Open an email message, include gobeavdms@gmail.com as the recipient
+                1. Open an email message, include gobeavdms@gmail.com as the recipient. Make 
+                sure you are logged into you Oregon State email, otherwise the process will not work.
             </h2>
-            <img src="https://www.spcdn.org/images/undisclosed-recipients-gmail.jpg" alt="">
+            <br>
+            <b-img src="https://snipboard.io/lhNGY1.jpg" fluid alt="Fluid image" class="image"></b-img>
         </div>
         <div class="steps">
             <h2>
-                2. Include one of these keywords in the subject: HELP, SAVE, GET
-                <h5>HELP: Get further information from the documentation</h5>
-                <h5>SAVE: Saves a composed email to the file system</h5>
-                <h5>GET: Retrieves a document from the file system</h5>
+                2. In the subject field, type "save".
             </h2>
-            <img src="https://www.wikihow.com/images/thumb/c/cf/Send-an-Email-Using-Gmail-Step-12-Version-2.jpg/v4-460px-Send-an-Email-Using-Gmail-Step-12-Version-2.jpg.webp" alt="">
+            <br>
+            <b-img src="https://snipboard.io/wrYZL2.jpg" fluid alt="Fluid image" class="image"></b-img>
         </div>
         <div class="steps">
             <h2>
-                3. Optionally include any desired attachments
+                3. In the body of the email include permissions. The permissions are "read", "change", and "manage".
+                <br> <br>
+                <h4>Follow the permission format shown below:</h4>
+                <h5>Permission: OSU Email Address, OSU Email Address, OSU Email Address</h5>
+                <h5>Permission: OSU Email Address, OSU Email Address, OSU Email Address</h5>
+                <h5>Permission: OSU Email Address, OSU Email Address, OSU Email Address</h5>
+                <h5>...</h5>
+                <br>
             </h2>
-            <img src="https://acflory.files.wordpress.com/2015/07/picture-file-attach-icon.jpg" alt="">
+            <b-img src="https://snipboard.io/OAotXb.jpg" fluid alt="Fluid image" class="image"></b-img>
         </div>
         <div class="steps">
             <h2>
-                4. Once the email is sent, it will show up as an entry in the file system
+                4. Include any necessary attachments to the email.
+            </h2>
+            <br>
+            <b-img src="https://snipboard.io/rMx6zN.jpg" fluid alt="Fluid image" class="image"></b-img>
+        </div>
+        <div class="steps">
+            <h2>
+                5. Send the email, check your inbox for a confirmation message.
+                If confirmed, your document should show up on the www.beavdms.com website.
             </h2>
         </div>
     </div>
@@ -53,5 +69,8 @@ export default {
     margin-left: 40px;
     margin-right: 40px;
     margin-bottom: 100px;
+}
+.image {
+    justify-content: center;
 }
 </style>
