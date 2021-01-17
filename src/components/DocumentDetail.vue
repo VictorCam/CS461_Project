@@ -3,13 +3,10 @@
         <Header v-bind:title="doc.Name" v-bind:showBackButton="true"/>
         <div class="content">
             <div class="text">
+                <h3>Permissions:</h3>
                 <p>{{doc.Description}}</p>
             </div>
-            <div class="other-info">
-                <h4>Location: {{doc.Location}}</h4>
-                <h4>Project: {{doc.Project}}</h4>
-                <h4>Date Added: {{doc.DateAdded}}</h4>
-            </div>
+            
         </div>
         
     </div>

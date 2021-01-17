@@ -11,7 +11,7 @@ require('dotenv').config()
 
 //global constants
 var currentDate = new Date(); //current date for database saving
-const userId = "gobeavdms@gmail.com" //user id for api requests
+const userId = "gobeavdms@gmail.com"; //user id for api requests
 const MANAGE = 4; //Permission to grant access to other users
 const CHANGE = 2; //Permission to add document to project, etc...
 const READ = 1; //Permission to read document
