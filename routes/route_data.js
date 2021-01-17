@@ -263,16 +263,16 @@ async function g_request(callback) {
                 
                 //console.log("g_data.access[0].project: ", g_data.access[0].project)
                 if(g_data.access[0].project) {
-                    console.log(`g_data.access[0].project: ${g_data.access[0].project}`)
+                    //console.log(`g_data.access[0].project: ${g_data.access[0].project}`)
                     if(!(proj = find_project.get(`${g_data.access[0].project}`))){
-                        console.log(`proj: ${proj}`)
+                        //console.log(`proj: ${proj}`)
                         insert_project.run(`${g_data.access[0].project}`, "github.com")
                         proj = find_project.get(`${g_data.access[0].project}`)
-                        console.log(`proj: ${proj}`)
+                        //console.log(`proj: ${proj}`)
                     }
                 }
                 else { proj = NULL}
-                console.log(`proj: ${proj.Name}`)
+                //console.log(`proj: ${proj.Name}`)
 
                 //console.log(`doc_insert: ${docName}, ${g_data.message}, ./files/${g_data.g_id}-${j}.pdf, ${user.UserID}, ${proj}, ${currentDate.toString()}`)
                 insert_doc.run(`${docName}`, `${g_data.message}`, `./files/${g_data.g_id}-${j}.pdf`, `${user.UserID}`, `${proj.ProjID}`, currentDate.toString())
