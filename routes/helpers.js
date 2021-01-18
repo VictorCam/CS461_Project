@@ -138,6 +138,10 @@ exports.parseBody = function(message) {
                 manage = loopEmails(value)
                 obj.push({"manage": manage})
             }
+            else if(key.toLowerCase() == 'name') {
+                names = loopArgs(value)
+                obj.push({"names": names})
+            }
             else if(key.toLowerCase() == 'names') {
                 names = loopArgs(value)
                 obj.push({"names": names})
