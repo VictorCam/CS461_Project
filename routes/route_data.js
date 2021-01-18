@@ -3,10 +3,11 @@ const router = express.Router()
 const cors = require("cors")
 const fs = require('fs')
 const { Base64 } = require('js-base64')
-const { isEmpty } = require("lodash")
+const { isEmpty, toInteger } = require("lodash")
 const axios = require("axios")
 const Database = require('better-sqlite3')
 const db = new Database('./database/beavdms.db')
+const helpers = require('./helpers')
 require('dotenv').config()
 
 //global constants
@@ -223,6 +224,18 @@ function grantPermission(doc, access_list, permission) {
     }
 }
 
+function getKey(obj, keyName) {
+    var vals = Object.values(obj);
+    for(var i = 0; i < Object.keys(obj).length; i++){
+        //console.log("val: ", vals[i])
+        if(Object.keys(vals[i]) == keyName) {
+            //console.log("Matched ", keyName)
+            return i
+        }
+    }
+    return null
+}
+
 async function g_request(callback) {
     const g_access = await get_token() //getting access token 
     const g_id = await get_msg_id(g_access.data.access_token) //getting messages
@@ -259,31 +272,44 @@ async function g_request(callback) {
                 //console.log("g_data: ", g_data)
                 //const insert_doc = db.prepare("INSERT INTO Documents (Name, Description, Location, OwnerID, Project, DateAdded) VALUES (?, ?, ?, ?, ?, ?)")
                 //console.log("g_data.access[4].names[j]: ", g_data.access[4].names[j])
-                docName = g_data.access[4].names[j] ? g_data.access[4].names[j] : g_data.attachments[j].filename //check if a name was given in the body. If not, use the filename
+                if((keyNum = getKey(g_data.access, "names"))){
+                    docName = g_data.access[keyNum].names[j] ? g_data.access[keyNum].names[j] : g_data.attachments[j].filename //check if a name was given in the body. If not, use the filename
+                }
                 
                 //console.log("g_data.access[0].project: ", g_data.access[0].project)
-                if(g_data.access[0].project) {
+                var proj = null
+                keyNum = getKey(g_data.access, "project")
+                //console.log("keyNum: ", keyNum)
+                if(keyNum !== null) {
                     //console.log(`g_data.access[0].project: ${g_data.access[0].project}`)
-                    if(!(proj = find_project.get(`${g_data.access[0].project}`))){
+                    if(!(proj = find_project.get(`${g_data.access[keyNum].project}`))){
                         //console.log(`proj: ${proj}`)
-                        insert_project.run(`${g_data.access[0].project}`, "github.com")
-                        proj = find_project.get(`${g_data.access[0].project}`)
-                        //console.log(`proj: ${proj}`)
+                        insert_project.run(`${g_data.access[keyNum].project}`, "github.com")
+                        proj = find_project.get(`${g_data.access[keyNum].project}`).projID
                     }
+                    //console.log("proj: ", proj)
+                    proj = Object.values(proj)[0]
                 }
-                else { proj = NULL}
-                //console.log(`proj: ${proj.Name}`)
-
+                else {
+                    var proj = null
+                    //console.log("proj: ", proj)
+                }
+                //console.log("projID: ", proj, " proj type: ", typeof(proj))
                 //console.log(`doc_insert: ${docName}, ${g_data.message}, ./files/${g_data.g_id}-${j}.pdf, ${user.UserID}, ${proj}, ${currentDate.toString()}`)
-                insert_doc.run(`${docName}`, `${g_data.message}`, `./files/${g_data.g_id}-${j}.pdf`, `${user.UserID}`, `${proj.ProjID}`, currentDate.toString())
+                insert_doc.run(`${docName}`, `${g_data.message}`, `./files/${g_data.g_id}-${j}.pdf`, `${user.UserID}`, `${proj}`, currentDate.toString())
                 doc = find_doc.get(`./files/${g_data.g_id}-${j}.pdf`)
 
                 //save new users and give permissions
                 //console.log("g_data.access: ", g_data.access)
-                
-                grantPermission(doc, g_data.access[1].read, READ)
-                grantPermission(doc, g_data.access[2].change, CHANGE)
-                grantPermission(doc, g_data.access[3].manage, MANAGE)
+                if((keyNum = getKey(g_data.access, "read"))){
+                    grantPermission(doc, g_data.access[keyNum].read, READ)
+                }
+                if((keyNum = getKey(g_data.access, "change"))){
+                    grantPermission(doc, g_data.access[keyNum].change, CHANGE)   
+                }
+                if((keyNum = getKey(g_data.access, "manage"))){
+                    grantPermission(doc, g_data.access[keyNum].manage, MANAGE)   
+                }                
             }
 
             //case in where if the parse data has empty arrays then the parse() function found a formatting issue
