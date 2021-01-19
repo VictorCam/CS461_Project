@@ -207,6 +207,8 @@ const insert_project = db.prepare("INSERT INTO Projects (Name, GitHub) VALUES (?
 const find_doc = db.prepare("SELECT * FROM Documents WHERE Location = ?")
 const find_project = db.prepare("SELECT * FROM Projects WHERE Name = ?")
 const insert_perm = db.prepare("INSERT INTO Permissions (DID, UID, Permissions) VALUES (?, ?, ?)")
+const get_perm = db.prepare("SELECT D.OwnerID, U.UserID, P.DID, P.Permissions FROM Documents D INNER JOIN  Permissions P ON D.DocID=P.DID INNER JOIN Users U ON U.userID=P.UID WHERE D.DocID=?;")
+const get_file_path = db.prepare("SELECT Location FROM Documents WHERE DocID = ?;")
 
 function grantPermission(doc, access_list, permission) {
     //console.log("access_list: ", access_list);
@@ -222,6 +224,16 @@ function grantPermission(doc, access_list, permission) {
         user = get_user.get(`${access_list[a]}`)
         insert_perm.run(doc.DocID, user.UserID, permission)
     }
+}
+
+async function checkPermission(doc, user) {
+    perms = await get_perm.get(`${doc}`)
+    if(perms) {
+        if((perms.Permission >= 1 && perms.UserID == user) || perms.OwnerID == user) {
+            return true;
+        }
+    }
+    else { return false; }
 }
 
 function getKey(obj, keyName) {
@@ -322,8 +334,28 @@ async function g_request(callback) {
                 // await post_send_msg(g_access.data.access_token, raw)
             }
         } 
-        else if (g_data.cmd == "access") {
-            console.log("test")
+        else if (g_data.cmd == "get") {
+            user = get_user.get(`${g_data.sender_email}`)
+            keyNum = getKey(g_data.access, "docs")
+            for(var i = 0; i < g_data.access[keyNum].docs.length; i++) {
+                // console.log(`get request for the doc[${i}]: `, g_data.access[keyNum].docs[i])
+                if(checkPermission(g_data.access[keyNum].docs[i], user)) {
+                    path = await get_file_path.get(g_data.access[keyNum].docs[i])
+                    contents = fs.readFileSync(`${path.Location}`, {encoding: 'base64'});
+                    // console.log("Access authorized")
+                }
+            }
+            encMail = await helpers.makeBodyAttachments(g_data.sender_email, "Your Requested Attachments", 
+            "Hello, please find your requested document(s) in the attachments", contents, "filename")
+            // console.log(`access_token: ${g_access.data.access_token}, mail: ${encMail}`)
+            await post_send_msg(g_access.data.access_token, encMail)
+
+        }
+        else if (g_data.cmd == "update") {
+            console.log("update request received")
+        }
+        else if (g_data.cmd == "help") {
+            console.log("help request received")
         }
         else {
             console.log('went to else')
