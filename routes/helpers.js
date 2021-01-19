@@ -166,7 +166,7 @@ function loopEmails(value) {
             data.push(element)
         }
         else {
-            console.log("match not found") //we will not process this email if its not found
+            console.log("email is not valid or not part of OSU") //we will not process this email if its not found
         }
     }
 

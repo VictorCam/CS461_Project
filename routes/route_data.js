@@ -7,6 +7,7 @@ const { isEmpty } = require("lodash")
 const axios = require("axios")
 const Database = require('better-sqlite3')
 const db = new Database('./database/beavdms.db')
+const helpers = require('./helpers')
 require('dotenv').config()
 
 //global constants
@@ -19,6 +20,13 @@ db.exec("CREATE TABLE IF NOT EXISTS Projects (ProjID INTEGER PRIMARY KEY, Name T
 db.exec("CREATE TABLE IF NOT EXISTS Users (UserID INTEGER PRIMARY KEY, Name TEXT NOT NULL, Email TEXT NOT NULL, Major TEXT NOT NULL)");
 db.exec("CREATE TABLE IF NOT EXISTS Documents (DocID INTEGER PRIMARY KEY, Name TEXT NOT NULL, Description TEXT, Location TEXT NOT NULL, OwnerID INTEGER NOT NULL, Project INTEGER, DateAdded TEXT NOT NULL, FOREIGN KEY(OwnerID) REFERENCES Users(UserID) ON DELETE CASCADE, FOREIGN KEY(Project) REFERENCES Projects(ProjID) ON DELETE CASCADE)");
 db.exec("CREATE TABLE IF NOT EXISTS Permissions (PermID INTEGER PRIMARY KEY, DID INTEGER NOT NULL, UID INTEGER NOT NULL, Permissions INTEGER NOT NULL, FOREIGN KEY(DID) REFERENCES Documents(DocID) ON DELETE CASCADE, FOREIGN KEY(UID) REFERENCES Users(UserID) ON DELETE CASCADE)");
+const get_user = db.prepare("SELECT * FROM Users WHERE Email= ?")
+const insert_user = db.prepare("INSERT INTO Users (Name, Email, Major) VALUES (?, ?, ?)")
+const insert_doc = db.prepare("INSERT INTO Documents (Name, Description, Location, OwnerID, Project, DateAdded) VALUES (?, ?, ?, ?, ?, ?)")
+const insert_project = db.prepare("INSERT INTO Projects (Name, GitHub) VALUES (?, ?)")
+const find_doc = db.prepare("SELECT * FROM Documents WHERE Location = ?")
+const find_project = db.prepare("SELECT * FROM Projects WHERE Name = ?")
+const insert_perm = db.prepare("INSERT INTO Permissions (DID, UID, Permissions) VALUES (?, ?, ?)")
 
 async function get_token() {
     try {
@@ -89,7 +97,7 @@ async function parse_data(g_raw, idx, g_access) {
         var title = helpers.findSubject(g_raw)
     }
     catch(err) {
-        console.log("something went wrong with helpers.findSubject()")
+        console.log("something went wrong with helpers.findSubject()", err)
         return {"cmd": "error"}
     }
 
@@ -199,20 +207,11 @@ async function parse_data(g_raw, idx, g_access) {
     return content
 }
 
-const get_user = db.prepare("SELECT * FROM Users WHERE Email= ?")
-const insert_user = db.prepare("INSERT INTO Users (Name, Email, Major) VALUES (?, ?, ?)")
-const insert_doc = db.prepare("INSERT INTO Documents (Name, Description, Location, OwnerID, Project, DateAdded) VALUES (?, ?, ?, ?, ?, ?)")
-const insert_project = db.prepare("INSERT INTO Projects (Name, GitHub) VALUES (?, ?)")
-const find_doc = db.prepare("SELECT * FROM Documents WHERE Location = ?")
-const find_project = db.prepare("SELECT * FROM Projects WHERE Name = ?")
-const insert_perm = db.prepare("INSERT INTO Permissions (DID, UID, Permissions) VALUES (?, ?, ?)")
-
 function grantPermission(doc, access_list, permission) {
-    //console.log("access_list: ", access_list);
+    //loop thorugh a list of users
     for (let a = 0; a < Object.keys(access_list).length; a++) {
-        //console.log("access_list[a]: ", access_list[a])
+        //get the user if they exist
         user = get_user.get(`${access_list[a]}`)
-        //console.log("user: ", user)
 
         //if user does not exist make a new user
         if (!user) { insert_user.run(`${access_list[a]}`, `${access_list[a]}`, "Unknown") }
@@ -245,8 +244,7 @@ async function g_request(callback) {
 
         //inside here we will save users/documents
         if (g_data.cmd == "save") {
-            console.log("SUCCESS!");
-            //console.log("g_data.attachments: ", g_data.attachments);
+            console.log("SUCCESS!")
             for (var j = 0; j < Object.keys(g_data.attachments).length; j++) {
                 fs.writeFile(`./files/${g_data.g_id}-${j}.pdf`, g_data.attachments[j].raw, { encoding: 'base64' }, function(err) { if (err) { return console.log("err with writing pdf file") } })
 
@@ -256,51 +254,57 @@ async function g_request(callback) {
 
                 //create a new user
                 user = get_user.get(`${g_data.sender_email}`)
-                //console.log("g_data: ", g_data)
-                //const insert_doc = db.prepare("INSERT INTO Documents (Name, Description, Location, OwnerID, Project, DateAdded) VALUES (?, ?, ?, ?, ?, ?)")
-                //console.log("g_data.access[4].names[j]: ", g_data.access[4].names[j])
-                docName = g_data.access[4].names[j] ? g_data.access[4].names[j] : g_data.attachments[j].filename //check if a name was given in the body. If not, use the filename
-                
-                //console.log("g_data.access[0].project: ", g_data.access[0].project)
-                if(g_data.access[0].project) {
-                    //console.log(`g_data.access[0].project: ${g_data.access[0].project}`)
-                    if(!(proj = find_project.get(`${g_data.access[0].project}`))){
-                        //console.log(`proj: ${proj}`)
-                        insert_project.run(`${g_data.access[0].project}`, "github.com")
-                        proj = find_project.get(`${g_data.access[0].project}`)
-                        //console.log(`proj: ${proj}`)
+
+
+                docName = "Unnamed Project"
+
+                for (let n = 0; n < g_data.access.length; n++) {
+                    const element = g_data.access[n];
+                    if(Object.keys(element) == "names") {
+                        name_val = Object.values(element)
+                        console.log("AAAAAA", docName)
+                        docName = name_val[j]
+                        break
+                    }
+                    else {
+                        docName = g_data.attachments[j].filename
                     }
                 }
-                else { proj = NULL}
-                //console.log(`proj: ${proj.Name}`)
-
-                //console.log(`doc_insert: ${docName}, ${g_data.message}, ./files/${g_data.g_id}-${j}.pdf, ${user.UserID}, ${proj}, ${currentDate.toString()}`)
-                insert_doc.run(`${docName}`, `${g_data.message}`, `./files/${g_data.g_id}-${j}.pdf`, `${user.UserID}`, `${proj.ProjID}`, currentDate.toString())
-                doc = find_doc.get(`./files/${g_data.g_id}-${j}.pdf`)
-
-                //save new users and give permissions
-                //console.log("g_data.access: ", g_data.access)
                 
-                grantPermission(doc, g_data.access[1].read, READ)
-                grantPermission(doc, g_data.access[2].change, CHANGE)
-                grantPermission(doc, g_data.access[3].manage, MANAGE)
+                proj = null
+
+                //DONT DELETE: proj.ProjID does not exist (not sure how you are implementing this here)
+                // insert_doc.run(`${docName}`, `${g_data.message}`, `./files/${g_data.g_id}-${j}.pdf`, `${user.UserID}`, `${proj.ProjID}`, currentDate.toString())
+                doc = find_doc.get(`./files/${g_data.g_id}-${j}.pdf`)
+                
+                for (let i = 0; i < g_data.access.length; i++) {
+                    const element = g_data.access[i];
+                    if(Object.keys(element) == "project") {
+                        if(!(proj = find_project.get(`${Object.values(element)}`))){
+                            insert_project.run(`${Object.values(element)}`, "github.com")
+                            proj = find_project.get(`${Object.values(element)}`)
+                        }
+                    }
+                    if(Object.keys(element) == "read") {
+                        // grantPermission(doc, Object.values(element), READ)
+                    }
+                    if(Object.keys(element) == "change") {
+                        // grantPermission(doc, Object.values(element), CHANGE)
+                    }
+                    if(Object.keys(element) == "manage") {
+                        // grantPermission(doc, Object.values(element), MANAGE)
+                    }
+                }
             }
 
-            //case in where if the parse data has empty arrays then the parse() function found a formatting issue
-            if (!isEmpty(g_data.sender_email) && !isEmpty(g_data.attachments)) {
-                // raw = await helpers.makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] SAVED ATTACHMENTS`, `Success: Saved data successfully to gobeavdms! \n\n Origin of Message: ${g_data.project}`)
-                // await post_send_msg(g_access.data.access_token, raw)
-            } 
-            else {
-                // raw = await helpers.makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] ERROR SAVING ATTACHMENTS`, `Error: No attachments were added or invalid email format \n\n Origin of Message: ${g_data.project}`)
-                // await post_send_msg(g_access.data.access_token, raw)
-            }
-        } 
+            raw = await helpers.makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] SAVED ATTACHMENTS`, `Success: Saved data successfully to gobeavdms! \n\n Origin of Message: ${g_data.project}`)
+            await post_send_msg(g_access.data.access_token, raw)
+        }
         else if (g_data.cmd == "access") {
             console.log("test")
         }
         else {
-            console.log('went to else')
+            console.log('If I go to here then there was most likely an error')
             //return callback()
         }
     }
