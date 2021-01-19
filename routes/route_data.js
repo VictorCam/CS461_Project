@@ -282,10 +282,13 @@ async function g_request(callback) {
                 //console.log("keyNum: ", keyNum)
                 if(keyNum !== null) {
                     //console.log(`g_data.access[0].project: ${g_data.access[0].project}`)
-                    if(!(proj = find_project.get(`${g_data.access[keyNum].project}`))){
+                    if(!(proj = await find_project.get(`${g_data.access[keyNum].project}`))){
                         //console.log(`proj: ${proj}`)
-                        insert_project.run(`${g_data.access[keyNum].project}`, "github.com")
-                        proj = find_project.get(`${g_data.access[keyNum].project}`).projID
+                        console.log(`proj before insert: ${proj}`)
+                        proj = insert_project.run(`${g_data.access[keyNum].project}`, "github.com")
+                        console.log(`proj after insert: ${proj}`)
+
+                        //proj = await find_project.get(`${g_data.access[keyNum].project}`).projID
                     }
                     //console.log("proj: ", proj)
                     proj = Object.values(proj)[0]
