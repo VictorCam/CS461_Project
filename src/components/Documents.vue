@@ -13,9 +13,9 @@
             <div class="field">
                 <h3><strong>Date Added</strong></h3>
             </div>
-            <div class="field">
+            <!-- <div class="field">
                 <b-icon-emoji-sunglasses font-scale="5" variant="dark"></b-icon-emoji-sunglasses>
-            </div>
+            </div> -->
         </div> 
         <div v-for="doc in loadedDocuments" :key="doc.DocID">
             <DocumentItem v-bind:doc="doc"/>
