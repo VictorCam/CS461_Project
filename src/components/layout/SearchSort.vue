@@ -25,7 +25,7 @@ export default {
   align-items: center;
   justify-content: center;
   padding: 20px;
-  background-color: #cacaca;
+  background-color: #242424;
   flex-wrap: wrap;
 }
 

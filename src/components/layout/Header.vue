@@ -9,6 +9,7 @@
         <!-- </b-button> -->
     </div>
     
+    <!-- <inmg class="osu logo"> -->
     <h1 class="title">
       {{ title }}
     </h1>
