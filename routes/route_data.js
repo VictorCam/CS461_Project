@@ -285,8 +285,9 @@ async function g_request(callback) {
                 //const insert_doc = db.prepare("INSERT INTO Documents (Name, Description, Location, OwnerID, Project, DateAdded) VALUES (?, ?, ?, ?, ?, ?)")
                 //console.log("g_data.access[4].names[j]: ", g_data.access[4].names[j])
                 if((keyNum = getKey(g_data.access, "names"))){
-                    docName = g_data.access[keyNum].names[j] ? g_data.access[keyNum].names[j] : g_data.attachments[j].filename //check if a name was given in the body. If not, use the filename
+                    docName = g_data.access[keyNum].names[j]
                 }
+                else { docName = g_data.attachments[j].filename }
                 
                 //console.log("g_data.access[0].project: ", g_data.access[0].project)
                 var proj = null
@@ -311,7 +312,7 @@ async function g_request(callback) {
                 }
                 //console.log("projID: ", proj, " proj type: ", typeof(proj))
                 //console.log(`doc_insert: ${docName}, ${g_data.message}, ./files/${g_data.g_id}-${j}.pdf, ${user.UserID}, ${proj}, ${currentDate.toString()}`)
-                insert_doc.run(`${docName}`, `${g_data.message}`, `./files/${g_data.g_id}-${j}.pdf`, `${user.UserID}`, `${proj}`, currentDate.toString())
+                insert_doc.run(`${docName}`, `${g_data.message}`, `./files/${g_data.g_id}-${j}.pdf`, `${user.UserID}`, proj, currentDate.toString())
                 doc = find_doc.get(`./files/${g_data.g_id}-${j}.pdf`)
 
                 //save new users and give permissions
