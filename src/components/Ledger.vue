@@ -1,8 +1,5 @@
 <template>
   <div class="ledger">
-
-    <!-- <p>content from backend: {{gmail}}</p> -->
-
     <div v-for="google in gmail" :key="google.id">
       {{google.id}}
       {{google.g_id}}

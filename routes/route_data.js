@@ -379,6 +379,14 @@ router.get("/api", (req, res) => {
     res.status(200).json(docs)
 });
 
+// route.get("/api/permissions", (req,res) => {
+//     const get_permissions = db.prepare(
+//         "SELECT *" +
+//         "FROM Permissions as perm, Users as user" +
+//         "WHERE perm.uid = userid"
+//         )
+
+// });
 
 
 router.use(cors());
