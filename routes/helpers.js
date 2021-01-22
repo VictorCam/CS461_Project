@@ -196,7 +196,8 @@ function loopArgs(value) {
     return data
 }
 
-exports.makeBodyAttachments = function (receiverId, subject, message, attach, filename) {
+exports.makeBodyAttachments = function (receiverId, subject, message, attach, filenames) {
+    // console.log("attach: ", attach)
     //receiverId = "vdcampa0@gmail.com"
     //subject = "Your Requested Documents"
     boundary = "dms"
@@ -214,7 +215,8 @@ exports.makeBodyAttachments = function (receiverId, subject, message, attach, fi
     // 'CjAwMDAwMDAwNzkgMDAwMDAgbiAKMDAwMDAwMDE3MyAwMDAwMCBuIAowMDAwMDAwMzAxIDAw' +
     // 'MDAwIG4gCjAwMDAwMDAzODAgMDAwMDAgbiAKdHJhaWxlcgo8PAogIC9TaXplIDYKICAvUm9v' +
     // 'dCAxIDAgUgo+PgpzdGFydHhyZWYKNDkyCiUlRU9G'
-
+    //console.log("reciverId: ", receiverId)
+    
     var str = [
         "MIME-Version: 1.0",
         "Content-Transfer-Encoding: 7bit",
@@ -225,14 +227,25 @@ exports.makeBodyAttachments = function (receiverId, subject, message, attach, fi
         "Content-Type: text/plain; charset=UTF-8",
         "Content-Transfer-Encoding: 7bit" + "\n",
         message + "\n",
+    ].join("\n")
+    //console.log("str: ", str)
+    
+    for(var i = 0; i < attach.length; i++) {
+        str += ["--" + boundary,
         "--" + boundary,
-        "--" + boundary,
-        `Content-Type: Application/pdf; name=${filename}`,
-        `Content-Disposition: attachment; filename=${filename}`,
+        `Content-Type: Application/pdf; name=${filenames[i]}`,
+        `Content-Disposition: attachment; filename=${filenames[i]}`,
         "Content-Transfer-Encoding: base64" + "\n",
-        attach,
-        "--" + boundary + "--"
-    ].join("\n");
+        `${attach[i]}`,
+        ].join("\n")
+        //str.join("\n")
+    }
+    // console.log("str with attach: ", str)
+
+    str += ["--" + boundary + "--"].join("\n")
+    //str.join("\n")
+
+    //console.log("str complete: ", str)
 
     // var str = [
     //     "MIME-Version: 1.0",
@@ -258,6 +271,8 @@ exports.makeBodyAttachments = function (receiverId, subject, message, attach, fi
     //     attach,
     //     "--" + boundary + "--"
     // ].join("\n");
+
+    // console.log("str complete: ", str)
 
     var encodedMail = new Buffer.from(str).toString("base64").replace(/\+/g, '-').replace(/\//g, '_');
     return encodedMail;

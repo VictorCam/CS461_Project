@@ -9,6 +9,7 @@ const Database = require('better-sqlite3')
 const db = new Database('./database/beavdms.db')
 const helpers = require('./helpers')
 require('dotenv').config()
+var path = require('path');
 
 //global constants
 var currentDate = new Date(); //current date for database saving
@@ -339,19 +340,24 @@ async function g_request(callback) {
             }
         } 
         else if (g_data.cmd == "get") {
+            var contents = []
+            var filenames = []
             user = get_user.get(`${g_data.sender_email}`)
             keyNum = getKey(g_data.access, "docs")
             for(var i = 0; i < g_data.access[keyNum].docs.length; i++) {
                 // console.log(`get request for the doc[${i}]: `, g_data.access[keyNum].docs[i])
                 if(checkPermission(g_data.access[keyNum].docs[i], user)) {
-                    path = await get_file_path.get(g_data.access[keyNum].docs[i])
-                    contents = fs.readFileSync(`${path.Location}`, {encoding: 'base64'});
-                    // console.log("Access authorized")
+                    fpath = await get_file_path.get(g_data.access[keyNum].docs[i])
+                    contents.push(fs.readFileSync(`${fpath.Location}`, {encoding: 'base64'}));
+                    //filepath = path.parse(fpath.Location).base
+                    filenames.push(path.parse(fpath.Location).base)
+                    console.log("fpath", fpath.Location)
                 }
             }
+            // contents = ["VGVzdCBNZXNzYWdlCg==", "Tm90aGVyIE1lc3NhZ2UK", "V2hhdCBhcmUgeW91IGxvb2tpbmcgYXQ/Cg=="]
             encMail = await helpers.makeBodyAttachments(g_data.sender_email, "Your Requested Attachments", 
-            "Hello, please find your requested document(s) in the attachments", contents, "filename")
-            // console.log(`access_token: ${g_access.data.access_token}, mail: ${encMail}`)
+            "Hello, please find your requested document(s) in the attachments", contents, filenames)
+            //console.log(`encMail: ${encMail}`)
             await post_send_msg(g_access.data.access_token, encMail)
 
         }
