@@ -17,14 +17,18 @@ export default new vuex.Store({
     actions: { //used to preform operations (calls mutations)
         load_gmail({ commit }) {
             axios.get(`${prefix}api/`).then(res => {
-            console.log(res.data)
-              commit("SET_GMAIL", res.data);
+                commit("SET_GMAIL", res.data);
             })
         },
         load_documents({commit}) {
             axios.get(`${prefix}api/`).then(res => {
-            console.log(res.data)
-              commit("SET_DOCUMENTS", res.data);
+                commit("SET_DOCUMENTS", res.data);
+            })
+        },
+        search_documents({commit}, payload) {
+            axios.get(`${prefix}api/`).then(res => {
+                const searchedDocs = res.data.filter(doc => doc.Name.toLowerCase().startsWith(payload.toLowerCase()));
+                commit("SET_DOCUMENTS", searchedDocs);
             })
         }
     },
