@@ -395,6 +395,9 @@ router.get("/api", (req, res) => {
 
 // });
 
+// router.get("/api/search", (req, res) => {
+//     const search_docs = db.prepare
+// });
 
 router.use(cors());
 

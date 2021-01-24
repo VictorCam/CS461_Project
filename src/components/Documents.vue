@@ -35,7 +35,6 @@ export default {
     },
     created() {
         this.$store.dispatch("load_documents");
-        console.log(this.$store.state.loadedDocuments);
     },
     computed: {
         ...mapState(["loadedDocuments"])
