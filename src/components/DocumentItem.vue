@@ -19,7 +19,6 @@
                 </b-button>
             </router-link>
         </div>
-       
     </div> 
 </template>
 
