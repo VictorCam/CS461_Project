@@ -3,9 +3,9 @@
     <div class="search-bar">
       <b-input-group size="lg">
         <b-button variant="secondary" size="lg">
-          <b-icon-search v-on:click="searchEvent"></b-icon-search>
+          <b-icon-search @click="searchEvent"></b-icon-search>
         </b-button>
-        <b-form-input placeholder="Search Project..." v-model="searchText"></b-form-input>
+        <b-form-input @keyup.enter="searchEvent" placeholder="Search Project..." v-model="searchText"></b-form-input>
       </b-input-group>
     </div>
     <div class="sort-btn">
@@ -19,16 +19,14 @@
 <script>
 export default {
   name: "SearchSort",
+  data() {
+    return {
+      searchText: ''
+    }
+  },
   methods: {
     searchEvent() {
-      if (this.searchText === undefined) {
-        this.searchText = "";
-      } 
-      if (this.searchText === "") {
-        this.$store.dispatch("load_documents");
-      } else {
-        this.$store.dispatch("search_documents", this.searchText);
-      }
+      return (!this.searchText || this.searchText === "" ? this.$store.dispatch("load_documents") : this.$store.dispatch("search_documents", this.searchText))
     }
   }
 };

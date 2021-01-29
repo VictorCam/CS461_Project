@@ -26,6 +26,7 @@
     "googleapis": "^61.0.0",
     "http-parser-js": "^0.5.3",
     "is-core-module": "^2.2.0",
+    "joi": "^17.3.0",
     "js-base64": "^3.5.2",
     "js-cookie": "^2.2.1",
     "jsonwebtoken": "^8.5.1",

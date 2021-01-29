@@ -8,13 +8,13 @@ Vue.use(vuex, axios)
 const prefix = process.env.NODE_ENV === 'production' ? '/' : 'http://localhost:13377/';
 
 export default new vuex.Store({
-    state: { //used for holding info
+    state: { //used for holding info (state)
         gmail: [],
         loadedDocuments: []
     },
-    getters: { //used for calling a small function  (I don't think we'll need this)
+    getters: { //used for calling a small function
     },
-    actions: { //used to preform operations (calls mutations)
+    actions: { //call our backend and update state with commit
         load_gmail({ commit }) {
             axios.get(`${prefix}api/`).then(res => {
                 commit("SET_GMAIL", res.data);
@@ -26,13 +26,12 @@ export default new vuex.Store({
             })
         },
         search_documents({commit}, payload) {
-            axios.get(`${prefix}api/`).then(res => {
-                const searchedDocs = res.data.filter(doc => doc.Name.toLowerCase().startsWith(payload.toLowerCase()));
-                commit("SET_DOCUMENTS", searchedDocs);
+            axios.get(`${prefix}api/search/${payload}`).then(res => {
+                commit("SET_DOCUMENTS", res.data);
             })
         }
     },
-    mutations: { //used to update info (updates state given)
+    mutations: { //used to update info (updates state)
         SET_GMAIL(state, payload) {
             state.gmail = payload;
         },
