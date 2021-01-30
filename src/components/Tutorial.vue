@@ -20,27 +20,48 @@
         </div>
         <div class="steps">
             <h2>
-                3. In the body of the email include permissions. The permissions are "read", "change", and "manage".
+                3. In the body of the email, add a project name.
+                <br><br>
+                <h4>Follow the format shown below:</h4>
+                <h5>project: Project Name 1</h5>
+            </h2>
+            <br>
+            <b-img src="https://snipboard.io/Pa7Jf2.jpg" fluid alt="Fluid image" class="image"></b-img>
+        </div>
+        <div class="steps">
+            <h2>
+                4. In the body of the email include permissions. The permissions are "read", "change", and "manage".
                 <br> <br>
-                <h4>Follow the permission format shown below:</h4>
+                <h4>Follow the format shown below:</h4>
                 <h5>Permission: OSU Email Address, OSU Email Address, OSU Email Address</h5>
                 <h5>Permission: OSU Email Address, OSU Email Address, OSU Email Address</h5>
                 <h5>Permission: OSU Email Address, OSU Email Address, OSU Email Address</h5>
                 <h5>...</h5>
                 <br>
             </h2>
-            <b-img src="https://snipboard.io/OAotXb.jpg" fluid alt="Fluid image" class="image"></b-img>
+            <b-img src="https://snipboard.io/u7xmY8.jpg" fluid alt="Fluid image" class="image"></b-img>
         </div>
         <div class="steps">
             <h2>
-                4. Include any necessary attachments to the email.
+                5. Below the permissions in the body, optionally add a names field to name the attached documents in the file system.
+                Make sure there are the same number of names as PDF files attached to the email
+                <br> <br>
+                <h4>Follow the format shown below:</h4>
+                <h4>names: Doc 1 Name, Doc 2 Name, Doc 3 Name</h4>
+                <br>
+            </h2>
+            <b-img src="https://snipboard.io/gQAV4c.jpg" fluid alt="Fluid image" class="image"></b-img>
+        </div>
+        <div class="steps">
+            <h2>
+                6. Include any necessary attachments to the email The attachments must be PDF files.
             </h2>
             <br>
-            <b-img src="https://snipboard.io/rMx6zN.jpg" fluid alt="Fluid image" class="image"></b-img>
+            <b-img src="https://snipboard.io/XUv4Lg.jpg" fluid alt="Fluid image" class="image"></b-img>
         </div>
         <div class="steps">
             <h2>
-                5. Send the email, check your inbox for a confirmation message.
+                7. Send the email, check your inbox for a confirmation message.
                 If confirmed, your document should show up on the www.beavdms.com website.
             </h2>
         </div>

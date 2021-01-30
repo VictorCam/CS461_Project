@@ -1,26 +1,30 @@
 <template>
     <div class="documents">
-        <div class="document-item-fields">
-            <div class="field">
-                <h3><strong>DocID</strong></h3>
-            </div>
-            <div class="field">
-                <h3><strong>Document Name</strong></h3>
-            </div>
-            <div class="field">
-                <h3><strong>Project Name</strong></h3>
-            </div>
-            <div class="field">
-                <h3><strong>Date Added</strong></h3>
-            </div>
-            <!-- <div class="field">
-                <b-icon-emoji-sunglasses font-scale="5" variant="dark"></b-icon-emoji-sunglasses>
-            </div> -->
-        </div> 
-        <div v-for="doc in loadedDocuments" :key="doc.DocID">
+        <b-container fluid>
+            <b-row class="text-center align-items-center document-item-fields">
+                <b-col class="field">
+                    <h3><strong>DocID</strong></h3>
+                </b-col>
+                <b-col class="field">
+                    <h3><strong>Document Name</strong></h3>
+                </b-col>
+                <b-col class="field">
+                    <h3><strong>Project Name</strong></h3>
+                </b-col>
+                <b-col class="field">
+                    <h3><strong>Date Added</strong></h3>
+                </b-col>
+                <b-col class="field">
+                    <b-icon-emoji-sunglasses font-scale="5" variant="dark"></b-icon-emoji-sunglasses>
+                </b-col>
+            </b-row>
+            
+        </b-container>
+            <div v-for="doc in loadedDocuments" :key="doc.DocID">
             <DocumentItem v-bind:doc="doc"/>
-        </div>
-    </div>
+            </div>
+    </div> 
+        
 </template>
 
 <script>

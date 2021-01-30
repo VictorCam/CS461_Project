@@ -22,6 +22,7 @@ export default new vuex.Store({
         },
         load_documents({commit}) {
             axios.get(`${prefix}api/`).then(res => {
+                console.log(res.data);
                 commit("SET_DOCUMENTS", res.data);
             })
         },

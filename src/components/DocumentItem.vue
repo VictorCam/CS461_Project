@@ -1,25 +1,30 @@
 <template>
    <div class="document-item">
-        <div class="field-value">
-            <h3>{{doc.DocID}}</h3>
-        </div>
-        <div class="field-value">
-            <h3>{{doc.Name}}</h3>
-        </div>
-        <div class="field-value">
-            <h3>{{doc.Project}}</h3>
-        </div>
-        <div class="field-value">
-            <h6>{{doc.DateAdded.toLocaleString()}}</h6>
-        </div>
-        <div class="field-value">
-            <router-link :to="{name: 'docs', params: {DocID: doc.DocID}}">
-                <b-button class="view-button" size="lg">
-                    <b-icon-file-earmark-medical-fill variant="secondary"></b-icon-file-earmark-medical-fill>
-                </b-button>
-            </router-link>
-        </div>
-       
+       <b-container fluid>
+           <b-row class="text-center align-items-center">
+               <b-col class="field-value">
+                    <h3>{{doc.DocID}}</h3>
+               </b-col>
+               <b-col class="field-value">
+                   <h3>{{doc.Name}}</h3>
+               </b-col>
+               <b-col class="field-value">
+                   <h3>{{doc.Project}}</h3>
+               </b-col>
+               <b-col class="field-value">
+                   <h6>{{doc.DateAdded.toLocaleString()}}</h6>
+               </b-col>
+               <b-col>
+                   <router-link :to="{name: 'docs', params: {DocID: doc.DocID}}">
+                        <b-button class="view-button" size="lg">
+                            <b-icon-file-earmark-medical-fill variant="secondary"></b-icon-file-earmark-medical-fill>
+                        </b-button>
+                    </router-link>
+               </b-col>
+           </b-row>
+
+       </b-container>
+        
     </div> 
 </template>
 
@@ -45,6 +50,6 @@ export default {
         margin-right: 20px;
     }
     .field-value {
-        color: #444;
+        color: #333;
     }
 </style>
