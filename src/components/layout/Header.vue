@@ -9,7 +9,7 @@
         <!-- </b-button> -->
     </div>
     
-    <!-- <inmg class="osu logo"> -->
+    <!-- <img class="osu logo"> -->
     <h1 class="title">
       {{ title }}
     </h1>
@@ -22,19 +22,49 @@
     </router-link>
     </button>
     
-      <button class="tutorial">
-        <router-link :to="{ name: 'tutorial' }">
+    <div v-if="showTutorialButton">
+      <button class="tutorial" >
+        <router-link :to="{ name: 'save' }">
         <img class="find-button" src="@/assets/help.png" />
         </router-link>
       </button>
       <!-- <b-button variant="secondary" class="tutorial-btn">Tutorial</b-button> -->
+    </div>
+
+    <div v-if="!showTutorialButton">
+      <button class="tutorial">
+        <router-link :to="{name: 'save'}">
+          <h3 v-if="this.$route.name==='save'" style="color: black">Save</h3>
+          <h3 v-else>Save</h3>
+        </router-link>
+      </button>
+    </div>
+
+    <div v-if="!showTutorialButton">
+      <button class="tutorial">
+        <router-link :to="{name: 'get'}">
+          <h3 v-if="this.$route.name==='get'" style="color: black">Get</h3>
+          <h3 v-else>Get</h3>
+        </router-link>
+      </button>
+    </div>
+
+    <div v-if="!showTutorialButton">
+      <button class="tutorial">
+        <router-link :to="{name: 'update'}">
+          <h3 v-if="this.$route.name==='update'" style="color: black">Update</h3>
+          <h3 v-else>Update</h3>
+        </router-link>
+      </button>
+    </div>
+      
   </div>
 </template>
 
 <script>
 export default {
   name: "Header",
-  props: ["title", "showBackButton"],
+  props: ["title", "showBackButton", "showTutorialButton"],
   methods: {
     goBack() {
       return this.$router.go(-1);
@@ -58,7 +88,7 @@ export default {
   width: 100%;
   padding: 15px;
 }
-.home-btn {
+/* .home-btn {
   align-self: flex-start;
   margin: 20px;
   padding: 7px;
@@ -71,7 +101,7 @@ export default {
 .back-btn {
   margin: 20px;
   padding: 8px;
-}
+} */
 
 /* TUTORIAL BUTTON */
 .tutorial {
@@ -79,6 +109,13 @@ export default {
   opacity: 1.0;
   margin: 20px;
   background-color: rgb(219, 115, 30);
+}
+
+.tutorial h3 {
+  color: white;
+}
+.tutorial h3:hover {
+  color: black;
 }
 
 .tutorial:hover {
@@ -110,7 +147,7 @@ export default {
   background-color: rgb(219, 115, 30);
 }
 
-.tutorial:hover {
+.home:hover {
   border: none;
   opacity: 1.0;
   background-color: rgb(219, 115, 30);

@@ -1,6 +1,6 @@
 <template>
     <div class="document-detail">
-        <Header v-bind:title="doc.Name" v-bind:showBackButton="true"/>
+        <Header v-bind:title="doc.Name" v-bind:showBackButton="true" v-bind:showTutorialButton="true"/>
         <div class="content">
             <div class="text">
                 <h3>Permissions:</h3>

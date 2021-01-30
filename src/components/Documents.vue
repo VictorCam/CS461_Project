@@ -21,7 +21,7 @@
             
         </b-container>
             <div v-for="doc in loadedDocuments" :key="doc.DocID">
-            <DocumentItem v-bind:doc="doc"/>
+                <DocumentItem v-bind:doc="doc"/>
             </div>
     </div> 
         
