@@ -10,6 +10,7 @@ const db = new Database('./database/beavdms.db')
 const helpers = require('./helpers')
 require('dotenv').config()
 var path = require('path');
+const Joi = require('joi')
 
 //global constants
 var currentDate = new Date(); //current date for database saving
@@ -395,9 +396,11 @@ router.get("/api", (req, res) => {
 
 // });
 
-// router.get("/api/search", (req, res) => {
-//     const search_docs = db.prepare
-// });
+router.get("/api/search/:search", (req, res) => {
+    const search_docs = db.prepare("SELECT * FROM Documents WHERE Documents.Name LIKE ?")
+    filtered = search_docs.all(`%${req.params.search}%`)
+    res.status(200).json(filtered)
+});
 
 router.use(cors());
 
