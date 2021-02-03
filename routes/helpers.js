@@ -197,26 +197,8 @@ function loopArgs(value) {
 }
 
 exports.makeBodyAttachments = function (receiverId, subject, message, attach, filenames) {
-    // console.log("attach: ", attach)
-    //receiverId = "vdcampa0@gmail.com"
-    //subject = "Your Requested Documents"
-    boundary = "dms"
-    //message = "hello! here are your attachments"
-    // attach =  'JVBERi0xLjcKCjEgMCBvYmogICUgZW50cnkgcG9pbnQKPDwKICAvVHlwZSAvQ2F0YWxvZwog' +
-    // 'IC9QYWdlcyAyIDAgUgo+PgplbmRvYmoKCjIgMCBvYmoKPDwKICAvVHlwZSAvUGFnZXMKICAv' +
-    // 'TWVkaWFCb3ggWyAwIDAgMjAwIDIwMCBdCiAgL0NvdW50IDEKICAvS2lkcyBbIDMgMCBSIF0K' +
-    // 'Pj4KZW5kb2JqCgozIDAgb2JqCjw8CiAgL1R5cGUgL1BhZ2UKICAvUGFyZW50IDIgMCBSCiAg' +
-    // 'L1Jlc291cmNlcyA8PAogICAgL0ZvbnQgPDwKICAgICAgL0YxIDQgMCBSIAogICAgPj4KICA+' +
-    // 'PgogIC9Db250ZW50cyA1IDAgUgo+PgplbmRvYmoKCjQgMCBvYmoKPDwKICAvVHlwZSAvRm9u' +
-    // 'dAogIC9TdWJ0eXBlIC9UeXBlMQogIC9CYXNlRm9udCAvVGltZXMtUm9tYW4KPj4KZW5kb2Jq' +
-    // 'Cgo1IDAgb2JqICAlIHBhZ2UgY29udGVudAo8PAogIC9MZW5ndGggNDQKPj4Kc3RyZWFtCkJU' +
-    // 'CjcwIDUwIFRECi9GMSAxMiBUZgooSGVsbG8sIHdvcmxkISkgVGoKRVQKZW5kc3RyZWFtCmVu' +
-    // 'ZG9iagoKeHJlZgowIDYKMDAwMDAwMDAwMCA2NTUzNSBmIAowMDAwMDAwMDEwIDAwMDAwIG4g' +
-    // 'CjAwMDAwMDAwNzkgMDAwMDAgbiAKMDAwMDAwMDE3MyAwMDAwMCBuIAowMDAwMDAwMzAxIDAw' +
-    // 'MDAwIG4gCjAwMDAwMDAzODAgMDAwMDAgbiAKdHJhaWxlcgo8PAogIC9TaXplIDYKICAvUm9v' +
-    // 'dCAxIDAgUgo+PgpzdGFydHhyZWYKNDkyCiUlRU9G'
-    //console.log("reciverId: ", receiverId)
-    
+    boundary = "dms" // set demarcation value
+    // set email headers
     var str = [
         "MIME-Version: 1.0",
         "Content-Transfer-Encoding: 7bit",
@@ -227,9 +209,9 @@ exports.makeBodyAttachments = function (receiverId, subject, message, attach, fi
         "Content-Type: text/plain; charset=UTF-8",
         "Content-Transfer-Encoding: 7bit" + "\n",
         message + "\n",
-    ].join("\n")
-    //console.log("str: ", str)
+    ].join("\n") // set format
     
+    // append each attachment to the email
     for(var i = 0; i < attach.length; i++) {
         str += ["--" + boundary,
         "--" + boundary,
@@ -238,41 +220,10 @@ exports.makeBodyAttachments = function (receiverId, subject, message, attach, fi
         "Content-Transfer-Encoding: base64" + "\n",
         `${attach[i]}`,
         ].join("\n")
-        //str.join("\n")
     }
-    // console.log("str with attach: ", str)
-
+    
+    // append email tail
     str += ["--" + boundary + "--"].join("\n")
-    //str.join("\n")
-
-    //console.log("str complete: ", str)
-
-    // var str = [
-    //     "MIME-Version: 1.0",
-    //     "Content-Transfer-Encoding: 7bit",
-    //     "To: " + receiverId,
-    //     "Subject: " + subject,
-    //     "Content-Type: multipart/alternate; boundary=" + boundary + "\n",
-    //     "--" + boundary,
-    //     "Content-Type: text/plain; charset=UTF-8",
-    //     "Content-Transfer-Encoding: 7bit" + "\n",
-    //     message+ "\n",
-    //     "--" + boundary,
-    //     "--" + boundary,
-    //     "Content-Type: Application/pdf; name=myPdf.pdf",
-    //     'Content-Disposition: attachment; filename=myPdf.pdf',
-    //     "Content-Transfer-Encoding: base64" + "\n",
-    //     attach,
-    //     "--" + boundary,
-    //     "--" + boundary,
-    //     "Content-Type: Application/pdf; name=myPdf2.pdf",
-    //     'Content-Disposition: attachment; filename=myPdf2.pdf',
-    //     "Content-Transfer-Encoding: base64" + "\n",
-    //     attach,
-    //     "--" + boundary + "--"
-    // ].join("\n");
-
-    // console.log("str complete: ", str)
 
     var encodedMail = new Buffer.from(str).toString("base64").replace(/\+/g, '-').replace(/\//g, '_');
     return encodedMail;
