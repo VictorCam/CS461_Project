@@ -25,24 +25,18 @@ const routes = [
 ];
 
 const router = new VueRouter({
-  // routes: routes
   routes,
   mode: 'history' 
 });
 
 router.beforeEach((to,from,next) => {
-  redirections(to,from,next)
-})
-
-function redirections(to,from,next) {
   if (!to.matched.some(record => record.meta.force_redirect)) {
     next("/")
   }
   else {
     next()
   }
-}
-
+})
 
 new Vue({
   router,

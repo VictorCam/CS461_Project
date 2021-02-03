@@ -44,20 +44,14 @@ export default {
   name: "SearchSort",
   data() {
     return {
-      searchText: ''
+      searchText: '',
+      selected: '',
+      options: []
     }
   },
   methods: {
     searchEvent() {
-      return (!this.searchText || this.searchText === "" ? this.$store.dispatch("load_documents") : this.$store.dispatch("search_documents", this.searchText))
-    }
-  },
-  data() {
-    return {
-      selected: '',
-      options: [
-    
-      ]
+      return (!this.searchText || this.searchText === "" ? this.$store.dispatch("load_documents", this.$route.query.page) : this.$store.dispatch("search_documents", this.searchText))
     }
   }
 };

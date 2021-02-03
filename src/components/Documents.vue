@@ -38,7 +38,7 @@ export default {
         DocumentItem
     },
     created() {
-        this.$store.dispatch("load_documents");
+        this.$store.dispatch("load_documents", this.$route.query.page);
     },
     computed: {
         ...mapState(["loadedDocuments"])
