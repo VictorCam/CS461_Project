@@ -10,25 +10,32 @@ const prefix = process.env.NODE_ENV === 'production' ? '/' : 'http://localhost:1
 export default new vuex.Store({
     state: { //used for holding info (state)
         gmail: [],
-        loadedDocuments: []
+        loadedDocuments: [],
+        max: [],
     },
     getters: { //used for calling a small function
     },
     actions: { //call our backend and update state with commit
         load_gmail({ commit }) {
-            axios.get(`${prefix}api/`).then(res => {
+            axios.get(`${prefix}api/`)
+            .then(res => {
                 commit("SET_GMAIL", res.data);
             })
         },
-        load_documents({commit}) {
-            axios.get(`${prefix}api/`).then(res => {
-                console.log(res.data);
-                commit("SET_DOCUMENTS", res.data);
+        load_documents({commit}, page) {
+            axios.get(`${prefix}api/?page=${page}`)
+            .then(res => {
+                console.log(res.data)
+                commit("SET_DOCUMENTS", res.data.results)
+                commit("SET_PAGINATION", res.data.max)
             })
         },
         search_documents({commit}, payload) {
-            axios.get(`${prefix}api/search/${payload}`).then(res => {
-                commit("SET_DOCUMENTS", res.data);
+            axios.get(`${prefix}api/search/${payload}?page=1`)
+            .then(res => {
+                commit("SET_DOCUMENTS", res.data.results)
+                commit("SET_PAGINATION", res.data.max)
+                console.log(res.data.max)
             })
         }
     },
@@ -38,6 +45,9 @@ export default new vuex.Store({
         },
         SET_DOCUMENTS(state, payload) {
             state.loadedDocuments = payload;
+        },
+        SET_PAGINATION(state, payload) {
+            state.max = payload;
         }
     }
 });
