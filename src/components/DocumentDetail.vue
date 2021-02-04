@@ -6,9 +6,7 @@
                 <h3>Permissions:</h3>
                 <p>{{doc.Description}}</p>
             </div>
-            
         </div>
-        
     </div>
 </template>
 

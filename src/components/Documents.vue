@@ -18,36 +18,54 @@
                     <b-icon-emoji-sunglasses font-scale="5" variant="dark"></b-icon-emoji-sunglasses>
                 </b-col>
             </b-row>
-            
         </b-container>
             <div v-for="doc in loadedDocuments" :key="doc.DocID">
             <DocumentItem v-bind:doc="doc"/>
             </div>
-    </div> 
-        
+
+            <!-- {{max}} -->
+
+        <div class="paginate_buttons">
+            <button @click="navigate(Number(max.page)-1, max)">Previous</button>
+            <!-- <template v-for="pagination in max.max">
+            <button :key="pagination.show" @click="navigate(pagination, max)">{{pagination}}</button>
+            </template> -->
+            <button  @click="navigate(Number(max.page)+1, max)">Next</button>
+        </div>
+
+    </div>
 </template>
 
 <script>
 import DocumentItem from './DocumentItem';
 import {mapState} from 'vuex';
-// import loadedDocuments from '../../routes/route_data.js'
-// Name, Description, Location, OwnerID, Project, DateAdded
+
 export default {
     name: "Documents",
     components: {
         DocumentItem
     },
     created() {
-        this.$store.dispatch("load_documents");
+        this.$store.dispatch("load_documents", this.$route.query.page);
     },
     computed: {
-        ...mapState(["loadedDocuments"])
+        ...mapState(["loadedDocuments", "max"])
     },
-    // data() {
-    //     return {
-    //         frontPageFields: ['DocID', 'Name', 'Project', 'DateAdded']
-    //     }
-    // }
+    methods: {
+        navigate(pag_num, max) {
+            if(pag_num > max.max || pag_num < 1) {
+                console.log("out of bounds")
+                //do stuff
+                return
+            }
+            console.log(max.max)
+
+            if(pag_num != this.$route.query.page) {
+                this.$store.dispatch("load_documents", pag_num)
+                this.$router.push({ query: {page: pag_num} })
+            }
+        }
+    }
 }
 </script>
 

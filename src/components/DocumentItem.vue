@@ -22,10 +22,8 @@
                     </router-link>
                </b-col>
            </b-row>
-
        </b-container>
-        
-    </div> 
+    </div>
 </template>
 
 <script>
