@@ -12,6 +12,7 @@ require('dotenv').config()
 var path = require('path');
 const Joi = require('joi')
 
+
 //global constants
 var currentDate = new Date(); //current date for database saving
 const userId = process.env.USER_ID; //user id for api requests
@@ -445,8 +446,11 @@ function paginatedResults(q_query, q_count, query_data, page, limit, req) {
             }
         }
         results.max = {
-            page: Math.ceil(count/limit),
-            limit: limit
+            max: Math.ceil(count/limit),
+            show: 5,
+            page: page,
+            limit: limit,
+            offset: Math.ceil(count/limit) - 5
         }
 
         results.results = data

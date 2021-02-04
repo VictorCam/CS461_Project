@@ -35,6 +35,7 @@ export default new vuex.Store({
             .then(res => {
                 commit("SET_DOCUMENTS", res.data.results)
                 commit("SET_PAGINATION", res.data.max)
+                console.log(res.data.max)
             })
         }
     },
