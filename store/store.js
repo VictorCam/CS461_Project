@@ -12,6 +12,7 @@ export default new vuex.Store({
         gmail: [],
         loadedDocuments: [],
         max: [],
+        ownerOfViewedDocument: null,
     },
     getters: { //used for calling a small function
     },
@@ -37,6 +38,14 @@ export default new vuex.Store({
                 commit("SET_PAGINATION", res.data.max)
                 console.log(res.data.max)
             })
+        },
+        find_owner_of_document({commit}, payload) {
+            console.log(payload);
+            axios.get(`${prefix}api/doc/${payload}`)
+            .then(res => {
+                console.log(res.data);
+                commit("SET_OWNER_OF_VIEWED_DOCUMENT", res.data);
+            });
         }
     },
     mutations: { //used to update info (updates state)
@@ -48,6 +57,9 @@ export default new vuex.Store({
         },
         SET_PAGINATION(state, payload) {
             state.max = payload;
+        },
+        SET_OWNER_OF_VIEWED_DOCUMENT(state, payload) {
+            state.ownerOfViewedDocument = payload;
         }
     }
 });

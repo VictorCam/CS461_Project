@@ -438,8 +438,12 @@ async function recall() {
 recall()
 
 router.get("/api", (req, res) => {
-    const q_query = "SELECT * FROM Documents LIMIT ? OFFSET ?"
+    // const q_query = "SELECT * FROM DOCUMENTS LIMIT ? OFFSET ?";
+    const q_query = "SELECT Documents.DocID, Documents.DateAdded, Documents.Name AS DocName, Projects.Name AS ProjName FROM Documents LEFT JOIN Projects ON Project = ProjID LIMIT ? OFFSET ?"
     const q_count = "SELECT count(*) FROM Documents"
+
+    // Update count when making queries, to avoid offset issues
+    // LEFT JOIN does not affect the count
 
     const schema = Joi.number().integer().max(10000000000).required()
     const page = schema.validate(toInteger(req.query.page))
@@ -447,16 +451,28 @@ router.get("/api", (req, res) => {
 
     var query_data = []
 
-    const paginated = paginatedResults(q_query, q_count, query_data, page.value, 10, req)
-    res.status(200).json(paginated)
+    const paginated = paginatedResults(q_query, q_count, query_data, page.value, 10, req);
+    res.status(200).json(paginated);
+});
+
+// Get the author of the document
+router.get("/api/doc/:doc", (req, res) => {
+    const docID = req.params.doc;
+    const authorQuery = "SELECT Users.Name AS Owner FROM Users WHERE Users.UserID = docID";
+    const results = db.prepare(authorQuery);
+    res.status(200).json(results);
 });
 
 router.get("/api/search/:search", (req, res) => {
-    const q_query = "SELECT * FROM Documents WHERE Documents.Name LIKE ? LIMIT ? OFFSET ?"
-    const q_count = "SELECT count(*) FROM Documents WHERE Documents.Name LIKE ?"
+    // Trying to search by Documents.Name or Projects.Name, later include User.Name
+    const q_query = "SELECT Documents.DocID, Documents.DateAdded, Documents.Name AS DocName, Projects.Name AS ProjName" +
+     "FROM Documents LEFT JOIN Projects ON Project = ProjID WHERE (DocName LIKE ? OR ProjName LIKE ?) LIMIT ? OFFSET ?"; 
+    const q_count = "SELECT count(*) FROM Documents LEFT JOIN Projects ON Project = ProjID WHERE (Documents.Name LIKE ? OR Projects.Name LIKE ?)";
+
+ 
 
     //data validation
-    const schema1 = Joi.number().integer().max(10000000000).required()
+    const schema1 = Joi.number().integer().required()
     const schema2 = Joi.string().alphanum().max(50).required()
     const page = schema1.validate(toInteger(req.query.page))
     const search = schema2.validate(req.params.search)
