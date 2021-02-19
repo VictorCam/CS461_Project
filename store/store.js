@@ -32,20 +32,19 @@ export default new vuex.Store({
             })
         },
         search_documents({commit}, payload) {
-            axios.get(`${prefix}api/search/${payload}?page=1`)
+            axios.get(`${prefix}api/search/?page=${payload[1]}&search=${payload[0]}`)
             .then(res => {
                 commit("SET_DOCUMENTS", res.data.results)
                 commit("SET_PAGINATION", res.data.max)
-                console.log(res.data.max)
             })
         },
         find_owner_of_document({commit}, payload) {
             console.log(payload);
             axios.get(`${prefix}api/doc/${payload}`)
             .then(res => {
-                console.log(res.data);
+                console.log(res.data)
                 commit("SET_OWNER_OF_VIEWED_DOCUMENT", res.data);
-            });
+            })
         }
     },
     mutations: { //used to update info (updates state)
