@@ -26,11 +26,11 @@
             <!-- {{max}} -->
 
         <div class="paginate_buttons">
-            <button @click="navigate(Number(max.page)-1, max)">Previous</button>
+            <button @click="navigate(Number($route.query.page)-1)">Previous</button>
             <!-- <template v-for="pagination in max.max">
             <button :key="pagination.show" @click="navigate(pagination, max)">{{pagination}}</button>
             </template> -->
-            <button  @click="navigate(Number(max.page)+1, max)">Next</button>
+            <button  @click="navigate(Number($route.query.page)+1)">Next</button>
         </div>
 
     </div>
@@ -52,18 +52,19 @@ export default {
         ...mapState(["loadedDocuments", "max"])
     },
     methods: {
-        navigate(pag_num, max) {
-            if(pag_num > max.max || pag_num < 1) {
-                console.log("out of bounds")
-                //do stuff
-                return
-            }
-            console.log(max.max)
+        navigate(pag_num) {
+            // console.log(test)
+            // if(pag_num > max.max || pag_num < 1) {
+            //     console.log("out of bounds")
+            //     //do stuff
+            //     return
+            // }
+            // console.log(max.max)
 
-            if(pag_num != this.$route.query.page) {
+            // if(pag_num != this.$route.query.page) {
                 this.$store.dispatch("load_documents", pag_num)
                 this.$router.push({ query: {page: pag_num} })
-            }
+            // }
         }
     }
 }
