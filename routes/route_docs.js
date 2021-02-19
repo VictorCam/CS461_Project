@@ -7,21 +7,23 @@ require('dotenv').config()
 const Joi = require('joi')
 
 router.get("/api", (req, res) => {
-    // const q_query = "SELECT * FROM DOCUMENTS LIMIT ? OFFSET ?";
-    const q_query = "SELECT Documents.DocID, Documents.DateAdded, Documents.Name AS DocName, Projects.Name AS ProjName FROM Documents LEFT JOIN Projects ON Project = ProjID LIMIT ? OFFSET ?"
-    const q_count = "SELECT count(*) FROM Documents"
-
-    // Update count when making queries, to avoid offset issues
-    // LEFT JOIN does not affect the count
-
     const schema = Joi.number().integer().required()
     const page = schema.validate(req.query.page)
     if(page.error) { return res.status(422).json(page.error.details[0].message) }
 
-    var query_data = []
+    var find_doc = db.prepare("SELECT Documents.DocID, Documents.Name as Dname, Documents.DateAdded, Documents.Name, Projects.Name FROM Documents, Projects WHERE Documents.Project = Projects.ProjID AND DocID > ? LIMIT ?")
+    var get_count = db.prepare("SELECT count(*) FROM Documents, Projects WHERE Documents.Project = Projects.ProjID")
 
-    const paginated = paginatedResults(q_query, q_count, query_data, page.value, 10, req);
-    res.status(200).json(paginated);
+    var cnt = 5 //shows 5 json items from db
+    var page_cnt = parseInt(req.query.page) //displays the page count
+    var offset = (page_cnt-1)*cnt //finds the index we should be looking at for each page
+
+    var model = find_doc.all(offset, cnt)
+    var count = get_count.all()
+
+    var pag = paginatedResults(model, count, page_cnt, cnt)
+
+    res.status(200).json(pag);
 });
 
 // Get the author of the document
@@ -32,71 +34,45 @@ router.get("/api/doc/:doc", (req, res) => {
     res.status(200).json(results);
 });
 
+
 router.get("/api/search/:search", (req, res) => {
-    // Trying to search by Documents.Name or Projects.Name, later include User.Name
-    const q_query = "SELECT Documents.DocID, Documents.DateAdded, Documents.Name AS DocName, Projects.Name AS ProjName" +
-     "FROM Documents LEFT JOIN Projects ON Project = ProjID WHERE (DocName LIKE ? OR ProjName LIKE ?) LIMIT ? OFFSET ?"; 
-    const q_count = "SELECT count(*) FROM Documents LEFT JOIN Projects ON Project = ProjID WHERE (Documents.Name LIKE ? OR Projects.Name LIKE ?)";
-
- 
-
     //data validation
     const schema1 = Joi.number().integer().required()
-    const schema2 = Joi.string().alphanum().max(50).required()
-    const page = schema1.validate(toInteger(req.query.page))
+    const schema2 = Joi.string().alphanum().min(1).max(50).required()
+    const page = schema1.validate(req.query.page)
     const search = schema2.validate(req.params.search)
     if(page.error) { return res.status(422).json(page.error.details[0].message) }
     if(search.error) { return res.status(422).json(search.error.details[0].message) }
 
-    //execute first '?' in q_query and q_count (ORDER THEM ACCORDING TO SQL)
-    var query_data = [`%${req.params.search}%`]
-
-    const paginated = paginatedResults(q_query, q_count, query_data, page.value, 10, req)
-
-    res.status(200).json(paginated)
+    res.status(200).json(pag)
 });
 
-function paginatedResults(q_query, q_count, query_data, page, limit, req) {
-        //get start and end index
-        const startIndex = (page - 1) * limit
-        const endIndex = page * limit
+function paginatedResults(model, count, page, limit) {
+    //get start and end index
+    const startIndex = (page - 1) * limit
+    const endIndex = page * limit
 
-        //query
-        var query = db.prepare(q_query)
-        var count = db.prepare(q_count)
+    var count = Object.values(count[0])[0]
+    var results = {}
+    
 
-        //get data
-        var data = query.all([...query_data, limit, startIndex])
-
-        //get count
-        var count = count.all([...query_data])
-        count = Object.values(count[0])[0]
-
-        const results = {}
-
-        //show next/previous/max
-        if(endIndex < count) {
-            results.next = {
-                page: page + 1,
-                limit: limit
-            }
+    results.max = {
+        page: Math.ceil(count/limit)
+    }
+    if(endIndex < count) {
+        results.next = {
+            page: page + 1
         }
-        if (startIndex > 0) {
-            results.previous = {
-                page: page - 1,
-                limit: limit
-            }
+    }
+    if (startIndex > 0) {
+        results.previous = {
+            page: page - 1
         }
-        results.max = {
-            max: Math.ceil(count/limit),
-            show: 5,
-            page: page,
-            limit: limit,
-            offset: Math.ceil(count/limit) - 5
-        }
+    }
 
-        results.results = data
-        return results
+    results.results = model
+    
+    return results
 }
 
 router.use(cors());
