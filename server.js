@@ -1,24 +1,22 @@
-const express = require("express");
-const cors = require("cors");
+const express = require("express")
+const cors = require("cors")
+const multer = require( 'multer')
 const app = express();
-var multer = require( 'multer');
 var upload = multer();
 
-app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
-app.use(upload.array());
+app.use(cors())
+app.use(express.json())
+app.use(upload.array())
+app.use(express.urlencoded({ extended: false }))
 
 
 //imported routes
 const
-  data = require('./routes/route_data')
+  gmail = require('./routes/parse_gmail')
+  docs = require('./routes/route_docs')
 
-// app.use('/', serveStatic(path.join(__dirname, '/dist')))
-
-
-//linked routes (route middleware)
-app.use("/", [data]);
+//linked routes
+app.use("/", [gmail, docs]);
 
 
 //port
