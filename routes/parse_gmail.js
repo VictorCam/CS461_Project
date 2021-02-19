@@ -1,16 +1,13 @@
 const express = require("express")
-const router = express.Router()
-const cors = require("cors")
-const fs = require('fs')
-const { Base64 } = require('js-base64')
-const { isEmpty, toInteger, isNull } = require("lodash")
+const { isEmpty, isNull } = require("lodash")
 const axios = require("axios")
+const fs = require('fs')
 const Database = require('better-sqlite3')
 const db = new Database('./database/beavdms.db')
-const helpers = require('./helpers')
+const helpers = require('./middleware/helpers')
+var path = require('path')
+const router = express.Router()
 require('dotenv').config()
-var path = require('path');
-const Joi = require('joi')
 
 
 //global constants
@@ -436,84 +433,5 @@ async function recall() {
     await g_request(recall)
 }
 recall()
-
-router.get("/api", (req, res) => {
-    const q_query = "SELECT * FROM Documents LIMIT ? OFFSET ?"
-    const q_count = "SELECT count(*) FROM Documents"
-
-    const schema = Joi.number().integer().max(10000000000).required()
-    const page = schema.validate(toInteger(req.query.page))
-    if(page.error) { return res.status(422).json(page.error.details[0].message) }
-
-    var query_data = []
-
-    const paginated = paginatedResults(q_query, q_count, query_data, page.value, 10, req)
-    res.status(200).json(paginated)
-});
-
-router.get("/api/search/:search", (req, res) => {
-    const q_query = "SELECT * FROM Documents WHERE Documents.Name LIKE ? LIMIT ? OFFSET ?"
-    const q_count = "SELECT count(*) FROM Documents WHERE Documents.Name LIKE ?"
-
-    //data validation
-    const schema1 = Joi.number().integer().max(10000000000).required()
-    const schema2 = Joi.string().alphanum().max(50).required()
-    const page = schema1.validate(toInteger(req.query.page))
-    const search = schema2.validate(req.params.search)
-    if(page.error) { return res.status(422).json(page.error.details[0].message) }
-    if(search.error) { return res.status(422).json(search.error.details[0].message) }
-
-    //execute first '?' in q_query and q_count (ORDER THEM ACCORDING TO SQL)
-    var query_data = [`%${req.params.search}%`]
-
-    const paginated = paginatedResults(q_query, q_count, query_data, page.value, 10, req)
-
-    res.status(200).json(paginated)
-});
-
-function paginatedResults(q_query, q_count, query_data, page, limit, req) {
-        //get start and end index
-        const startIndex = (page - 1) * limit
-        const endIndex = page * limit
-
-        //query
-        var query = db.prepare(q_query)
-        var count = db.prepare(q_count)
-
-        //get data
-        var data = query.all([...query_data, limit, startIndex])
-
-        //get count
-        var count = count.all([...query_data])
-        count = Object.values(count[0])[0]
-
-        const results = {}
-
-        //show next/previous/max
-        if(endIndex < count) {
-            results.next = {
-                page: page + 1,
-                limit: limit
-            }
-        }
-        if (startIndex > 0) {
-            results.previous = {
-                page: page - 1,
-                limit: limit
-            }
-        }
-        results.max = {
-            max: Math.ceil(count/limit),
-            show: 5,
-            page: page,
-            limit: limit,
-            offset: Math.ceil(count/limit) - 5
-        }
-
-        results.results = data
-        return results
-}
-
-router.use(cors());
 
 module.exports = router;

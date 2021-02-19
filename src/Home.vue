@@ -1,6 +1,6 @@
 <template>
   <div id="app">
-    <Header v-bind:title="'OSU File System'" v-bind:showBackButton="false"/>
+    <Header v-bind:title="'OSU File System'" v-bind:showBackButton="false" v-bind:showTutorialButton="true"/>
     <SearchSort/>
     <Documents/>
   </div>

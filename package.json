@@ -14,7 +14,7 @@
     "aws-sdk": "^2.790.0",
     "axios": "^0.21.1",
     "bcrypt": "^5.0.0",
-    "better-sqlite3": "^7.1.1",
+    "better-sqlite3": "^7.1.2",
     "bootstrap": "^4.5.3",
     "bootstrap-vue": "^2.21.2",
     "core-js": "^3.6.5",
@@ -22,9 +22,6 @@
     "dotenv": "^8.2.0",
     "express": "^4.17.1",
     "fs": "0.0.1-security",
-    "googleapis": "^61.0.0",
-    "http-parser-js": "^0.5.3",
-    "is-core-module": "^2.2.0",
     "joi": "^17.3.0",
     "js-base64": "^3.5.2",
     "js-cookie": "^2.2.1",
@@ -38,8 +35,7 @@
     "validator": "^13.5.2",
     "vue": "^2.6.12",
     "vue-router": "^3.4.8",
-    "vuex": "^3.5.1",
-    "vuex-persistedstate": "^4.0.0-beta.1"
+    "vuex": "^3.5.1"
   },
   "devDependencies": {
     "@vue/cli-plugin-babel": "~4.5.8",

@@ -1,6 +1,6 @@
 <template>
-  <div class="tutorial">
-    <Header v-bind:title="'Tutorial'" v-bind:showBackButton="true"/>
+  <div class="save-tutorial">
+    <Header v-bind:title="'Save Tutorial'" v-bind:showBackButton="true" v-bind:showTutorialButton="false"/>
     <div class="content">
         <div class="steps">
             <br>
@@ -73,7 +73,7 @@
 import Header from './layout/Header';
 
 export default {
-  name: "tutorial",
+  name: "save-tutorial",
   components: {
       Header
   }
