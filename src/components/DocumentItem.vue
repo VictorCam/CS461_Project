@@ -9,7 +9,7 @@
                    <h3>{{doc.Dname}}</h3>
                </b-col>
                <b-col class="field-value">
-                   <h3>{{doc.Name}}</h3>
+                   <h3>{{doc.Pname}}</h3>
                </b-col>
                <b-col class="field-value">
                    <h6>{{doc.DateAdded.toLocaleString()}}</h6>

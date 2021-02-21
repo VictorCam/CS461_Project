@@ -9,12 +9,12 @@
             </b-row>
             <b-row class="my-4">
                 <b-col>
-                    <h3>Document Name: {{doc.DocName}}</h3>
+                    <h3>Document Name: {{doc.Dname}}</h3>
                 </b-col>
             </b-row>
             <b-row class="my-4">
                 <b-col>
-                    <h3>Project Name: {{doc.ProjName}}</h3>
+                    <h3>Project Name: {{doc.Pname}}</h3>
                 </b-col>
             </b-row>
             <!-- <b-row class="my-4">
@@ -37,7 +37,7 @@ import Header from './layout/Header';
 export default {
     name: "DocumentDetail",
     created() {
-        // this.$store.dispatch("find_owner_of_document", this.$store.state.loadedDocuments[parseInt(this.$route.params.DocID) - 1].DocID);
+        this.$store.dispatch("find_owner_of_document", this.$store.state.loadedDocuments[parseInt(this.$route.params.DocID) - 1]);
     },
     computed: {
         doc() {
