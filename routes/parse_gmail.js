@@ -12,15 +12,42 @@ require('dotenv').config()
 
 //global constants
 var currentDate = new Date(); //current date for database saving
+var currentDBYear;
+var nextDocID;
 const userId = process.env.USER_ID; //user id for api requests
 const MANAGE = 4; //Permission to grant access to other users
 const CHANGE = 2; //Permission to add document to project, etc...
 const READ = 1; //Permission to read document
 
-db.exec("CREATE TABLE IF NOT EXISTS Projects (ProjID INTEGER PRIMARY KEY, Name TEXT NOT NULL, GitHub TEXT NOT NULL)");
-db.exec("CREATE TABLE IF NOT EXISTS Users (UserID INTEGER PRIMARY KEY, Name TEXT NOT NULL, Email TEXT NOT NULL, Major TEXT NOT NULL)");
-db.exec("CREATE TABLE IF NOT EXISTS Documents (DocID INTEGER PRIMARY KEY, Name TEXT NOT NULL, Description TEXT, Location TEXT NOT NULL, OwnerID INTEGER NOT NULL, Project INTEGER, DateAdded TEXT NOT NULL, FOREIGN KEY(OwnerID) REFERENCES Users(UserID) ON DELETE CASCADE, FOREIGN KEY(Project) REFERENCES Projects(ProjID) ON UPDATE CASCADE ON DELETE CASCADE)");
-db.exec("CREATE TABLE IF NOT EXISTS Permissions (PermID INTEGER PRIMARY KEY, DID INTEGER NOT NULL, UID INTEGER NOT NULL, Permissions INTEGER NOT NULL, FOREIGN KEY(DID) REFERENCES Documents(DocID) ON DELETE CASCADE, FOREIGN KEY(UID) REFERENCES Users(UserID) ON UPDATE CASCADE ON DELETE CASCADE)");
+db.exec("CREATE TABLE IF NOT EXISTS Projects (ProjID INTEGER PRIMARY KEY, Name TEXT NOT NULL)");
+
+db.exec("CREATE TABLE IF NOT EXISTS Profiles (ProfileID INTEGER PRIMARY KEY, Hash TEXT NOT NULL)");
+
+db.exec("CREATE TABLE IF NOT EXISTS Users (UserID INTEGER PRIMARY KEY, GivenName TEXT, Surname TEXT, Email TEXT NOT NULL, ProfileID INTEGER, " +
+"FOREIGN KEY(ProfileID) REFERENCES Profiles(ProfileID) ON UPDATE CASCADE ON DELETE CASCADE)");
+
+db.exec("CREATE TABLE IF NOT EXISTS Documents (DocID INTEGER NOT NULL, Year INTEGER NOT NULL, Name TEXT NOT NULL, Description TEXT, Location " +
+"TEXT NOT NULL, OwnerID INTEGER NOT NULL, Project INTEGER, DateAdded TEXT NOT NULL, PrevDocID INTEGER, PrevDocYear INTEGER, NextDocID INTEGER, NextDocYear INTEGER, FOREIGN " +
+"KEY(PrevDocID, PrevDocYear) REFERENCES Documents(DocID, Year), FOREIGN KEY(NextDocID, NextDocYear) REFERENCES Documents(DocID, Year), PRIMARY KEY(DocID, Year), FOREIGN " +
+"KEY(OwnerID) REFERENCES Users(UserID) ON DELETE CASCADE, FOREIGN KEY(Project) REFERENCES Projects(ProjID) ON UPDATE CASCADE ON DELETE CASCADE)");
+
+db.exec("CREATE TABLE IF NOT EXISTS Notes (NoteID INTEGER PRIMARY KEY, DID INTEGER NOT NULL, DY INTEGER NOT NULL, UID INTEGER NOT NULL, DateAdded TEXT NOT NULL, " + 
+"Note TEXT NOT NULL, FOREIGN KEY(DID, DY) REFERENCES Documents(DocID, Year) ON DELETE CASCADE, FOREIGN KEY(UID) REFERENCES Users(UserID) ON UPDATE " + 
+"CASCADE ON DELETE CASCADE)");
+
+db.exec("CREATE TABLE IF NOT EXISTS DocPerms (PermID INTEGER PRIMARY KEY, DID INTEGER NOT NULL, DY INTEGER NOT NULL, UID INTEGER NOT NULL, Permissions " + 
+"INTEGER NOT NULL, FOREIGN KEY(DID, DY) REFERENCES Documents(DocID, Year) ON DELETE CASCADE, FOREIGN KEY(UID) REFERENCES Users(UserID) ON UPDATE " + 
+"CASCADE ON DELETE CASCADE)");
+
+db.exec("CREATE TABLE IF NOT EXISTS ProjPerms (PermID INTEGER PRIMARY KEY, PID INTEGER NOT NULL, UID INTEGER NOT NULL, Permissions " + 
+"INTEGER NOT NULL, FOREIGN KEY(PID) REFERENCES Projects(ProjID) ON DELETE CASCADE, FOREIGN KEY(UID) REFERENCES Users(UserID) ON UPDATE " + 
+"CASCADE ON DELETE CASCADE)");
+
+db.exec("CREATE TABLE IF NOT EXISTS ProjLinks (LinkID INTEGER PRIMARY KEY, PID INTEGER NOT NULL, Link TEXT NOT NULL, " + 
+"FOREIGN KEY(PID) REFERENCES Projects(ProjID) ON DELETE CASCADE)");
+
+db.exec("CREATE TABLE IF NOT EXISTS DocLinks (LinkID INTEGER PRIMARY KEY, DID INTEGER NOT NULL, DY INTEGER NOT NULL, Link TEXT NOT NULL, " + 
+"FOREIGN KEY(DID, DY) REFERENCES Documents(DocID, Year) ON DELETE CASCADE)");
 
 async function get_token() {
     try {
@@ -83,7 +110,7 @@ async function post_send_msg(access_tok, raw) {
 
 async function parse_data(g_raw, idx, g_access) {
     g_id = g_raw.data.id
-    console.log("GOOGLE ID: ", g_id)
+    //console.log("GOOGLE ID: ", g_id)
 
     //get the subject of the message
     try {
@@ -195,61 +222,89 @@ async function parse_data(g_raw, idx, g_access) {
     }
 }
 
-const get_user = db.prepare("SELECT * FROM Users WHERE Email= ?")
-const insert_user = db.prepare("INSERT INTO Users (Name, Email, Major) VALUES (?, ?, ?)")
-const insert_doc = db.prepare("INSERT INTO Documents (Name, Description, Location, OwnerID, Project, DateAdded) VALUES (?, ?, ?, ?, ?, ?)")
-const insert_project = db.prepare("INSERT INTO Projects (Name, GitHub) VALUES (?, ?)")
-const find_doc = db.prepare("SELECT * FROM Documents WHERE Location = ?")
-const find_project = db.prepare("SELECT * FROM Projects WHERE Name = ?")
-const insert_perm = db.prepare("INSERT INTO Permissions (DID, UID, Permissions) VALUES (?, ?, ?)")
-const get_ownerID = db.prepare("SELECT OwnerID FROM Documents WHERE DocID=?")
-const get_perm = db.prepare("SELECT D.OwnerID, U.UserID, P.DID, P.Permissions FROM Documents D INNER JOIN  Permissions P ON D.DocID=P.DID INNER JOIN Users U ON U.userID=P.UID WHERE D.DocID=? AND U.userID=?;")
-const get_permID = db.prepare("SELECT P.PermID FROM Documents D INNER JOIN Permissions P ON D.DocID=P.DID INNER JOIN Users U ON U.userID=P.UID WHERE D.DocID=? AND U.userID=?;")
-const get_file_path = db.prepare("SELECT Location FROM Documents WHERE DocID = ?;")
-const update_proj = db.prepare("UPDATE Documents SET Project=? WHERE DocID=?;")
-const update_docName = db.prepare("UPDATE Documents SET Name=? WHERE DocID=?;")
-const update_perm = db.prepare("UPDATE Permissions SET Permissions=? WHERE PermID=?")
+const get_user = db.prepare("SELECT * FROM Users WHERE Email= ?;")
+const insert_user = db.prepare("INSERT INTO Users (GivenName, Surname, Email) VALUES (?, ?, ?);")
+const insert_doc = db.prepare("INSERT INTO Documents (DocID, Year, Name, Description, Location, OwnerID, Project, DateAdded, PrevDocID, PrevDocYear, NextDocID, NextDocYear) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);")
+const insert_project = db.prepare("INSERT INTO Projects (Name) VALUES (?);")
+const find_doc = db.prepare("SELECT * FROM Documents WHERE Location = ?;")
+const find_project = db.prepare("SELECT * FROM Projects WHERE Name = ?;")
+const insert_perm = db.prepare("INSERT INTO DocPerms (DID, DY, UID, Permissions) VALUES (?, ?, ?, ?);")
+const get_ownerID = db.prepare("SELECT OwnerID FROM Documents WHERE DocID=? AND Year=?;")
+const get_perm = db.prepare("SELECT D.OwnerID, U.UserID, DP.DID, DP.Permissions FROM Documents D INNER JOIN DocPerms DP ON D.DocID=DP.DID INNER JOIN Users U ON U.UserID=DP.UID WHERE D.DocID=? AND D.Year=? AND U.UserID=?;")
+const get_permID = db.prepare("SELECT DP.PermID FROM Documents D INNER JOIN DocPerms DP ON D.DocID=DP.DID INNER JOIN Users U ON U.UserID=DP.UID WHERE D.DocID=? AND D.Year=? AND U.UserID=?;")
+const get_file_path = db.prepare("SELECT Location FROM Documents WHERE DocID = ? AND Year=?;")
+const update_proj = db.prepare("UPDATE Documents SET Project=? WHERE DocID=? AND Year=?;")
+const update_docName = db.prepare("UPDATE Documents SET Name=? WHERE DocID=? AND Year=?;")
+const update_perm = db.prepare("UPDATE DocPerms SET Permissions=? WHERE PermID=?;")
+const get_db_year = db.prepare("SELECT MAX(Year) AS Year FROM Documents;")
+const get_last_docID = db.prepare("SELECT MAX(DocID) AS DocID FROM Documents WHERE Year=?;")
 
-function grantPermission(doc, access_list, permission) {
-    for (let a = 0; a < Object.keys(access_list).length; a++) {
-        user = get_user.get(`${access_list[a]}`)
+//takes a DocID/Year key pair, list of emails, and READ|CHANGE|MANAGE
+//grants the indicated level of permission for each email to the indicated document
+function grantPermission(docID, docYear, access_list, permission) {
+    for (let a = 0; a < Object.keys(access_list).length; a++) { //iterate over each email
+        user = get_user.get(`${access_list[a]}`) //check if the user already exists
 
         //if user does not exist make a new user
         if (!user) {
-            user = insert_user.run(`${access_list[a]}`, `${access_list[a]}`, "Unknown")
+            user = insert_user.run("Anon", "Ymous", `${access_list[a]}`)
             user = Object.values(user)[1]
-        } else { user = user.UserID }
+        } else { user = user.UserID } 
 
-        permID = get_permID.get(doc, user)
+        permID = get_permID.get(docID, docYear, user) //check if the user was previously granted some level of access
 
         if (permID) {
-            update_perm.run(`${permission}`, `${permID}`)
-        } else { insert_perm.run(doc, user, permission) }
+            update_perm.run(`${permission}`, `${permID}`) //if yes, simply change level of access
+        } else { insert_perm.run(docID, docYear, user, permission) } //else, create new access relationship
     }
 }
 
-async function checkPermission(doc, user, level) {
-    perms = get_perm.get(doc, user)
-    owner = Object.values(get_ownerID.get(doc))
-    console.log(`doc: ${doc} user: ${user} owner: ${owner} level: ${level} perms: ${perms}`)
+//check if user has sufficient permission for the document specified
+async function checkPermission(docID, docYear, user, level) {
+    perms = get_perm.get(docID, docYear, user)
+    owner = Object.values(get_ownerID.get(docID, docYear))
     if (perms) {
-        if (perms.Permissions >= level) {
-            return true
+        if (perms.Permissions >= level) { 
+            return true //return true if user has sufficient permissions
         }
     }
-    else if(owner == user) { console.log(`${owner} == ${user}`); return true }
+    else if(owner == user) { return true } //return true if user owns the document
     console.log("not permitted")
     return false
 }
 
+//determine whether a keyName exists in the given Object and at which index
 function getKey(obj, keyName) {
     var vals = Object.values(obj);
     for (var i = 0; i < Object.keys(obj).length; i++) {
         if (Object.keys(vals[i]) == keyName) {
-            return i
+            return i //if key exists, return its index
         }
     }
-    return null
+    return null //key does not exist in the given object
+}
+
+//manages the DocID/Year key pair for Documents, determines the next valid key, and saves all related data to database
+async function saveDocData(docName, g_data, path, ownerID, projID){
+    //use g_data later to get document related data like Notes, Supersedes, etc...
+    
+    if(!currentDBYear) { //If currentDBYear isn't set, retrieve it from database
+        currentDBYear = get_db_year.get().Year;
+    }
+    if(currentDBYear != currentDate.getFullYear()) { //if no records exist or most recent is dated with other than current year
+        currentDBYear = currentDate.getFullYear()   //set currentDBYear to current year
+        nextDocID = 0 //reset nextDocID to 0
+    }
+
+    if(!nextDocID) { //db year matches current but nextDocID not set
+        nextDocID = get_last_docID.get(currentDBYear).DocID; //get most recent docID for current year
+    }
+    nextDocID++ //increment to next available ID
+
+    //null values to be replaced by Description, Supersedes, and SupersededBy respectively 
+    doc = insert_doc.run(nextDocID, currentDBYear, docName, null, path, ownerID, projID, currentDate.toString(), null, null, null, null)
+    doc = Object.values(doc)[1]
+    return nextDocID 
 }
 
 async function g_request(callback) {
@@ -281,7 +336,7 @@ async function g_request(callback) {
 
                 //save or grab user and save document location
                 user = get_user.get(`${g_data.sender_email}`)
-                if (!user) { insert_user.run(`${g_data.sender_name}`, `${g_data.sender_email}`, "Unknown") }
+                if (!user) { insert_user.run("Anon", "Ymous", `${g_data.sender_email}`) }
 
                 //create a new user
                 user = get_user.get(`${g_data.sender_email}`)
@@ -295,24 +350,24 @@ async function g_request(callback) {
                 keyNum = getKey(g_data.access, "project") //get index of project name if one was specified
                 if (keyNum !== null) {
                     if (!(proj = await find_project.get(`${g_data.access[keyNum].project}`))) { //check if project already exists
-                        proj = insert_project.run(`${g_data.access[keyNum].project}`, "github.com") //create project if the one specified doesn't exist
+                        proj = insert_project.run(`${g_data.access[keyNum].project}`) //create project if the one specified doesn't exist
                         proj = Object.values(proj)[1] 
                     } else { proj = proj.ProjID }
                 }
 
                 //save document meta data to database
-                doc = insert_doc.run(`${docName}`, `${g_data.message}`, `./files/${g_data.g_id}-${j}.pdf`, `${user.UserID}`, proj, currentDate.toString())
-                doc = Object.values(doc)[1]
+                doc = await saveDocData(docName, g_data, `./files/${g_data.g_id}-${j}.pdf`, user.UserID, proj);
+
 
                 //save new users and give permissions
                 if ((keyNum = getKey(g_data.access, "read"))) { //get index of read permission list if it exists
-                    grantPermission(doc, g_data.access[keyNum].read, READ)
+                    grantPermission(doc, currentDBYear, g_data.access[keyNum].read, READ)
                 }
                 if ((keyNum = getKey(g_data.access, "change"))) { //get index of change permission list if it exists
-                    grantPermission(doc, g_data.access[keyNum].change, CHANGE)
+                    grantPermission(doc, currentDBYear, g_data.access[keyNum].change, CHANGE)
                 }
                 if ((keyNum = getKey(g_data.access, "manage"))) { //get index of manage permission list if it exists
-                    grantPermission(doc, g_data.access[keyNum].manage, MANAGE)
+                    grantPermission(doc, currentDBYear, g_data.access[keyNum].manage, MANAGE)
                 }
             }
 
@@ -336,11 +391,12 @@ async function g_request(callback) {
             // for each document, ensure the sender has permission to read it
             for (var i = 0; i < g_data.access[keyNum].docs.length; i++) {
                 // only return those documents for which the sender is allowed access
-                if (checkPermission(g_data.access[keyNum].docs[i], user, READ)) {
-                    fpath = await get_file_path.get(g_data.access[keyNum].docs[i])
+
+                docSupKey = g_data.access[keyNum].docs[i].split("-"); //splits the Year-DocID value specified by the user so that it can be used
+                if (checkPermission(docSupKey[1], docSupKey[0], user.UserID, READ)) {
+                    fpath = await get_file_path.get(docSupKey[1], docSupKey[0])
                     contents.push(fs.readFileSync(`${fpath.Location}`, { encoding: 'base64' }));
                     filenames.push(path.parse(fpath.Location).base)
-                    console.log("fpath", fpath.Location)
                 }
             }
 
@@ -350,7 +406,6 @@ async function g_request(callback) {
 
         }
         else if (g_data.cmd == "update") {
-            console.log("update request received")
 
             user = Object.values(get_user.get(`${g_data.sender_email}`))[0]
             docKey = getKey(g_data.access, "docs")
@@ -363,51 +418,50 @@ async function g_request(callback) {
             //validate all operations before attempting any
             if (!isNull(docKey)) {
                 for (var i = 0; i < g_data.access[docKey].docs.length; i++) {
-                    console.log(`user: ${user}'s update request is valid: ${valid}`)
+                    docSupKey = g_data.access[docKey].docs[i].split("-"); //splits the Year-DocID value specified by the user so that it can be used       
                     if (!isNull(projKey)) {
-                        valid = valid && await checkPermission(g_data.access[docKey].docs[i], user, CHANGE)
+                        valid = valid && await checkPermission(docSupKey[1], docSupKey[0], user, CHANGE)
                     }
                     if (!isNull(nameKey)) {
-                        valid = valid && await checkPermission(g_data.access[docKey].docs[i], user, CHANGE)
+                        valid = valid && await checkPermission(docSupKey[1], docSupKey[0], user, CHANGE)
                     }
                     if (!isNull(readKey)) {
-                        valid = valid && await checkPermission(g_data.access[docKey].docs[i], user, MANAGE)
+                        valid = valid && await checkPermission(docSupKey[1], docSupKey[0], user, MANAGE)
                     }
                     if (!isNull(changeKey)) {
-                        valid = valid && await checkPermission(g_data.access[docKey].docs[i], user, MANAGE)
+                        valid = valid && await checkPermission(docSupKey[1], docSupKey[0], user, MANAGE)
                     }
                     if (!isNull(manageKey)) {
-                        valid = valid && await checkPermission(g_data.access[docKey].docs[i], user, MANAGE)
+                        valid = valid && await checkPermission(docSupKey[1], docSupKey[0], user, MANAGE)
                     }
-                    console.log("valid: ", valid)
                 }
             } else { valid = false }
             //if request is valid, perform requested operations
 
             if (valid) {
-                console.log("the update request is still valid ", valid)
                 for (var i = 0; i < g_data.access[docKey].docs.length; i++) {
+                    docSupKey = g_data.access[docKey].docs[i].split("-");                    
                     if (!isNull(projKey)) {
                         projid = find_project.get(`${g_data.access[projKey].project}`)
                         if (!projid) {
-                            projid = insert_project.run(`${g_data.access[projKey].project}`, "github.com")
+                            projid = insert_project.run(`${g_data.access[projKey].project}`)
                             projid = Object.values(projid)[1] 
                         } else { projid = projid.ProjID }
-                        update_proj.run(projid, g_data.access[docKey].docs[i])
+                        update_proj.run(projid, docSupKey[1], docSupKey[0])
                     }
                     if (!isNull(nameKey)) {
                         if (g_data.access[nameKey].names[i]) {
-                            update_docName.run(`${g_data.access[nameKey].names[i]}`, `${g_data.access[docKey].docs[i]}`)
+                            update_docName.run(g_data.access[nameKey].names[i], docSupKey[1], docSupKey[0])
                         }
                     }
                     if (!isNull(readKey)) {
-                        grantPermission(g_data.access[docKey].docs[i], g_data.access[readKey].read, READ)
+                        grantPermission(docSupKey[1], docSupKey[0], g_data.access[readKey].read, READ)
                     }
                     if (!isNull(changeKey)) {
-                        grantPermission(g_data.access[docKey].docs[i], g_data.access[changeKey].change, CHANGE)
+                        grantPermission(docSupKey[1], docSupKey[0], g_data.access[changeKey].change, CHANGE)
                     }
                     if (!isNull(manageKey)) {
-                        grantPermission(g_data.access[docKey].docs[i], g_data.access[manageKey].manage, MANAGE)
+                        grantPermission(docSupKey[1], docSupKey[0], g_data.access[manageKey].manage, MANAGE)
                     }
                 }
             }

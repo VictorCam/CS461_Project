@@ -3,7 +3,7 @@
        <b-container fluid>
            <b-row class="text-center align-items-center">
                <b-col class="field-value">
-                    <h3>{{doc.DocID}}</h3>
+                    <h3>{{doc.Year}}-{{doc.DocID}}</h3>
                </b-col>
                <b-col class="field-value">
                    <h3>{{doc.Dname}}</h3>
@@ -30,7 +30,6 @@
 export default {
     name: "DocumentItem",
     props: ["doc"],
-
 }
 </script>
 
