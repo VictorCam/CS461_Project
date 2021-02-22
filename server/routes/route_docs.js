@@ -2,7 +2,7 @@ const express = require("express")
 const router = express.Router()
 const cors = require("cors")
 const Database = require('better-sqlite3')
-const db = new Database('./database/beavdms.db')
+const db = new Database('./server/database/beavdms.db')
 require('dotenv').config()
 const Joi = require('joi')
 

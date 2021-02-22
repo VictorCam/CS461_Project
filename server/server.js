@@ -1,14 +1,13 @@
 const express = require("express")
 const cors = require("cors")
 const multer = require( 'multer')
-const app = express();
-var upload = multer();
+const app = express()
+var upload = multer()
 
 app.use(cors())
 app.use(express.json())
 app.use(upload.array())
 app.use(express.urlencoded({ extended: false }))
-
 
 //imported routes
 const
@@ -20,7 +19,7 @@ app.use("/", [gmail, docs]);
 
 
 //port
-const PORT = process.env.PORT || 13377;
+const PORT = process.env.PORT || 13377
 app.listen(PORT, function() {
-  console.log("Server is running on port:", PORT);
+  console.log("Server is running on port:", PORT)
 });
