@@ -62,7 +62,7 @@ export default {
     },
     methods: {
         navigate(pag_num, max) {
-            if(!pag_num || pag_num < 1 || pag_num >= max) { //need to check so we don't go out of bounds as well
+            if(!pag_num || pag_num < 1 || pag_num > max) { //need to check so we don't go out of bounds as well
                 console.log("out of bounds")
                 return
             }
