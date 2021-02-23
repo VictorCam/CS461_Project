@@ -181,8 +181,7 @@ function loopEmails(value) {
 
 //loop thorugh all the args
 function loopArgs(value) {
-    arg = value.replace(/\s/g, '') //remove spaces
-    arg = arg.split(",") //parse by commas
+    arg = value.split(",") //parse by commas
     data = []
 
     arg = arg.filter(function (el) { //remove arrays that contain ''
@@ -190,6 +189,7 @@ function loopArgs(value) {
     })
 
     for (let e = 0; e < arg.length; e++) { //loop though all valid args according to parsing
+        arg[e].trim()
         data.push(arg[e])
     }
 
