@@ -23,14 +23,14 @@
                 <DocumentItem v-bind:doc="doc"/>
             </div>
 
-            <!-- {{max}} -->
+            <p>Page: {{this.$route.query.page}} / {{max.page}}</p>
 
         <div class="paginate_buttons">
-            <button @click="navigate(Number($route.query.page)-1)">Previous</button>
+            <button @click="navigate(Number($route.query.page)-1, Number(max.page))">Previous</button>
             <!-- <template v-for="pagination in max.max">
             <button :key="pagination.show" @click="navigate(pagination, max)">{{pagination}}</button>
             </template> -->
-            <button  @click="navigate(Number($route.query.page)+1)">Next</button>
+            <button  @click="navigate(Number($route.query.page)+1, Number(max.page))">Next</button>
         </div>
 
     </div>
@@ -61,8 +61,8 @@ export default {
         ...mapState(["loadedDocuments", "max"])
     },
     methods: {
-        navigate(pag_num) {
-            if(!pag_num && pag_num < 1) { //need to check so we don't go out of bounds as well
+        navigate(pag_num, max) {
+            if(!pag_num || pag_num < 1 || pag_num >= max) { //need to check so we don't go out of bounds as well
                 console.log("out of bounds")
                 return
             }
