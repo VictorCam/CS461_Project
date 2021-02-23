@@ -3,12 +3,11 @@ const { isEmpty, isNull } = require("lodash")
 const axios = require("axios")
 const fs = require('fs')
 const Database = require('better-sqlite3')
-const db = new Database('./database/beavdms.db')
-const helpers = require('./middleware/helpers')
+const db = new Database('./server/database/beavdms.db')
+const helpers = require('../middleware/helpers')
 var path = require('path')
 const router = express.Router()
 require('dotenv').config()
-
 
 //global constants
 var currentDate = new Date(); //current date for database saving
@@ -123,7 +122,7 @@ async function parse_data(g_raw, idx, g_access) {
 
     //ignore messages that are sent from gobeavdms@gmail.com (isn't an error but we still want to ignore it)
     if (title == "error") {
-        console.log("ignored message from api call")
+        console.log("deleting auto message that was sent to user")
         return { "cmd": "error" }
     }
 
@@ -332,7 +331,7 @@ async function g_request(callback) {
         if (g_data.cmd == "save") {
             console.log("SUCCESS!");
             for (var j = 0; j < Object.keys(g_data.attachments).length; j++) {
-                fs.writeFile(`./files/${g_data.g_id}-${j}.pdf`, g_data.attachments[j].raw, { encoding: 'base64' }, function (err) { if (err) { return console.log("err with writing pdf file") } })
+                fs.writeFile(`./server/files/${g_data.g_id}-${j}.pdf`, g_data.attachments[j].raw, { encoding: 'base64' }, function (err) { if (err) { return console.log("err with writing pdf file") } })
 
                 //save or grab user and save document location
                 user = get_user.get(`${g_data.sender_email}`)
@@ -356,7 +355,7 @@ async function g_request(callback) {
                 }
 
                 //save document meta data to database
-                doc = await saveDocData(docName, g_data, `./files/${g_data.g_id}-${j}.pdf`, user.UserID, proj);
+                doc = await saveDocData(docName, g_data, `./server/files/${g_data.g_id}-${j}.pdf`, user.UserID, proj);
 
 
                 //save new users and give permissions
