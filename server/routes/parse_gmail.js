@@ -22,7 +22,7 @@ db.exec("CREATE TABLE IF NOT EXISTS Projects (ProjID INTEGER PRIMARY KEY, Name T
 
 db.exec("CREATE TABLE IF NOT EXISTS Profiles (ProfileID INTEGER PRIMARY KEY, Hash TEXT NOT NULL)");
 
-db.exec("CREATE TABLE IF NOT EXISTS Users (UserID INTEGER PRIMARY KEY, GivenName TEXT, Surname TEXT, Email TEXT NOT NULL, ProfileID INTEGER, " +
+db.exec("CREATE TABLE IF NOT EXISTS Users (UserID INTEGER PRIMARY KEY, Name TEXT, Email TEXT NOT NULL, ProfileID INTEGER, " +
 "FOREIGN KEY(ProfileID) REFERENCES Profiles(ProfileID) ON UPDATE CASCADE ON DELETE CASCADE)");
 
 db.exec("CREATE TABLE IF NOT EXISTS Documents (DocID INTEGER NOT NULL, Year INTEGER NOT NULL, Name TEXT NOT NULL, Description TEXT, Location " +
@@ -222,7 +222,7 @@ async function parse_data(g_raw, idx, g_access) {
 }
 
 const get_user = db.prepare("SELECT * FROM Users WHERE Email= ?;")
-const insert_user = db.prepare("INSERT INTO Users (GivenName, Surname, Email) VALUES (?, ?, ?);")
+const insert_user = db.prepare("INSERT INTO Users (Name, Email) VALUES (?, ?);")
 const insert_doc = db.prepare("INSERT INTO Documents (DocID, Year, Name, Description, Location, OwnerID, Project, DateAdded, PrevDocID, PrevDocYear, NextDocID, NextDocYear) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);")
 const insert_project = db.prepare("INSERT INTO Projects (Name) VALUES (?);")
 const find_doc = db.prepare("SELECT * FROM Documents WHERE Location = ?;")
@@ -246,7 +246,7 @@ function grantPermission(docID, docYear, access_list, permission) {
 
         //if user does not exist make a new user
         if (!user) {
-            user = insert_user.run("Anon", "Ymous", `${access_list[a]}`)
+            user = insert_user.run(`${access_list[a]}`, `${access_list[a]}`)
             user = Object.values(user)[1]
         } else { user = user.UserID } 
 
@@ -335,7 +335,7 @@ async function g_request(callback) {
 
                 //save or grab user and save document location
                 user = get_user.get(`${g_data.sender_email}`)
-                if (!user) { insert_user.run("Anon", "Ymous", `${g_data.sender_email}`) }
+                if (!user) { insert_user.run(`${g_data.sender_email}`, `${g_data.sender_email}`) }
 
                 //create a new user
                 user = get_user.get(`${g_data.sender_email}`)
