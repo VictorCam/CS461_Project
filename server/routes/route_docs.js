@@ -14,7 +14,7 @@ router.get("/api", (req, res) => {
     var find_doc = db.prepare("SELECT Documents.DocID, Documents.Year, Documents.Name as Dname, Documents.DateAdded, Documents.Name, Projects.Name as Pname FROM Documents, Projects WHERE Documents.Project = Projects.ProjID LIMIT ? OFFSET ?")
     var get_count = db.prepare("SELECT count(*) FROM Documents, Projects WHERE Documents.Project = Projects.ProjID")
 
-    var cnt = 5 //shows 5 json items from db
+    var cnt = 10 //shows 10 json items from db
     var page_cnt = parseInt(req.query.page) //displays the page count
     var offset = (page_cnt-1)*cnt //finds the index we should be looking at for each page
 
@@ -49,7 +49,7 @@ router.get("/api/search/", (req, res) => {
     var get_count = db.prepare("SELECT count(*) FROM Documents, Projects WHERE Documents.Project = Projects.ProjID AND (Documents.Name LIKE ? OR Projects.Name LIKE ?)")
 
     var s_req = req.query.search; //keyword we are looking for
-    var cnt = 5 //shows 5 json items from db
+    var cnt = 10 //shows 10 json items from db
     var page_cnt = parseInt(req.query.page) //displays the page count
     var offset = (page_cnt-1)*cnt //finds the index we should be looking at for each page
 
