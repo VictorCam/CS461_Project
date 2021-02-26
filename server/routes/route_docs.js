@@ -11,7 +11,7 @@ router.get("/api", (req, res) => {
     const page = schema.validate(req.query.page)
     if(page.error) { return res.status(422).json(page.error.details[0].message) }
 
-    var find_doc = db.prepare("SELECT Documents.DocID, Documents.Year, Documents.Name as Dname, Documents.DateAdded, Documents.Name, Projects.Name as Pname FROM Documents, Projects WHERE Documents.Project = Projects.ProjID LIMIT ? OFFSET ?")
+    var find_doc = db.prepare("SELECT Documents.DocID, Documents.Year, Documents.Name as Dname, Documents.DateAdded, Documents.Description, Projects.Name as Pname FROM Documents, Projects WHERE Documents.Project = Projects.ProjID LIMIT ? OFFSET ?")
     var get_count = db.prepare("SELECT count(*) FROM Documents, Projects WHERE Documents.Project = Projects.ProjID")
 
     var cnt = 10 //shows 10 json items from db
@@ -29,7 +29,6 @@ router.get("/api", (req, res) => {
 // Get the author of the document
 router.get("/api/doc/:docID", (req, res) => {
     const docID = req.params.docID;
-    console.log(docID);
     const authorQuery = `SELECT Users.Name as Owner FROM Users INNER JOIN Documents ON Documents.DocID = ${docID}`;
     const results = db.prepare(authorQuery);
     const docResults = results.all();

@@ -24,7 +24,13 @@
             </b-row>
             <b-row class="my-4">
                 <b-col>
-                    <h6>Date Added: {{doc.DateAdded}}</h6>
+                    <h4>Date Added: {{doc.DateAdded.substring(0, 24)}}</h4>
+                </b-col>
+            </b-row>
+            <b-row class="my-4">
+                <b-col>
+                    <h4 v-if="doc.Description">Description: {{doc.Description}}</h4>
+                    <h4 v-else>No Description - Contact {{owner}} for more information.</h4>
                 </b-col>
             </b-row>
         </b-container>
