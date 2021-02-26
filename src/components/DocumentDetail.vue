@@ -17,11 +17,11 @@
                     <h3>Project Name: {{doc.Pname}}</h3>
                 </b-col>
             </b-row>
-            <!-- <b-row class="my-4">
+            <b-row class="my-4">
                 <b-col>
-                    <h3>Owner: {{owner.Owner}}</h3>
+                    <h3>Owner: {{owner}}</h3>
                 </b-col>
-            </b-row> -->
+            </b-row>
             <b-row class="my-4">
                 <b-col>
                     <h6>Date Added: {{doc.DateAdded}}</h6>

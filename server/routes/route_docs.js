@@ -27,12 +27,13 @@ router.get("/api", (req, res) => {
 });
 
 // Get the author of the document
-router.get("/api/doc/", (req, res) => {
+router.get("/api/doc/:docID", (req, res) => {
     const docID = req.params.docID;
     console.log(docID);
-    const authorQuery = "SELECT Users.Name AS Owner FROM Users WHERE Users.UserID = docID";
+    const authorQuery = `SELECT Users.Name as Owner FROM Users INNER JOIN Documents ON Documents.DocID = ${docID}`;
     const results = db.prepare(authorQuery);
-    res.status(200).json(results);
+    const docResults = results.all();
+    res.status(200).json(docResults);
 });
 
 

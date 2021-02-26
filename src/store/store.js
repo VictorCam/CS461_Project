@@ -42,8 +42,8 @@ export default new vuex.Store({
             console.log(payload);
             axios.get(`${prefix}api/doc/${payload.DocID}`)
             .then(res => {
-                console.log(res.data)
-                commit("SET_OWNER_OF_VIEWED_DOCUMENT", res.data);
+                console.log(res.data[0].Owner);
+                commit("SET_OWNER_OF_VIEWED_DOCUMENT", res.data[0].Owner);
             })
         }
     },
