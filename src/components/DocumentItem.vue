@@ -5,22 +5,26 @@
                <b-col class="field-value">
                     <h3>{{doc.Year}}-{{doc.DocID.toString().padStart(4, '0')}}</h3>
                </b-col>
-               <b-col class="field-value">
-                   <h3>{{doc.Dname}}</h3>
+                <b-col class="field-value text-left">
+                    <router-link :to="{name: 'docs', params: {DocID: doc.DocID}}" class="text-dark">
+                        <h3>{{doc.Dname}}</h3>
+                    </router-link>
+                </b-col>
+               <b-col class="field-value text-left">
+                   <router-link :to="{name: 'docs', params: {DocID: doc.DocID}}" class="text-dark">
+                        <h3>{{doc.Pname}}</h3>
+                    </router-link>
                </b-col>
-               <b-col class="field-value">
-                   <h3>{{doc.Name}}</h3>
+               <b-col class="field-value text-left">
+                   <h4>{{doc.DateAdded.substring(0, 24)}}</h4>
                </b-col>
-               <b-col class="field-value">
-                   <h6>{{doc.DateAdded.toLocaleString()}}</h6>
-               </b-col>
-               <b-col>
+               <!-- <b-col>
                    <router-link :to="{name: 'docs', params: {DocID: doc.DocID}}">
                         <b-button class="view-button" size="lg">
                             <b-icon-file-earmark-medical-fill variant="secondary"></b-icon-file-earmark-medical-fill>
                         </b-button>
                     </router-link>
-               </b-col>
+               </b-col> -->
            </b-row>
        </b-container>
     </div>
