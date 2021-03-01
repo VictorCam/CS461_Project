@@ -12,7 +12,8 @@ export default new vuex.Store({
         gmail: [],
         loadedDocuments: [],
         max: [],
-        ownerOfViewedDocument: null,
+        currentDoc: null, // Reprents the doc we are viewing if on the DocumentDetail page
+        currentProject: null, // Represents the project we are viewing in on the ProjectDetail page
     },
     getters: { //used for calling a small function
     },
@@ -38,10 +39,18 @@ export default new vuex.Store({
                 commit("SET_PAGINATION", res.data.max)
             })
         },
-        find_owner_of_document({commit}, payload) {
-            axios.get(`${prefix}api/doc/${payload.DocID}`)
+        set_current_doc({commit}, payload) {
+            axios.get(`${prefix}api/doc/${payload.year}/${payload.docID}`)
             .then(res => {
-                commit("SET_OWNER_OF_VIEWED_DOCUMENT", res.data[0].Owner);
+                console.log(res.data[0]);
+                commit("SET_CURRENT_DOC", res.data[0]);
+            })
+        },
+        set_current_project({commit}, payload) {
+            axios.get(`${prefix}api/project/${payload.year}/${payload.projID}`)
+            .then(res => {
+                console.log(res.data[0]);
+                commit("SET_CURRENT_PROJECT", res.data[0]);
             })
         }
     },
@@ -55,8 +64,11 @@ export default new vuex.Store({
         SET_PAGINATION(state, payload) {
             state.max = payload;
         },
-        SET_OWNER_OF_VIEWED_DOCUMENT(state, payload) {
-            state.ownerOfViewedDocument = payload;
+        SET_CURRENT_DOC(state, payload) {
+            state.currentDoc = payload;
+        },
+        SET_CURRENT_PROJECT(state, payload) {
+            state.currentProject = payload;
         }
     }
 });
