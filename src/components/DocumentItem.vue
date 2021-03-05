@@ -2,17 +2,17 @@
    <div class="document-item">
        <b-container fluid>
            <b-row class="text-center align-items-center">
-               <b-col class="field-value">
+               <b-col class="field-value text-left">
                     <h3>{{doc.Year}}-{{doc.DocID.toString().padStart(4, '0')}}</h3>
                </b-col>
                 <b-col class="field-value text-left">
-                    <router-link :to="{name: 'docs', params: {DocID: doc.DocID}}" class="text-dark">
-                        <h3>{{doc.Dname}}</h3>
+                    <router-link :to="{name: 'docs', params: {docID: doc.DocID.toString().padStart(4, '0'), year: doc.Year.toString()}}" class="text-dark">
+                        <h3 v-if="doc.Dname">{{doc.Dname}}</h3>
                     </router-link>
                 </b-col>
                <b-col class="field-value text-left">
-                   <router-link :to="{name: 'docs', params: {DocID: doc.DocID}}" class="text-dark">
-                        <h3>{{doc.Pname}}</h3>
+                   <router-link :to="{name: 'projects', params: {projID: doc.ProjID.toString().padStart(4, '0'), year: doc.Year.toString()}}" class="text-dark">
+                        <h3 v-if="doc.Pname">{{doc.Pname}}</h3>
                     </router-link>
                </b-col>
                <b-col class="field-value text-left">

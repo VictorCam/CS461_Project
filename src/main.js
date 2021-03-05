@@ -7,6 +7,7 @@ import 'bootstrap/dist/css/bootstrap.css'
 import 'bootstrap-vue/dist/bootstrap-vue.css'
 
 import DocumentDetail from './components/DocumentDetail';
+import ProjectDetail from './components/ProjectDetail';
 import Home from './Home';
 import SaveTutorial from './components/SaveTutorial';
 import GetTutorial from './components/GetTutorial';
@@ -22,7 +23,8 @@ Vue.use(IconsPlugin);
 
 const routes = [
   { path: '/', name: "home", component: Home, meta: {force_redirect: true}},
-  { path: '/docs/:DocID', name: "docs", component: DocumentDetail, meta: {force_redirect: true}},
+  { path: '/docs/:year/:docID', name: "docs", component: DocumentDetail, meta: {force_redirect: true}},
+  { path: '/projects/:year/:projID', name: "projects", component: ProjectDetail, meta: {force_redirect: true}},
   { path: '/save', name: "save", component: SaveTutorial, meta: {force_redirect: true}},
   { path: '/get', name: "get", component: GetTutorial, meta: {force_redirect: true}},
   { path: '/update', name: "update", component: UpdateTutorial, meta: {force_redirect: true}},
