@@ -6,36 +6,38 @@ const Database = require('better-sqlite3')
 const db = new Database('./server/database/beavdms.db')
 const helpers = require('../middleware/helpers')
 var path = require('path')
+const { type } = require("os")
 const router = express.Router()
 require('dotenv').config()
 
 //global constants
 var currentDate = new Date(); //current date for database saving
 var currentDBYear;
-var nextDocID;
+var nextSerial;
 const userId = process.env.USER_ID; //user id for api requests
 const MANAGE = 4; //Permission to grant access to other users
 const CHANGE = 2; //Permission to add document to project, etc...
 const READ = 1; //Permission to read document
 
-db.exec("CREATE TABLE IF NOT EXISTS Projects (ProjID INTEGER PRIMARY KEY, Name TEXT NOT NULL)");
+db.exec("CREATE TABLE IF NOT EXISTS Projects (ProjID INTEGER PRIMARY KEY, Name TEXT NOT NULL, ProjectCode INTEGER, Description TEXT)");
 
 db.exec("CREATE TABLE IF NOT EXISTS Profiles (ProfileID INTEGER PRIMARY KEY, Hash TEXT NOT NULL)");
 
 db.exec("CREATE TABLE IF NOT EXISTS Users (UserID INTEGER PRIMARY KEY, Name TEXT, Email TEXT NOT NULL, ProfileID INTEGER, " +
 "FOREIGN KEY(ProfileID) REFERENCES Profiles(ProfileID) ON UPDATE CASCADE ON DELETE CASCADE)");
 
-db.exec("CREATE TABLE IF NOT EXISTS Documents (DocID INTEGER NOT NULL, Year INTEGER NOT NULL, Name TEXT NOT NULL, Description TEXT, Location " +
-"TEXT NOT NULL, OwnerID INTEGER NOT NULL, Project INTEGER, DateAdded TEXT NOT NULL, PrevDocID INTEGER, PrevDocYear INTEGER, NextDocID INTEGER, NextDocYear INTEGER, FOREIGN " +
-"KEY(PrevDocID, PrevDocYear) REFERENCES Documents(DocID, Year), FOREIGN KEY(NextDocID, NextDocYear) REFERENCES Documents(DocID, Year), PRIMARY KEY(DocID, Year), FOREIGN " +
+
+db.exec("CREATE TABLE IF NOT EXISTS Documents (DocID INTEGER PRIMARY KEY, Year INTEGER NOT NULL, Serial INTEGER NOT NULL, Name TEXT NOT NULL, Description TEXT, Location " +
+"TEXT NOT NULL, OwnerID INTEGER NOT NULL, Project INTEGER, DateAdded TEXT NOT NULL, Replaces INTEGER, ReplacedBy INTEGER, FOREIGN " +
+"KEY(Replaces) REFERENCES Documents(DocID), FOREIGN KEY(ReplacedBy) REFERENCES Documents(DocID), UNIQUE(Year, Serial), FOREIGN " +
 "KEY(OwnerID) REFERENCES Users(UserID) ON DELETE CASCADE, FOREIGN KEY(Project) REFERENCES Projects(ProjID) ON UPDATE CASCADE ON DELETE CASCADE)");
 
-db.exec("CREATE TABLE IF NOT EXISTS Notes (NoteID INTEGER PRIMARY KEY, DID INTEGER NOT NULL, DY INTEGER NOT NULL, UID INTEGER NOT NULL, DateAdded TEXT NOT NULL, " + 
-"Note TEXT NOT NULL, FOREIGN KEY(DID, DY) REFERENCES Documents(DocID, Year) ON DELETE CASCADE, FOREIGN KEY(UID) REFERENCES Users(UserID) ON UPDATE " + 
+db.exec("CREATE TABLE IF NOT EXISTS Notes (NoteID INTEGER PRIMARY KEY, DID INTEGER NOT NULL, UID INTEGER NOT NULL, DateAdded TEXT NOT NULL, " + 
+"Note TEXT NOT NULL, FOREIGN KEY(DID) REFERENCES Documents(DocID) ON DELETE CASCADE, FOREIGN KEY(UID) REFERENCES Users(UserID) ON UPDATE " + 
 "CASCADE ON DELETE CASCADE)");
 
-db.exec("CREATE TABLE IF NOT EXISTS DocPerms (PermID INTEGER PRIMARY KEY, DID INTEGER NOT NULL, DY INTEGER NOT NULL, UID INTEGER NOT NULL, Permissions " + 
-"INTEGER NOT NULL, FOREIGN KEY(DID, DY) REFERENCES Documents(DocID, Year) ON DELETE CASCADE, FOREIGN KEY(UID) REFERENCES Users(UserID) ON UPDATE " + 
+db.exec("CREATE TABLE IF NOT EXISTS DocPerms (PermID INTEGER PRIMARY KEY, DID INTEGER NOT NULL, UID INTEGER NOT NULL, Permissions " + 
+"INTEGER NOT NULL, FOREIGN KEY(DID) REFERENCES Documents(DocID) ON DELETE CASCADE, FOREIGN KEY(UID) REFERENCES Users(UserID) ON UPDATE " + 
 "CASCADE ON DELETE CASCADE)");
 
 db.exec("CREATE TABLE IF NOT EXISTS ProjPerms (PermID INTEGER PRIMARY KEY, PID INTEGER NOT NULL, UID INTEGER NOT NULL, Permissions " + 
@@ -45,8 +47,8 @@ db.exec("CREATE TABLE IF NOT EXISTS ProjPerms (PermID INTEGER PRIMARY KEY, PID I
 db.exec("CREATE TABLE IF NOT EXISTS ProjLinks (LinkID INTEGER PRIMARY KEY, PID INTEGER NOT NULL, Link TEXT NOT NULL, " + 
 "FOREIGN KEY(PID) REFERENCES Projects(ProjID) ON DELETE CASCADE)");
 
-db.exec("CREATE TABLE IF NOT EXISTS DocLinks (LinkID INTEGER PRIMARY KEY, DID INTEGER NOT NULL, DY INTEGER NOT NULL, Link TEXT NOT NULL, " + 
-"FOREIGN KEY(DID, DY) REFERENCES Documents(DocID, Year) ON DELETE CASCADE)");
+db.exec("CREATE TABLE IF NOT EXISTS DocLinks (LinkID INTEGER PRIMARY KEY, DID INTEGER NOT NULL, Link TEXT NOT NULL, " + 
+"FOREIGN KEY(DID) REFERENCES Documents(DocID) ON DELETE CASCADE)");
 
 async function get_token() {
     try {
@@ -223,24 +225,25 @@ async function parse_data(g_raw, idx, g_access) {
 
 const get_user = db.prepare("SELECT * FROM Users WHERE Email= ?;")
 const insert_user = db.prepare("INSERT INTO Users (Name, Email) VALUES (?, ?);")
-const insert_doc = db.prepare("INSERT INTO Documents (DocID, Year, Name, Description, Location, OwnerID, Project, DateAdded, PrevDocID, PrevDocYear, NextDocID, NextDocYear) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);")
-const insert_project = db.prepare("INSERT INTO Projects (Name) VALUES (?);")
+const insert_doc = db.prepare("INSERT INTO Documents (Year, Serial, Name, Description, Location, OwnerID, Project, DateAdded, Replaces, ReplacedBy) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);")
+const insert_project = db.prepare("INSERT INTO Projects (Name, ProjectCode, Description) VALUES (?, ?, ?);")
 const find_doc = db.prepare("SELECT * FROM Documents WHERE Location = ?;")
 const find_project = db.prepare("SELECT * FROM Projects WHERE Name = ?;")
-const insert_perm = db.prepare("INSERT INTO DocPerms (DID, DY, UID, Permissions) VALUES (?, ?, ?, ?);")
-const get_ownerID = db.prepare("SELECT OwnerID FROM Documents WHERE DocID=? AND Year=?;")
-const get_perm = db.prepare("SELECT D.OwnerID, U.UserID, DP.DID, DP.Permissions FROM Documents D INNER JOIN DocPerms DP ON D.DocID=DP.DID INNER JOIN Users U ON U.UserID=DP.UID WHERE D.DocID=? AND D.Year=? AND U.UserID=?;")
-const get_permID = db.prepare("SELECT DP.PermID FROM Documents D INNER JOIN DocPerms DP ON D.DocID=DP.DID INNER JOIN Users U ON U.UserID=DP.UID WHERE D.DocID=? AND D.Year=? AND U.UserID=?;")
-const get_file_path = db.prepare("SELECT Location FROM Documents WHERE DocID = ? AND Year=?;")
-const update_proj = db.prepare("UPDATE Documents SET Project=? WHERE DocID=? AND Year=?;")
-const update_docName = db.prepare("UPDATE Documents SET Name=? WHERE DocID=? AND Year=?;")
+const insert_perm = db.prepare("INSERT INTO DocPerms (DID, UID, Permissions) VALUES (?, ?, ?);")
+const get_ownerID = db.prepare("SELECT OwnerID FROM Documents WHERE DocID=?;")
+const get_perm = db.prepare("SELECT D.OwnerID, U.UserID, DP.DID, DP.Permissions FROM Documents D INNER JOIN DocPerms DP ON D.DocID=DP.DID INNER JOIN Users U ON U.UserID=DP.UID WHERE D.DocID=? AND U.UserID=?;")
+const get_permID = db.prepare("SELECT DP.PermID FROM Documents D INNER JOIN DocPerms DP ON D.DocID=DP.DID INNER JOIN Users U ON U.UserID=DP.UID WHERE D.DocID=? AND U.UserID=?;")
+const get_file_path = db.prepare("SELECT Location FROM Documents WHERE DocID = ?;")
+const update_proj = db.prepare("UPDATE Documents SET Project=? WHERE DocID=?;")
+const update_docName = db.prepare("UPDATE Documents SET Name=? WHERE DocID=?;")
 const update_perm = db.prepare("UPDATE DocPerms SET Permissions=? WHERE PermID=?;")
 const get_db_year = db.prepare("SELECT MAX(Year) AS Year FROM Documents;")
-const get_last_docID = db.prepare("SELECT MAX(DocID) AS DocID FROM Documents WHERE Year=?;")
+const get_last_Serial = db.prepare("SELECT MAX(Serial) AS Serial FROM Documents WHERE Year=?;")
+const get_DocID = db.prepare("SELECT DocID From Documents Where Year=? and Serial=?;")
 
 //takes a DocID/Year key pair, list of emails, and READ|CHANGE|MANAGE
 //grants the indicated level of permission for each email to the indicated document
-function grantPermission(docID, docYear, access_list, permission) {
+function grantPermission(docID, access_list, permission) {
     for (let a = 0; a < Object.keys(access_list).length; a++) { //iterate over each email
         user = get_user.get(`${access_list[a]}`) //check if the user already exists
 
@@ -250,25 +253,31 @@ function grantPermission(docID, docYear, access_list, permission) {
             user = Object.values(user)[1]
         } else { user = user.UserID } 
 
-        permID = get_permID.get(docID, docYear, user) //check if the user was previously granted some level of access
+        permID = get_permID.get(docID, user) //check if the user was previously granted some level of access
 
         if (permID) {
             update_perm.run(`${permission}`, `${permID}`) //if yes, simply change level of access
-        } else { insert_perm.run(docID, docYear, user, permission) } //else, create new access relationship
+        } else { insert_perm.run(docID, user, permission) } //else, create new access relationship
     }
 }
 
 //check if user has sufficient permission for the document specified
-async function checkPermission(docID, docYear, user, level) {
-    perms = get_perm.get(docID, docYear, user)
-    owner = Object.values(get_ownerID.get(docID, docYear))
-    if (perms) {
-        if (perms.Permissions >= level) { 
-            return true //return true if user has sufficient permissions
+async function checkPermission(docID, user, level) {
+    if (!isNull(docID) && !isNull(user) && !isNull(level) &&
+        docID != undefined && user != undefined && level != undefined) {
+        if(typeof(docID) == 'object') {
+            docID = docID.DocID
         }
+        perms = get_perm.get(docID, user)
+        owner = Object.values(get_ownerID.get(docID))
+        if (perms) {
+            if (perms.Permissions >= level) {
+                return true //return true if user has sufficient permissions
+            }
+        }
+        else if (owner == user) { return true } //return true if user owns the document
+        console.log("not permitted")
     }
-    else if(owner == user) { return true } //return true if user owns the document
-    console.log("not permitted")
     return false
 }
 
@@ -292,18 +301,18 @@ async function saveDocData(docName, g_data, path, ownerID, projID){
     }
     if(currentDBYear != currentDate.getFullYear()) { //if no records exist or most recent is dated with other than current year
         currentDBYear = currentDate.getFullYear()   //set currentDBYear to current year
-        nextDocID = 0 //reset nextDocID to 0
+        nextSerial = 0 //reset nextSerial to 0
     }
 
-    if(!nextDocID) { //db year matches current but nextDocID not set
-        nextDocID = get_last_docID.get(currentDBYear).DocID; //get most recent docID for current year
+    if(!nextSerial) { //db year matches current but nextSerial not set
+        nextSerial = get_last_Serial.get(currentDBYear).Serial; //get most recent Serial for current year
     }
-    nextDocID++ //increment to next available ID
+    nextSerial++ //increment to next available ID
 
     //null values to be replaced by Description, Supersedes, and SupersededBy respectively 
-    doc = insert_doc.run(nextDocID, currentDBYear, docName, null, path, ownerID, projID, currentDate.toString(), null, null, null, null)
+    doc = insert_doc.run(currentDBYear, nextSerial, docName, null, path, ownerID, projID, currentDate.toString(), null, null)
     doc = Object.values(doc)[1]
-    return nextDocID 
+    return nextSerial
 }
 
 async function g_request(callback) {
@@ -349,7 +358,7 @@ async function g_request(callback) {
                 keyNum = getKey(g_data.access, "project") //get index of project name if one was specified
                 if (keyNum !== null) {
                     if (!(proj = await find_project.get(`${g_data.access[keyNum].project}`))) { //check if project already exists
-                        proj = insert_project.run(`${g_data.access[keyNum].project}`) //create project if the one specified doesn't exist
+                        proj = insert_project.run(`${g_data.access[keyNum].project}`, null, "Oregon State University Project") //create project if the one specified doesn't exist
                         proj = Object.values(proj)[1] 
                     } else { proj = proj.ProjID }
                 }
@@ -360,13 +369,13 @@ async function g_request(callback) {
 
                 //save new users and give permissions
                 if ((keyNum = getKey(g_data.access, "read"))) { //get index of read permission list if it exists
-                    grantPermission(doc, currentDBYear, g_data.access[keyNum].read, READ)
+                    grantPermission(doc, g_data.access[keyNum].read, READ)
                 }
                 if ((keyNum = getKey(g_data.access, "change"))) { //get index of change permission list if it exists
-                    grantPermission(doc, currentDBYear, g_data.access[keyNum].change, CHANGE)
+                    grantPermission(doc, g_data.access[keyNum].change, CHANGE)
                 }
                 if ((keyNum = getKey(g_data.access, "manage"))) { //get index of manage permission list if it exists
-                    grantPermission(doc, currentDBYear, g_data.access[keyNum].manage, MANAGE)
+                    grantPermission(doc, g_data.access[keyNum].manage, MANAGE)
                 }
             }
 
@@ -392,8 +401,8 @@ async function g_request(callback) {
                 // only return those documents for which the sender is allowed access
 
                 docSupKey = g_data.access[keyNum].docs[i].split("-"); //splits the Year-DocID value specified by the user so that it can be used
-                if (checkPermission(docSupKey[1], docSupKey[0], user.UserID, READ)) {
-                    fpath = await get_file_path.get(docSupKey[1], docSupKey[0])
+                if (checkPermission(get_DocID.get(docSupKey[0], docSupKey[1]), user.UserID, READ)) {
+                    fpath = await get_file_path.get(get_DocID.get(docSupKey[0], docSupKey[1]))
                     contents.push(fs.readFileSync(`${fpath.Location}`, { encoding: 'base64' }));
                     filenames.push(path.parse(fpath.Location).base)
                 }
@@ -419,19 +428,19 @@ async function g_request(callback) {
                 for (var i = 0; i < g_data.access[docKey].docs.length; i++) {
                     docSupKey = g_data.access[docKey].docs[i].split("-"); //splits the Year-DocID value specified by the user so that it can be used       
                     if (!isNull(projKey)) {
-                        valid = valid && await checkPermission(docSupKey[1], docSupKey[0], user, CHANGE)
+                        valid = valid && await checkPermission(get_DocID.get(docSupKey[0], docSupKey[1]), user, CHANGE)
                     }
                     if (!isNull(nameKey)) {
-                        valid = valid && await checkPermission(docSupKey[1], docSupKey[0], user, CHANGE)
+                        valid = valid && await checkPermission(get_DocID.get(docSupKey[0], docSupKey[1]), user, CHANGE)
                     }
                     if (!isNull(readKey)) {
-                        valid = valid && await checkPermission(docSupKey[1], docSupKey[0], user, MANAGE)
+                        valid = valid && await checkPermission(get_DocID.get(docSupKey[0], docSupKey[1]), user, MANAGE)
                     }
                     if (!isNull(changeKey)) {
-                        valid = valid && await checkPermission(docSupKey[1], docSupKey[0], user, MANAGE)
+                        valid = valid && await checkPermission(get_DocID.get(docSupKey[0], docSupKey[1]), user, MANAGE)
                     }
                     if (!isNull(manageKey)) {
-                        valid = valid && await checkPermission(docSupKey[1], docSupKey[0], user, MANAGE)
+                        valid = valid && await checkPermission(get_DocID.get(docSupKey[0], docSupKey[1]), user, MANAGE)
                     }
                 }
             } else { valid = false }
@@ -443,24 +452,24 @@ async function g_request(callback) {
                     if (!isNull(projKey)) {
                         projid = find_project.get(`${g_data.access[projKey].project}`)
                         if (!projid) {
-                            projid = insert_project.run(`${g_data.access[projKey].project}`)
+                            projid = insert_project.run(`${g_data.access[projKey].project}`, null, "Oregon State University Project")
                             projid = Object.values(projid)[1] 
                         } else { projid = projid.ProjID }
-                        update_proj.run(projid, docSupKey[1], docSupKey[0])
+                        update_proj.run(projid, get_DocID.get(docSupKey[0], docSupKey[1]).DocID)
                     }
                     if (!isNull(nameKey)) {
                         if (g_data.access[nameKey].names[i]) {
-                            update_docName.run(g_data.access[nameKey].names[i], docSupKey[1], docSupKey[0])
+                            update_docName.run(g_data.access[nameKey].names[i], get_DocID.get(docSupKey[0], docSupKey[1]))
                         }
                     }
                     if (!isNull(readKey)) {
-                        grantPermission(docSupKey[1], docSupKey[0], g_data.access[readKey].read, READ)
+                        grantPermission(get_DocID.get(docSupKey[0], docSupKey[1]), g_data.access[readKey].read, READ)
                     }
                     if (!isNull(changeKey)) {
-                        grantPermission(docSupKey[1], docSupKey[0], g_data.access[changeKey].change, CHANGE)
+                        grantPermission(get_DocID.get(docSupKey[0], docSupKey[1]), g_data.access[changeKey].change, CHANGE)
                     }
                     if (!isNull(manageKey)) {
-                        grantPermission(docSupKey[1], docSupKey[0], g_data.access[manageKey].manage, MANAGE)
+                        grantPermission(get_DocID.get(docSupKey[0], docSupKey[1]), g_data.access[manageKey].manage, MANAGE)
                     }
                 }
             }

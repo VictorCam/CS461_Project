@@ -7,6 +7,12 @@
                     <h3>Project Name: {{project.Pname}}</h3>
                 </b-col>
             </b-row>
+            <b-row class="my-4">
+                <b-col>
+                    <h4 v-if="project.Description">Description: {{project.Description}}</h4>
+                    <h4 v-else>No Description - Contact the project maintainers for more information.</h4>
+                </b-col>
+            </b-row>
         </b-container> 
     </div>
 </template>
@@ -17,7 +23,7 @@ import Header from './layout/Header';
 export default {
     name: "ProjectDetail",
     created() {
-        this.$store.dispatch("set_current_project", {year: this.$route.params.year, projID: this.$route.params.projID});
+        this.$store.dispatch("set_current_project", {projID: this.$route.params.projID});
     },
     computed: {
         project() {
