@@ -255,6 +255,7 @@ function grantPermission(docID, access_list, permission) {
 
         permID = get_permID.get(docID, user) //check if the user was previously granted some level of access
 
+	console.log("docID: ", docID);
         if (permID) {
             update_perm.run(`${permission}`, `${permID}`) //if yes, simply change level of access
         } else { insert_perm.run(docID, user, permission) } //else, create new access relationship
@@ -312,7 +313,7 @@ async function saveDocData(docName, g_data, path, ownerID, projID){
     //null values to be replaced by Description, Supersedes, and SupersededBy respectively 
     doc = insert_doc.run(currentDBYear, nextSerial, docName, null, path, ownerID, projID, currentDate.toString(), null, null)
     doc = Object.values(doc)[1]
-    return nextSerial
+    return doc 
 }
 
 async function g_request(callback) {
@@ -367,6 +368,7 @@ async function g_request(callback) {
                 doc = await saveDocData(docName, g_data, `./server/files/${g_data.g_id}-${j}.pdf`, user.UserID, proj);
 
 
+		console.log("doc: ", doc);
                 //save new users and give permissions
                 if ((keyNum = getKey(g_data.access, "read"))) { //get index of read permission list if it exists
                     grantPermission(doc, g_data.access[keyNum].read, READ)
@@ -402,7 +404,7 @@ async function g_request(callback) {
 
                 docSupKey = g_data.access[keyNum].docs[i].split("-"); //splits the Year-DocID value specified by the user so that it can be used
                 if (checkPermission(get_DocID.get(docSupKey[0], docSupKey[1]), user.UserID, READ)) {
-                    fpath = await get_file_path.get(get_DocID.get(docSupKey[0], docSupKey[1]))
+                    fpath = await get_file_path.get(get_DocID.get(docSupKey[0], docSupKey[1]).DocID)
                     contents.push(fs.readFileSync(`${fpath.Location}`, { encoding: 'base64' }));
                     filenames.push(path.parse(fpath.Location).base)
                 }
@@ -459,7 +461,7 @@ async function g_request(callback) {
                     }
                     if (!isNull(nameKey)) {
                         if (g_data.access[nameKey].names[i]) {
-                            update_docName.run(g_data.access[nameKey].names[i], get_DocID.get(docSupKey[0], docSupKey[1]))
+                            update_docName.run(g_data.access[nameKey].names[i], get_DocID.get(docSupKey[0], docSupKey[1]).DocID)
                         }
                     }
                     if (!isNull(readKey)) {
