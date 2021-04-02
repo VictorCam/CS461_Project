@@ -4,6 +4,7 @@ const axios = require("axios")
 const fs = require('fs')
 const Database = require('better-sqlite3')
 const db = new Database('./server/database/beavdms.db')
+const dbinit = require('../middleware/open_database')
 const helpers = require('../middleware/helpers')
 var path = require('path')
 const { type } = require("os")
@@ -19,36 +20,7 @@ const MANAGE = 4; //Permission to grant access to other users
 const CHANGE = 2; //Permission to add document to project, etc...
 const READ = 1; //Permission to read document
 
-db.exec("CREATE TABLE IF NOT EXISTS Projects (ProjID INTEGER PRIMARY KEY, Name TEXT NOT NULL, ProjectCode INTEGER, Description TEXT)");
-
-db.exec("CREATE TABLE IF NOT EXISTS Profiles (ProfileID INTEGER PRIMARY KEY, Hash TEXT NOT NULL)");
-
-db.exec("CREATE TABLE IF NOT EXISTS Users (UserID INTEGER PRIMARY KEY, Name TEXT, Email TEXT NOT NULL, ProfileID INTEGER, " +
-"FOREIGN KEY(ProfileID) REFERENCES Profiles(ProfileID) ON UPDATE CASCADE ON DELETE CASCADE)");
-
-
-db.exec("CREATE TABLE IF NOT EXISTS Documents (DocID INTEGER PRIMARY KEY, Year INTEGER NOT NULL, Serial INTEGER NOT NULL, Name TEXT NOT NULL, Description TEXT, Location " +
-"TEXT NOT NULL, OwnerID INTEGER NOT NULL, Project INTEGER, DateAdded TEXT NOT NULL, Replaces INTEGER, ReplacedBy INTEGER, FOREIGN " +
-"KEY(Replaces) REFERENCES Documents(DocID), FOREIGN KEY(ReplacedBy) REFERENCES Documents(DocID), UNIQUE(Year, Serial), FOREIGN " +
-"KEY(OwnerID) REFERENCES Users(UserID) ON DELETE CASCADE, FOREIGN KEY(Project) REFERENCES Projects(ProjID) ON UPDATE CASCADE ON DELETE CASCADE)");
-
-db.exec("CREATE TABLE IF NOT EXISTS Notes (NoteID INTEGER PRIMARY KEY, DID INTEGER NOT NULL, UID INTEGER NOT NULL, DateAdded TEXT NOT NULL, " + 
-"Note TEXT NOT NULL, FOREIGN KEY(DID) REFERENCES Documents(DocID) ON DELETE CASCADE, FOREIGN KEY(UID) REFERENCES Users(UserID) ON UPDATE " + 
-"CASCADE ON DELETE CASCADE)");
-
-db.exec("CREATE TABLE IF NOT EXISTS DocPerms (PermID INTEGER PRIMARY KEY, DID INTEGER NOT NULL, UID INTEGER NOT NULL, Permissions " + 
-"INTEGER NOT NULL, FOREIGN KEY(DID) REFERENCES Documents(DocID) ON DELETE CASCADE, FOREIGN KEY(UID) REFERENCES Users(UserID) ON UPDATE " + 
-"CASCADE ON DELETE CASCADE)");
-
-db.exec("CREATE TABLE IF NOT EXISTS ProjPerms (PermID INTEGER PRIMARY KEY, PID INTEGER NOT NULL, UID INTEGER NOT NULL, Permissions " + 
-"INTEGER NOT NULL, FOREIGN KEY(PID) REFERENCES Projects(ProjID) ON DELETE CASCADE, FOREIGN KEY(UID) REFERENCES Users(UserID) ON UPDATE " + 
-"CASCADE ON DELETE CASCADE)");
-
-db.exec("CREATE TABLE IF NOT EXISTS ProjLinks (LinkID INTEGER PRIMARY KEY, PID INTEGER NOT NULL, Link TEXT NOT NULL, " + 
-"FOREIGN KEY(PID) REFERENCES Projects(ProjID) ON DELETE CASCADE)");
-
-db.exec("CREATE TABLE IF NOT EXISTS DocLinks (LinkID INTEGER PRIMARY KEY, DID INTEGER NOT NULL, Link TEXT NOT NULL, " + 
-"FOREIGN KEY(DID) REFERENCES Documents(DocID) ON DELETE CASCADE)");
+dbinit.createDatabase(db);
 
 async function get_token() {
     try {
@@ -255,7 +227,6 @@ function grantPermission(docID, access_list, permission) {
 
         permID = get_permID.get(docID, user) //check if the user was previously granted some level of access
 
-	console.log("docID: ", docID);
         if (permID) {
             update_perm.run(`${permission}`, `${permID}`) //if yes, simply change level of access
         } else { insert_perm.run(docID, user, permission) } //else, create new access relationship
@@ -368,7 +339,6 @@ async function g_request(callback) {
                 doc = await saveDocData(docName, g_data, `./server/files/${g_data.g_id}-${j}.pdf`, user.UserID, proj);
 
 
-		console.log("doc: ", doc);
                 //save new users and give permissions
                 if ((keyNum = getKey(g_data.access, "read"))) { //get index of read permission list if it exists
                     grantPermission(doc, g_data.access[keyNum].read, READ)
