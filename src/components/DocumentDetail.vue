@@ -4,7 +4,7 @@
         <b-container fluid class="mx-3 my-3" v-if="doc">
             <b-row class="my-4">
                 <b-col>
-                    <h1>ID: {{doc.Year}}-{{doc.DocID.toString().padStart(4, '0')}}</h1>
+                    <h1>ID: {{doc.Year}}-{{doc.Serial.toString().padStart(4, '0')}}</h1>
                 </b-col>
             </b-row>
             <b-row class="my-4">
@@ -38,7 +38,7 @@ import Header from './layout/Header';
 export default {
     name: "DocumentDetail",
     created() {
-        this.$store.dispatch("set_current_doc", {year: this.$route.params.year, docID: this.$route.params.docID});
+        this.$store.dispatch("set_current_doc", {docID: this.$route.params.docID});
     },
     computed: {
         doc() {

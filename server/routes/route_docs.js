@@ -11,7 +11,7 @@ router.get("/api", (req, res) => {
     const page = schema.validate(req.query.page)
     if(page.error) { return res.status(422).json(page.error.details[0].message) }
 
-    var find_doc = db.prepare("SELECT Documents.DocID, Documents.Year, Documents.Name as Dname, Documents.DateAdded, Documents.Description, Projects.ProjID, Projects.Name as Pname FROM Documents, Projects WHERE Documents.Project = Projects.ProjID LIMIT ? OFFSET ?")
+    var find_doc = db.prepare("SELECT Documents.DocID, Documents.Year, Documents.Serial, Documents.Name as Dname, Documents.DateAdded, Documents.Description, Projects.ProjID, Projects.Name as Pname FROM Documents, Projects WHERE Documents.Project = Projects.ProjID LIMIT ? OFFSET ?")
     var get_count = db.prepare("SELECT count(*) FROM Documents, Projects WHERE Documents.Project = Projects.ProjID")
 
     var cnt = 10 //shows 10 json items from db
@@ -27,16 +27,16 @@ router.get("/api", (req, res) => {
 });
 
 // Get the document the user is currently viewing
-router.get("/api/doc/:year/:docID", (req, res) => {
+router.get("/api/doc/:docID", (req, res) => {
     const docID = req.params.docID;
-    const query = `SELECT Users.Name as Owner, Documents.Name as Dname, Documents.DocID, Documents.DateAdded, Documents.Year FROM Users INNER JOIN Documents ON Documents.DocID = ${docID}`;
+    const query = `SELECT Users.Name as Owner, Documents.Name as Dname, Documents.DocID, Documents.DateAdded, Documents.Year, Documents.Serial FROM Users INNER JOIN Documents ON Documents.DocID = ${docID}`;
     const results = db.prepare(query);
     const docResults = results.all();
     res.status(200).json(docResults);
 });
 
 // Get the document the user is currently viewing
-router.get("/api/project/:year/:projID", (req, res) => {
+router.get("/api/project/:projID", (req, res) => {
     const projID = req.params.projID;
     const query = `SELECT Projects.Name as Pname from Projects WHERE Projects.ProjID = ${projID}`;
     const results = db.prepare(query);
@@ -54,7 +54,7 @@ router.get("/api/search/", (req, res) => {
     if(page.error) { return res.status(422).json(page.error.details[0].message) }
     if(search.error) { return res.status(422).json(search.error.details[0].message) }
 
-    var find_doc = db.prepare("SELECT Documents.DocID, Documents.Year, Documents.Name as Dname, Documents.DateAdded, Documents.Name, Projects.Name FROM Documents, Projects WHERE Documents.Project = Projects.ProjID AND (Documents.Name LIKE ? OR Projects.Name LIKE ?) LIMIT ? OFFSET ?")
+    var find_doc = db.prepare("SELECT Documents.DocID, Documents.Year, Documents.Serial, Documents.Name as Dname, Documents.DateAdded, Documents.Name, Projects.Name FROM Documents, Projects WHERE Documents.Project = Projects.ProjID AND (Documents.Name LIKE ? OR Projects.Name LIKE ?) LIMIT ? OFFSET ?")
     var get_count = db.prepare("SELECT count(*) FROM Documents, Projects WHERE Documents.Project = Projects.ProjID AND (Documents.Name LIKE ? OR Projects.Name LIKE ?)")
 
     var s_req = req.query.search; //keyword we are looking for
