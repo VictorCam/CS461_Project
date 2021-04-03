@@ -126,6 +126,12 @@ exports.parseBody = function (message) {
                 project = value.trim() //remove spaces to front and end of str
                 obj.push({ "project": project })
             }
+            else if (key.toLowerCase() == 'newproject') {  //soft maybe
+
+            }
+            else if (key.toLowerCase() == 'projectdescription') { //need
+
+            }
             else if (key.toLowerCase() == 'read') {
                 read = loopEmails(value)
                 obj.push({ "read": read })
@@ -148,8 +154,46 @@ exports.parseBody = function (message) {
                 docs = loopArgs(value)
                 obj.push({ "docs": docs })
             }
+            else if (key.toLowerCase() == 'description') {  //need
+
+            }
+            else if (key.toLowerCase() == 'replaces') { //probably need
+
+            }
+            else if (key.toLowerCase() == 'note' ||  //need
+                key.toLowerCase() == 'notes') {
+                
+            }
+            else if (key.toLowerCase() == 'projectread') { //don't need
+
+            }
+            else if (key.toLowerCase() == 'projectchange') { //don't need
+
+            }
+            else if (key.toLowerCase() == 'projectmanage') { //don't need
+
+            }
+            else if (key.toLowerCase() == 'link' || //probably not
+                key.toLowerCase() == 'links') {
+
+            }
+            else if (key.toLowerCase() == 'projectlink' || //probably not
+                key.toLowerCase() == 'projectlinks') {
+
+            }
+            else if (key.toLowerCase() == 'tag' || //need
+                key.toLowerCase() == 'tags') {
+
+            }
+            else if (key.toLowerCase() == 'revoke') { //don't need
+
+            }
+            else if (key.toLowerCase() == 'projectrevoke') { //don't need
+
+            }
             else {
                 console.log("bad input included (ignored)")
+                console.log("key: ", key.toLowerCase())
             }
         }
     }
@@ -159,7 +203,7 @@ exports.parseBody = function (message) {
 //loop thorugh all the emails
 function loopEmails(value) {
     email = value.replace(/\s/g, '') //remove spaces
-    email = email.split(",") //parse by commas
+    email = email.split("\\") //parse by commas
     data = []
 
     email = email.filter(function (el) { //remove arrays that contain ''

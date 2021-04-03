@@ -198,7 +198,7 @@ async function parse_data(g_raw, idx, g_access) {
 const get_user = db.prepare("SELECT * FROM Users WHERE Email= ?;")
 const insert_user = db.prepare("INSERT INTO Users (Name, Email) VALUES (?, ?);")
 const insert_doc = db.prepare("INSERT INTO Documents (Year, Serial, Name, Description, Location, OwnerID, Project, DateAdded, Replaces, ReplacedBy) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);")
-const insert_project = db.prepare("INSERT INTO Projects (Name, ProjectCode, Description) VALUES (?, ?, ?);")
+const insert_project = db.prepare("INSERT INTO Projects (Name, OwnerID, ProjectCode, Description) VALUES (?, ?, ?, ?);")
 const find_doc = db.prepare("SELECT * FROM Documents WHERE Location = ?;")
 const find_project = db.prepare("SELECT * FROM Projects WHERE Name = ?;")
 const insert_perm = db.prepare("INSERT INTO DocPerms (DID, UID, Permissions) VALUES (?, ?, ?);")
@@ -223,7 +223,7 @@ function grantPermission(docID, access_list, permission) {
         if (!user) {
             user = insert_user.run(`${access_list[a]}`, `${access_list[a]}`)
             user = Object.values(user)[1]
-        } else { user = user.UserID } 
+        } else { user = user.UserID }
 
         permID = get_permID.get(docID, user) //check if the user was previously granted some level of access
 
@@ -237,7 +237,7 @@ function grantPermission(docID, access_list, permission) {
 async function checkPermission(docID, user, level) {
     if (!isNull(docID) && !isNull(user) && !isNull(level) &&
         docID != undefined && user != undefined && level != undefined) {
-        if(typeof(docID) == 'object') {
+        if (typeof (docID) == 'object') {
             docID = docID.DocID
         }
         perms = get_perm.get(docID, user)
@@ -265,18 +265,18 @@ function getKey(obj, keyName) {
 }
 
 //manages the DocID/Year key pair for Documents, determines the next valid key, and saves all related data to database
-async function saveDocData(docName, g_data, path, ownerID, projID){
+async function saveDocData(docName, g_data, path, ownerID, projID) {
     //use g_data later to get document related data like Notes, Supersedes, etc...
-    
-    if(!currentDBYear) { //If currentDBYear isn't set, retrieve it from database
+
+    if (!currentDBYear) { //If currentDBYear isn't set, retrieve it from database
         currentDBYear = get_db_year.get().Year;
     }
-    if(currentDBYear != currentDate.getFullYear()) { //if no records exist or most recent is dated with other than current year
+    if (currentDBYear != currentDate.getFullYear()) { //if no records exist or most recent is dated with other than current year
         currentDBYear = currentDate.getFullYear()   //set currentDBYear to current year
         nextSerial = 0 //reset nextSerial to 0
     }
 
-    if(!nextSerial) { //db year matches current but nextSerial not set
+    if (!nextSerial) { //db year matches current but nextSerial not set
         nextSerial = get_last_Serial.get(currentDBYear).Serial; //get most recent Serial for current year
     }
     nextSerial++ //increment to next available ID
@@ -284,183 +284,188 @@ async function saveDocData(docName, g_data, path, ownerID, projID){
     //null values to be replaced by Description, Supersedes, and SupersededBy respectively 
     doc = insert_doc.run(currentDBYear, nextSerial, docName, null, path, ownerID, projID, currentDate.toString(), null, null)
     doc = Object.values(doc)[1]
-    return doc 
+    return doc
 }
 
 async function g_request(callback) {
-    const g_access = await get_token() //getting access token 
-    const g_id = await get_msg_id(g_access.data.access_token) //getting messages
-    if (g_id.data.resultSizeEstimate == 0) { return callback() } //called when there is no mail to look through
+    try {
+        const g_access = await get_token() //getting access token 
+        const g_id = await get_msg_id(g_access.data.access_token) //getting messages
+        if (g_id.data.resultSizeEstimate == 0) { return callback() } //called when there is no mail to look through
 
-    valid = true
-    //loop through all messages and save them
-    for (let idx = 0; idx < Object.keys(g_id.data.messages).length; idx++) {
-        var g_raw = await get_msg_data(g_access.data.access_token, g_id.data.messages[idx].id) //getting data
-        await post_msg_delete(g_access.data.access_token, g_id.data.messages[idx].id) //delete msg to trash
-        var g_data = await parse_data(g_raw, idx, g_access.data.access_token) //parse data
+        valid = true
+        //loop through all messages and save them
+        for (let idx = 0; idx < Object.keys(g_id.data.messages).length; idx++) {
+            var g_raw = await get_msg_data(g_access.data.access_token, g_id.data.messages[idx].id) //getting data
+            await post_msg_delete(g_access.data.access_token, g_id.data.messages[idx].id) //delete msg to trash
+            var g_data = await parse_data(g_raw, idx, g_access.data.access_token) //parse data
 
-        if (g_data.cmd == "error") { return await callback() } //will ignore msg sent by gobeavdms@gmail.com 
+            if (g_data.cmd == "error") { return await callback() } //will ignore msg sent by gobeavdms@gmail.com 
 
-        //relay a message back mentioning that an error has occurred
-        if (g_data.cmd == "relay_error") {
-            raw = await helpers.makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] ERROR`, `An unknown error has occured.\nPlease verify that your e-mail was correctly formated and sent from your oregonstate e-mail account`)
-            await post_send_msg(g_access.data.access_token, raw)
-            return await callback()
-        }
-
-        //inside here we will save users/documents
-        if (g_data.cmd == "save") {
-            console.log("SUCCESS!");
-            for (var j = 0; j < Object.keys(g_data.attachments).length; j++) {
-                fs.writeFile(`./server/files/${g_data.g_id}-${j}.pdf`, g_data.attachments[j].raw, { encoding: 'base64' }, function (err) { if (err) { return console.log("err with writing pdf file") } })
-
-                //save or grab user and save document location
-                user = get_user.get(`${g_data.sender_email}`)
-                if (!user) { insert_user.run(`${g_data.sender_email}`, `${g_data.sender_email}`) }
-
-                //create a new user
-                user = get_user.get(`${g_data.sender_email}`)
-                if ((keyNum = getKey(g_data.access, "names"))) {
-                    docName = g_data.access[keyNum].names[j]
-                }
-                else { docName = g_data.attachments[j].filename }
-
-                //add document to project if one is specified
-                var proj = null
-                keyNum = getKey(g_data.access, "project") //get index of project name if one was specified
-                if (keyNum !== null) {
-                    if (!(proj = await find_project.get(`${g_data.access[keyNum].project}`))) { //check if project already exists
-                        proj = insert_project.run(`${g_data.access[keyNum].project}`, null, "Oregon State University Project") //create project if the one specified doesn't exist
-                        proj = Object.values(proj)[1] 
-                    } else { proj = proj.ProjID }
-                }
-
-                //save document meta data to database
-                doc = await saveDocData(docName, g_data, `./server/files/${g_data.g_id}-${j}.pdf`, user.UserID, proj);
-
-
-                //save new users and give permissions
-                if ((keyNum = getKey(g_data.access, "read"))) { //get index of read permission list if it exists
-                    grantPermission(doc, g_data.access[keyNum].read, READ)
-                }
-                if ((keyNum = getKey(g_data.access, "change"))) { //get index of change permission list if it exists
-                    grantPermission(doc, g_data.access[keyNum].change, CHANGE)
-                }
-                if ((keyNum = getKey(g_data.access, "manage"))) { //get index of manage permission list if it exists
-                    grantPermission(doc, g_data.access[keyNum].manage, MANAGE)
-                }
-            }
-
-            //case in where if the parse data has empty arrays then the parse() function found a formatting issue
-            if (!isEmpty(g_data.sender_email) && !isEmpty(g_data.attachments)) {
-                raw = await helpers.makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] SAVED ATTACHMENTS`, `Success: Saved document(s) successfully to gobeavdms!`)
+            //relay a message back mentioning that an error has occurred
+            if (g_data.cmd == "relay_error") {
+                raw = await helpers.makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] ERROR`, `An unknown error has occured.\nPlease verify that your e-mail was correctly formated and sent from your oregonstate e-mail account`)
                 await post_send_msg(g_access.data.access_token, raw)
+                return await callback()
             }
-            else {
-                raw = await helpers.makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] ERROR SAVING ATTACHMENTS`, `Error: No attachments were added or invalid email format.`)
-                await post_send_msg(g_access.data.access_token, raw)
-            }
-        }
 
-        else if (g_data.cmd == "get") {
-            var contents = []
-            var filenames = []
-            user = get_user.get(`${g_data.sender_email}`) //find out who sent the request
-            keyNum = getKey(g_data.access, "docs") //get index of docs list
+            //inside here we will save users/documents
+            if (g_data.cmd == "save") {
+                console.log("SUCCESS!");
+                for (var j = 0; j < Object.keys(g_data.attachments).length; j++) {
+                    fs.writeFile(`./server/files/${g_data.g_id}-${j}.pdf`, g_data.attachments[j].raw, { encoding: 'base64' }, function (err) { if (err) { return console.log("err with writing pdf file") } })
 
-            // for each document, ensure the sender has permission to read it
-            for (var i = 0; i < g_data.access[keyNum].docs.length; i++) {
-                // only return those documents for which the sender is allowed access
+                    //save or grab user and save document location
+                    user = get_user.get(`${g_data.sender_email}`)
+                    if (!user) { insert_user.run(`${g_data.sender_email}`, `${g_data.sender_email}`) }
 
-                docSupKey = g_data.access[keyNum].docs[i].split("-"); //splits the Year-DocID value specified by the user so that it can be used
-                if (checkPermission(get_DocID.get(docSupKey[0], docSupKey[1]), user.UserID, READ)) {
-                    fpath = await get_file_path.get(get_DocID.get(docSupKey[0], docSupKey[1]).DocID)
-                    contents.push(fs.readFileSync(`${fpath.Location}`, { encoding: 'base64' }));
-                    filenames.push(path.parse(fpath.Location).base)
+                    //create a new user
+                    user = get_user.get(`${g_data.sender_email}`)
+                    if ((keyNum = getKey(g_data.access, "names"))) {
+                        docName = g_data.access[keyNum].names[j]
+                    }
+                    else { docName = g_data.attachments[j].filename }
+
+                    //add document to project if one is specified
+                    var proj = null
+                    keyNum = getKey(g_data.access, "project") //get index of project name if one was specified
+                    if (keyNum !== null) {
+                        if (!(proj = await find_project.get(`${g_data.access[keyNum].project}`))) { //check if project already exists
+                            proj = insert_project.run(`${g_data.access[keyNum].project}`, user.UserID, null, "Oregon State University Project") //create project if the one specified doesn't exist
+                            proj = Object.values(proj)[1]
+                        } else { proj = proj.ProjID }
+                    }
+
+                    //save document meta data to database
+                    doc = await saveDocData(docName, g_data, `./server/files/${g_data.g_id}-${j}.pdf`, user.UserID, proj);
+
+
+                    //save new users and give permissions
+                    if ((keyNum = getKey(g_data.access, "read"))) { //get index of read permission list if it exists
+                        grantPermission(doc, g_data.access[keyNum].read, READ)
+                    }
+                    if ((keyNum = getKey(g_data.access, "change"))) { //get index of change permission list if it exists
+                        grantPermission(doc, g_data.access[keyNum].change, CHANGE)
+                    }
+                    if ((keyNum = getKey(g_data.access, "manage"))) { //get index of manage permission list if it exists
+                        grantPermission(doc, g_data.access[keyNum].manage, MANAGE)
+                    }
+                }
+
+                //case in where if the parse data has empty arrays then the parse() function found a formatting issue
+                if (!isEmpty(g_data.sender_email) && !isEmpty(g_data.attachments)) {
+                    raw = await helpers.makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] SAVED ATTACHMENTS`, `Success: Saved document(s) successfully to gobeavdms!`)
+                    await post_send_msg(g_access.data.access_token, raw)
+                }
+                else {
+                    raw = await helpers.makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] ERROR SAVING ATTACHMENTS`, `Error: No attachments were added or invalid email format.`)
+                    await post_send_msg(g_access.data.access_token, raw)
                 }
             }
 
-            //send email with all authorized attachments to requestor
-            encMail = await helpers.makeBodyAttachments(g_data.sender_email, "Your Requested Attachments","Hello, please find your requested document(s) in the attachments", contents, filenames)
-            await post_send_msg(g_access.data.access_token, encMail)
+            else if (g_data.cmd == "get") {
+                var contents = []
+                var filenames = []
+                user = get_user.get(`${g_data.sender_email}`) //find out who sent the request
+                keyNum = getKey(g_data.access, "docs") //get index of docs list
 
-        }
-        else if (g_data.cmd == "update") {
+                // for each document, ensure the sender has permission to read it
+                for (var i = 0; i < g_data.access[keyNum].docs.length; i++) {
+                    // only return those documents for which the sender is allowed access
 
-            user = Object.values(get_user.get(`${g_data.sender_email}`))[0]
-            docKey = getKey(g_data.access, "docs")
-            projKey = getKey(g_data.access, "project")
-            nameKey = getKey(g_data.access, "names")
-            readKey = getKey(g_data.access, "read")
-            changeKey = getKey(g_data.access, "change")
-            manageKey = getKey(g_data.access, "manage")
-
-            //validate all operations before attempting any
-            if (!isNull(docKey)) {
-                for (var i = 0; i < g_data.access[docKey].docs.length; i++) {
-                    docSupKey = g_data.access[docKey].docs[i].split("-"); //splits the Year-DocID value specified by the user so that it can be used       
-                    if (!isNull(projKey)) {
-                        valid = valid && await checkPermission(get_DocID.get(docSupKey[0], docSupKey[1]), user, CHANGE)
-                    }
-                    if (!isNull(nameKey)) {
-                        valid = valid && await checkPermission(get_DocID.get(docSupKey[0], docSupKey[1]), user, CHANGE)
-                    }
-                    if (!isNull(readKey)) {
-                        valid = valid && await checkPermission(get_DocID.get(docSupKey[0], docSupKey[1]), user, MANAGE)
-                    }
-                    if (!isNull(changeKey)) {
-                        valid = valid && await checkPermission(get_DocID.get(docSupKey[0], docSupKey[1]), user, MANAGE)
-                    }
-                    if (!isNull(manageKey)) {
-                        valid = valid && await checkPermission(get_DocID.get(docSupKey[0], docSupKey[1]), user, MANAGE)
+                    docSupKey = g_data.access[keyNum].docs[i].split("-"); //splits the Year-DocID value specified by the user so that it can be used
+                    if (checkPermission(get_DocID.get(docSupKey[0], docSupKey[1]), user.UserID, READ)) {
+                        fpath = await get_file_path.get(get_DocID.get(docSupKey[0], docSupKey[1]).DocID)
+                        contents.push(fs.readFileSync(`${fpath.Location}`, { encoding: 'base64' }));
+                        filenames.push(path.parse(fpath.Location).base)
                     }
                 }
-            } else { valid = false }
-            //if request is valid, perform requested operations
 
-            if (valid) {
-                for (var i = 0; i < g_data.access[docKey].docs.length; i++) {
-                    docSupKey = g_data.access[docKey].docs[i].split("-");                    
-                    if (!isNull(projKey)) {
-                        projid = find_project.get(`${g_data.access[projKey].project}`)
-                        if (!projid) {
-                            projid = insert_project.run(`${g_data.access[projKey].project}`, null, "Oregon State University Project")
-                            projid = Object.values(projid)[1] 
-                        } else { projid = projid.ProjID }
-                        update_proj.run(projid, get_DocID.get(docSupKey[0], docSupKey[1]).DocID)
-                    }
-                    if (!isNull(nameKey)) {
-                        if (g_data.access[nameKey].names[i]) {
-                            update_docName.run(g_data.access[nameKey].names[i], get_DocID.get(docSupKey[0], docSupKey[1]).DocID)
+                //send email with all authorized attachments to requestor
+                encMail = await helpers.makeBodyAttachments(g_data.sender_email, "Your Requested Attachments", "Hello, please find your requested document(s) in the attachments", contents, filenames)
+                await post_send_msg(g_access.data.access_token, encMail)
+
+            }
+            else if (g_data.cmd == "update") {
+
+                user = Object.values(get_user.get(`${g_data.sender_email}`))[0]
+                docKey = getKey(g_data.access, "docs")
+                projKey = getKey(g_data.access, "project")
+                nameKey = getKey(g_data.access, "names")
+                readKey = getKey(g_data.access, "read")
+                changeKey = getKey(g_data.access, "change")
+                manageKey = getKey(g_data.access, "manage")
+
+                //validate all operations before attempting any
+                if (!isNull(docKey)) {
+                    for (var i = 0; i < g_data.access[docKey].docs.length; i++) {
+                        docSupKey = g_data.access[docKey].docs[i].split("-"); //splits the Year-DocID value specified by the user so that it can be used       
+                        if (!isNull(projKey)) {
+                            valid = valid && await checkPermission(get_DocID.get(docSupKey[0], docSupKey[1]), user, CHANGE)
+                        }
+                        if (!isNull(nameKey)) {
+                            valid = valid && await checkPermission(get_DocID.get(docSupKey[0], docSupKey[1]), user, CHANGE)
+                        }
+                        if (!isNull(readKey)) {
+                            valid = valid && await checkPermission(get_DocID.get(docSupKey[0], docSupKey[1]), user, MANAGE)
+                        }
+                        if (!isNull(changeKey)) {
+                            valid = valid && await checkPermission(get_DocID.get(docSupKey[0], docSupKey[1]), user, MANAGE)
+                        }
+                        if (!isNull(manageKey)) {
+                            valid = valid && await checkPermission(get_DocID.get(docSupKey[0], docSupKey[1]), user, MANAGE)
                         }
                     }
-                    if (!isNull(readKey)) {
-                        grantPermission(get_DocID.get(docSupKey[0], docSupKey[1]), g_data.access[readKey].read, READ)
-                    }
-                    if (!isNull(changeKey)) {
-                        grantPermission(get_DocID.get(docSupKey[0], docSupKey[1]), g_data.access[changeKey].change, CHANGE)
-                    }
-                    if (!isNull(manageKey)) {
-                        grantPermission(get_DocID.get(docSupKey[0], docSupKey[1]), g_data.access[manageKey].manage, MANAGE)
+                } else { valid = false }
+                //if request is valid, perform requested operations
+
+                if (valid) {
+                    for (var i = 0; i < g_data.access[docKey].docs.length; i++) {
+                        docSupKey = g_data.access[docKey].docs[i].split("-");
+                        if (!isNull(projKey)) {
+                            projid = find_project.get(`${g_data.access[projKey].project}`)
+                            if (!projid) {
+                                projid = insert_project.run(`${g_data.access[projKey].project}`, user.UserID, null, "Oregon State University Project")
+                                projid = Object.values(projid)[1]
+                            } else { projid = projid.ProjID }
+                            update_proj.run(projid, get_DocID.get(docSupKey[0], docSupKey[1]).DocID)
+                        }
+                        if (!isNull(nameKey)) {
+                            if (g_data.access[nameKey].names[i]) {
+                                update_docName.run(g_data.access[nameKey].names[i], get_DocID.get(docSupKey[0], docSupKey[1]).DocID)
+                            }
+                        }
+                        if (!isNull(readKey)) {
+                            grantPermission(get_DocID.get(docSupKey[0], docSupKey[1]), g_data.access[readKey].read, READ)
+                        }
+                        if (!isNull(changeKey)) {
+                            grantPermission(get_DocID.get(docSupKey[0], docSupKey[1]), g_data.access[changeKey].change, CHANGE)
+                        }
+                        if (!isNull(manageKey)) {
+                            grantPermission(get_DocID.get(docSupKey[0], docSupKey[1]), g_data.access[manageKey].manage, MANAGE)
+                        }
                     }
                 }
+                //if request is invalid, send reply without changing anything
+                else {
+                    console.log("update request is either invalid or unauthorized")
+                    raw = await helpers.makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] ERROR PERFORMING THE REQUESTED OPERATION(S)`, `Failure: could not perform the operations requested. Please confirm that your e-mail is correctly formatted and you have permission to perform the actions you requested`)
+                    await post_send_msg(g_access.data.access_token, raw)
+                }
             }
-            //if request is invalid, send reply without changing anything
+            else if (g_data.cmd == "help") {
+                console.log("help request received")
+            }
             else {
-                console.log("update request is either invalid or unauthorized")
-                raw = await helpers.makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] ERROR PERFORMING THE REQUESTED OPERATION(S)`, `Failure: could not perform the operations requested. Please confirm that your e-mail is correctly formatted and you have permission to perform the actions you requested`)
-                await post_send_msg(g_access.data.access_token, raw)
+                console.log('went to else')
+                return callback()
             }
         }
-        else if (g_data.cmd == "help") {
-            console.log("help request received")
-        }
-        else {
-            console.log('went to else')
-            //return callback()
-        }
+        return await callback()
+    } catch (err) {
+        console.log(err)
+        return callback()
     }
-    return await callback()
 }
 
 async function recall() {

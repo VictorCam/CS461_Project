@@ -1,11 +1,12 @@
 exports.createDatabase = function (db) {
-    db.exec("CREATE TABLE IF NOT EXISTS Projects (ProjID INTEGER PRIMARY KEY, Name TEXT NOT NULL, ProjectCode INTEGER, Description TEXT)");
 
     db.exec("CREATE TABLE IF NOT EXISTS Profiles (ProfileID INTEGER PRIMARY KEY, Hash TEXT NOT NULL)");
 
     db.exec("CREATE TABLE IF NOT EXISTS Users (UserID INTEGER PRIMARY KEY, Name TEXT, Email TEXT NOT NULL, ProfileID INTEGER, " +
         "FOREIGN KEY(ProfileID) REFERENCES Profiles(ProfileID) ON UPDATE CASCADE ON DELETE CASCADE)");
 
+    db.exec("CREATE TABLE IF NOT EXISTS Projects (ProjID INTEGER PRIMARY KEY, Name TEXT NOT NULL, OwnerID INTEGER NOT NULL, ProjectCode INTEGER, Description TEXT, " +
+        "FOREIGN KEY(OwnerID) REFERENCES Users(UserID) ON UPDATE CASCADE)");
 
     db.exec("CREATE TABLE IF NOT EXISTS Documents (DocID INTEGER PRIMARY KEY, Year INTEGER NOT NULL, Serial INTEGER NOT NULL, Name TEXT NOT NULL, Description TEXT, Location " +
         "TEXT NOT NULL, OwnerID INTEGER NOT NULL, Project INTEGER, DateAdded TEXT NOT NULL, Replaces INTEGER, ReplacedBy INTEGER, FOREIGN " +
