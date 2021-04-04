@@ -208,10 +208,14 @@ const get_permID = db.prepare("SELECT DP.PermID FROM Documents D INNER JOIN DocP
 const get_file_path = db.prepare("SELECT Location FROM Documents WHERE DocID = ?;")
 const update_proj = db.prepare("UPDATE Documents SET Project=? WHERE DocID=?;")
 const update_docName = db.prepare("UPDATE Documents SET Name=? WHERE DocID=?;")
+const update_replacedBy = db.prepare("UPDATE Documents SET replacedBy=? WHERE DocID=?;")
 const update_perm = db.prepare("UPDATE DocPerms SET Permissions=? WHERE PermID=?;")
 const get_db_year = db.prepare("SELECT MAX(Year) AS Year FROM Documents;")
 const get_last_Serial = db.prepare("SELECT MAX(Serial) AS Serial FROM Documents WHERE Year=?;")
 const get_DocID = db.prepare("SELECT DocID From Documents Where Year=? and Serial=?;")
+const get_tag = db.prepare("SELECT * FROM Tags WHERE Name=?")
+const insert_tag = db.prepare("INSERT INTO Tags (Name) VALUES (?);")
+const insert_tagXdoc = db.prepare("INSERT INTO tagsXdocs (DID, TID) VALUES (?, ?);")
 
 //takes a DocID/Year key pair, list of emails, and READ|CHANGE|MANAGE
 //grants the indicated level of permission for each email to the indicated document
@@ -265,7 +269,7 @@ function getKey(obj, keyName) {
 }
 
 //manages the DocID/Year key pair for Documents, determines the next valid key, and saves all related data to database
-async function saveDocData(docName, g_data, path, ownerID, projID) {
+async function saveDocData(docName, g_data, description, path, ownerID, projID, replaces) {
     //use g_data later to get document related data like Notes, Supersedes, etc...
 
     if (!currentDBYear) { //If currentDBYear isn't set, retrieve it from database
@@ -282,8 +286,11 @@ async function saveDocData(docName, g_data, path, ownerID, projID) {
     nextSerial++ //increment to next available ID
 
     //null values to be replaced by Description, Supersedes, and SupersededBy respectively 
-    doc = insert_doc.run(currentDBYear, nextSerial, docName, null, path, ownerID, projID, currentDate.toString(), null, null)
+    replaces = replaces.split("-"); //splits the Year-DocID value specified by the user so that it can be used
+    replaces = get_DocID.get(replaces[0], replaces[1])
+    doc = insert_doc.run(currentDBYear, nextSerial, docName, description, path, ownerID, projID, currentDate.toString(), replaces, null)
     doc = Object.values(doc)[1]
+    update_replacedBy.run(doc, replaces)
     return doc
 }
 
@@ -321,23 +328,39 @@ async function g_request(callback) {
 
                     //create a new user
                     user = get_user.get(`${g_data.sender_email}`)
+                    //get name of current document if it exists
                     if ((keyNum = getKey(g_data.access, "names"))) {
                         docName = g_data.access[keyNum].names[j]
                     }
                     else { docName = g_data.attachments[j].filename }
+
+                    //set project description if one is provided
+                    projDescription = "An Oregon State University Project"
+                    PDKey = getKey(g_data.access, "projDescription")
+                    if(PDKey !== null) {
+                        projDescription = g_data.access[PDKey].projDescription
+                    }
 
                     //add document to project if one is specified
                     var proj = null
                     keyNum = getKey(g_data.access, "project") //get index of project name if one was specified
                     if (keyNum !== null) {
                         if (!(proj = await find_project.get(`${g_data.access[keyNum].project}`))) { //check if project already exists
-                            proj = insert_project.run(`${g_data.access[keyNum].project}`, user.UserID, null, "Oregon State University Project") //create project if the one specified doesn't exist
+                            proj = insert_project.run(`${g_data.access[keyNum].project}`, user.UserID, null, projDescription) //create project if the one specified doesn't exist
                             proj = Object.values(proj)[1]
                         } else { proj = proj.ProjID }
                     }
 
+                    if ((descKey = getKey(g_data.access, "description"))) {
+                        description = g_data.access[descKey].description[j]
+                    }
+
+                    if ((replaceKey = getKey(g_data.access, "replaces"))) {
+                        replaces = g_data.access[replaceKey].replaces[j]
+                    }
+
                     //save document meta data to database
-                    doc = await saveDocData(docName, g_data, `./server/files/${g_data.g_id}-${j}.pdf`, user.UserID, proj);
+                    doc = await saveDocData(docName, g_data, description, `./server/files/${g_data.g_id}-${j}.pdf`, user.UserID, proj, replaces);
 
 
                     //save new users and give permissions
@@ -349,6 +372,17 @@ async function g_request(callback) {
                     }
                     if ((keyNum = getKey(g_data.access, "manage"))) { //get index of manage permission list if it exists
                         grantPermission(doc, g_data.access[keyNum].manage, MANAGE)
+                    }
+
+                    tagKey = getKey(g_data.access, "tags")
+                    if (tagKey !== null) {
+                        for (var j = 0; j < g_data.access[tagKey].tags.length; j++) {
+                            tag = await get_tag.get(g_data.access[tagKey].tags[j])
+                            if (!tag) {
+                                tag = insert_tag.run(g_data.access[tagKey].tags[j]).lastInsertRowid
+                            } else { tag = tag.TagID }
+                            insert_tagXdoc.run(doc, tag)
+                        }
                     }
                 }
 

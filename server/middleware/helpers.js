@@ -121,6 +121,7 @@ exports.parseBody = function (message) {
         key = p_arr[0].replace(/\s/g, '') //remove spaces
         value = p_arr[1]
 
+        console.log("p_arr[0]: ", p_arr[0], "\tp_arr[1]: ", p_arr[1])
         if (value != undefined && value != null) {
             if (key.toLowerCase() == 'project') {
                 project = value.trim() //remove spaces to front and end of str
@@ -130,7 +131,8 @@ exports.parseBody = function (message) {
 
             }
             else if (key.toLowerCase() == 'projectdescription') { //need
-
+                projDescription = value.trim()
+                obj.push({ "projDescription": projDescription })
             }
             else if (key.toLowerCase() == 'read') {
                 read = loopEmails(value)
@@ -154,15 +156,19 @@ exports.parseBody = function (message) {
                 docs = loopArgs(value)
                 obj.push({ "docs": docs })
             }
-            else if (key.toLowerCase() == 'description') {  //need
-
+            else if (key.toLowerCase() == 'description' ||
+                key.toLowerCase() == 'descriptions') {  //need
+                description = loopArgs(value)
+                obj.push({ "description": description })
             }
             else if (key.toLowerCase() == 'replaces') { //probably need
-
+                replaces = loopArgs(value)
+                obj.push({ "replaces": replaces })
             }
             else if (key.toLowerCase() == 'note' ||  //need
                 key.toLowerCase() == 'notes') {
-                
+                    notes = loopArgs(value)
+                    obj.push({ "notes": notes })
             }
             else if (key.toLowerCase() == 'projectread') { //don't need
 
@@ -183,7 +189,8 @@ exports.parseBody = function (message) {
             }
             else if (key.toLowerCase() == 'tag' || //need
                 key.toLowerCase() == 'tags') {
-
+                    tags = loopArgs(value)
+                    obj.push({ "tags": tags })
             }
             else if (key.toLowerCase() == 'revoke') { //don't need
 
@@ -225,7 +232,7 @@ function loopEmails(value) {
 
 //loop thorugh all the args
 function loopArgs(value) {
-    arg = value.split(",") //parse by commas
+    arg = value.split("\\") //parse by commas
     data = []
 
     arg = arg.filter(function (el) { //remove arrays that contain ''
