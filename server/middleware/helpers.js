@@ -116,91 +116,98 @@ exports.parseBody = function (message) {
         return el != '';
     })
 
+    console.log(m_parse)
+
     for (let i = 0; i < m_parse.length; i++) { //there should be 4 or less things
-        p_arr = m_parse[i].split(":") //parse between the colons
-        key = p_arr[0].replace(/\s/g, '') //remove spaces
-        value = p_arr[1]
+        if((m_parse[i].match(/to/g) || []).length == 1) {
+            console.log("ignored input")
+        }
+        else {
+            p_arr = m_parse[i].split(":") //parse between the colons
+            key = p_arr[0].replace(/\s/g, '') //remove spaces
+            value = p_arr[1]
 
-        console.log("p_arr[0]: ", p_arr[0], "\tp_arr[1]: ", p_arr[1])
-        if (value != undefined && value != null) {
-            if (key.toLowerCase() == 'project') {
-                project = value.trim() //remove spaces to front and end of str
-                obj.push({ "project": project })
-            }
-            else if (key.toLowerCase() == 'newproject') {  //soft maybe
+            // console.log("p_arr[0]: ", p_arr[0], "\tp_arr[1]: ", p_arr[1])
+            if (value != undefined && value != null) {
+                if (key.toLowerCase() == 'project') {
+                    project = value.trim() //remove spaces to front and end of str
+                    obj.push({ "project": project })
+                }
+                else if (key.toLowerCase() == 'newproject') {  //soft maybe
 
-            }
-            else if (key.toLowerCase() == 'projectdescription') { //need
-                projDescription = value.trim()
-                obj.push({ "projDescription": projDescription })
-            }
-            else if (key.toLowerCase() == 'read') {
-                read = loopEmails(value)
-                obj.push({ "read": read })
-            }
-            else if (key.toLowerCase() == 'change') {
-                change = loopEmails(value)
-                obj.push({ "change": change })
-            }
-            else if (key.toLowerCase() == 'manage') {
-                manage = loopEmails(value)
-                obj.push({ "manage": manage })
-            }
-            else if (key.toLowerCase() == 'name' ||
-                key.toLowerCase() == 'names') {
-                names = loopArgs(value)
-                obj.push({ "names": names })
-            }
-            else if (key.toLowerCase() == 'doc' ||
-                key.toLowerCase() == 'docs') {
-                docs = loopArgs(value)
-                obj.push({ "docs": docs })
-            }
-            else if (key.toLowerCase() == 'description' ||
-                key.toLowerCase() == 'descriptions') {  //need
-                description = loopArgs(value)
-                obj.push({ "description": description })
-            }
-            else if (key.toLowerCase() == 'replaces') { //probably need
-                replaces = loopArgs(value)
-                obj.push({ "replaces": replaces })
-            }
-            else if (key.toLowerCase() == 'note' ||  //need
-                key.toLowerCase() == 'notes') {
-                    notes = loopArgs(value)
-                    obj.push({ "notes": notes })
-            }
-            else if (key.toLowerCase() == 'projectread') { //don't need
+                }
+                else if (key.toLowerCase() == 'projectdescription') { //need
+                    projDescription = value.trim()
+                    obj.push({ "projDescription": projDescription })
+                }
+                else if (key.toLowerCase() == 'read') {
+                    read = loopEmails(value)
+                    obj.push({ "read": read })
+                }
+                else if (key.toLowerCase() == 'change') {
+                    change = loopEmails(value)
+                    obj.push({ "change": change })
+                }
+                else if (key.toLowerCase() == 'manage') {
+                    manage = loopEmails(value)
+                    obj.push({ "manage": manage })
+                }
+                else if (key.toLowerCase() == 'name' ||
+                    key.toLowerCase() == 'names') {
+                    names = loopArgs(value)
+                    obj.push({ "names": names })
+                }
+                else if (key.toLowerCase() == 'doc' ||
+                    key.toLowerCase() == 'docs') {
+                    docs = loopArgs(value)
+                    obj.push({ "docs": docs })
+                }
+                else if (key.toLowerCase() == 'description' ||
+                    key.toLowerCase() == 'descriptions') {  //need
+                    description = loopArgs(value)
+                    obj.push({ "description": description })
+                }
+                else if (key.toLowerCase() == 'replaces') { //probably need
+                    replaces = loopArgs(value)
+                    obj.push({ "replaces": replaces })
+                }
+                else if (key.toLowerCase() == 'note' ||  //need
+                    key.toLowerCase() == 'notes') {
+                        notes = loopArgs(value)
+                        obj.push({ "notes": notes })
+                }
+                else if (key.toLowerCase() == 'projectread') { //don't need
 
-            }
-            else if (key.toLowerCase() == 'projectchange') { //don't need
+                }
+                else if (key.toLowerCase() == 'projectchange') { //don't need
 
-            }
-            else if (key.toLowerCase() == 'projectmanage') { //don't need
+                }
+                else if (key.toLowerCase() == 'projectmanage') { //don't need
 
-            }
-            else if (key.toLowerCase() == 'link' || //probably not
-                key.toLowerCase() == 'links') {
+                }
+                else if (key.toLowerCase() == 'link' || //probably not
+                    key.toLowerCase() == 'links') {
 
-            }
-            else if (key.toLowerCase() == 'projectlink' || //probably not
-                key.toLowerCase() == 'projectlinks') {
+                }
+                else if (key.toLowerCase() == 'projectlink' || //probably not
+                    key.toLowerCase() == 'projectlinks') {
 
-            }
-            else if (key.toLowerCase() == 'tag' || //need
-                key.toLowerCase() == 'tags') {
-                    tags = loopArgs(value)
-                    obj.push({ "tags": tags })
-            }
-            else if (key.toLowerCase() == 'revoke') { //don't need
+                }
+                else if (key.toLowerCase() == 'tag' || //need
+                    key.toLowerCase() == 'tags') {
+                        tags = loopArgs(value)
+                        obj.push({ "tags": tags })
+                }
+                else if (key.toLowerCase() == 'revoke') { //don't need
 
-            }
-            else if (key.toLowerCase() == 'projectrevoke') { //don't need
+                }
+                else if (key.toLowerCase() == 'projectrevoke') { //don't need
 
-            }
-            else {
-                console.log("bad input included (ignored)")
-                console.log("key: ", key.toLowerCase())
+                }
+                else {
+                    console.log("bad input included (ignored)")
+                    console.log("key: ", key.toLowerCase())
+                }
             }
         }
     }
