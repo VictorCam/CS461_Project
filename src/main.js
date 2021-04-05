@@ -9,9 +9,9 @@ import 'bootstrap-vue/dist/bootstrap-vue.css'
 import DocumentDetail from './components/DocumentDetail';
 import ProjectDetail from './components/ProjectDetail';
 import Home from './Home';
-import SaveTutorial from './components/SaveTutorial';
-import GetTutorial from './components/GetTutorial';
-import UpdateTutorial from './components/UpdateTutorial';
+import SaveTutorial from './views/SaveTutorial';
+import GetTutorial from './views/GetTutorial';
+import UpdateTutorial from './views/UpdateTutorial';
 
 Vue.config.productionTip = false;
 
@@ -19,7 +19,7 @@ Vue.use(VueRouter);
 
 // Make BootstrapVue available throughout your project
 Vue.use(BootstrapVue)
-Vue.use(IconsPlugin);
+Vue.use(IconsPlugin)
 
 const routes = [
   { path: '/', name: "home", component: Home, meta: {force_redirect: true}},
@@ -28,21 +28,21 @@ const routes = [
   { path: '/save', name: "save", component: SaveTutorial, meta: {force_redirect: true}},
   { path: '/get', name: "get", component: GetTutorial, meta: {force_redirect: true}},
   { path: '/update', name: "update", component: UpdateTutorial, meta: {force_redirect: true}},
-];
+]
 
 const router = new VueRouter({
   routes,
   mode: 'history' 
-});
-
-router.beforeEach((to,from,next) => {
-  if (!to.matched.some(record => record.meta.force_redirect)) {
-    next("/")
-  }
-  else {
-    next()
-  }
 })
+
+// router.beforeEach((to,from,next) => {
+//   if (!to.matched.some(record => record.meta.force_redirect)) {
+//     next("/")
+//   }
+//   else {
+//     next()
+//   }
+// })
 
 new Vue({
   router,

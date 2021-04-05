@@ -1,6 +1,11 @@
 <template>
     <div class="documents">
-        <b-container fluid>
+
+        <div v-for="doc in loadedDocuments" :key="doc.DocID">
+            <DocumentItem v-bind:doc="doc"/>
+        </div>
+
+        <!-- <b-container fluid>
             <b-row class="text-center align-items-center document-item-fields">
                 <b-col class="field text-left">
                     <h3><strong>DocID</strong></h3>
@@ -14,9 +19,6 @@
                 <b-col class="field text-left">
                     <h3><strong>Date Added</strong></h3>
                 </b-col>
-                <!-- <b-col class="field">
-                    <b-icon-file-earmark-text font-scale="5" variant="dark"></b-icon-file-earmark-text>
-                </b-col> -->
             </b-row>
         </b-container>
             <div v-for="doc in loadedDocuments" :key="doc.DocID">
@@ -27,17 +29,14 @@
 
         <div class="paginate_buttons">
             <button @click="navigate(Number($route.query.page)-1, Number(max.page))">Previous</button>
-            <!-- <template v-for="pagination in max.max">
-            <button :key="pagination.show" @click="navigate(pagination, max)">{{pagination}}</button>
-            </template> -->
             <button  @click="navigate(Number($route.query.page)+1, Number(max.page))">Next</button>
-        </div>
+        </div> -->
 
     </div>
 </template>
 
 <script>
-import DocumentItem from './DocumentItem';
+import DocumentItem from '@/components/DocumentItem';
 import {mapState} from 'vuex';
 
 export default {

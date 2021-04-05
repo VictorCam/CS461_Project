@@ -70,7 +70,7 @@
 </template>
 
 <script>
-import Header from './layout/Header';
+import Header from '@/components/Header';
 
 export default {
   name: "save-tutorial",
