@@ -1,26 +1,6 @@
 <template>
     <div class="documents">
-
-        <div v-for="doc in loadedDocuments" :key="doc.DocID">
-            <DocumentItem v-bind:doc="doc"/>
-        </div>
-
-        <!-- <b-container fluid>
-            <b-row class="text-center align-items-center document-item-fields">
-                <b-col class="field text-left">
-                    <h3><strong>DocID</strong></h3>
-                </b-col>
-                <b-col class="field text-left">
-                    <h3><strong>Document Name</strong></h3>
-                </b-col>
-                <b-col class="field text-left">
-                    <h3><strong>Project Name</strong></h3>
-                </b-col>
-                <b-col class="field text-left">
-                    <h3><strong>Date Added</strong></h3>
-                </b-col>
-            </b-row>
-        </b-container>
+        <DocumentItemLabels/>
             <div v-for="doc in loadedDocuments" :key="doc.DocID">
                 <DocumentItem v-bind:doc="doc"/>
             </div>
@@ -30,19 +10,21 @@
         <div class="paginate_buttons">
             <button @click="navigate(Number($route.query.page)-1, Number(max.page))">Previous</button>
             <button  @click="navigate(Number($route.query.page)+1, Number(max.page))">Next</button>
-        </div> -->
+        </div>
 
     </div>
 </template>
 
 <script>
 import DocumentItem from '@/components/DocumentItem';
+import DocumentItemLabels from '@/components/DocumentItemLabels';
 import {mapState} from 'vuex';
 
 export default {
     name: "Documents",
     components: {
-        DocumentItem
+        DocumentItem,
+        DocumentItemLabels
     },
     created() {
         if(this.$route.query.page < 1 || !this.$route.query.page) { //if page is out of bound or does not exist we give default
