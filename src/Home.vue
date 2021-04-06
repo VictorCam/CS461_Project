@@ -7,9 +7,9 @@
 </template>
 
 <script>
-import Header from './components/layout/Header';
-import Documents from './components/Documents'
-import SearchSort from './components/layout/SearchSort';
+import Header from './components/Header'
+import Documents from './views/Documents'
+import SearchSort from './components/SearchSort'
 
 export default {
   name: 'App',

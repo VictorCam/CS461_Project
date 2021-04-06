@@ -14,7 +14,7 @@
       {{ title }}
     </h1>
     <button class="home">
-    <router-link :to="{ name: 'home' }">
+    <router-link :to="{ name: 'home', query: {page: 1 }}">
         <img class="find-button" src="@/assets/home.png" />
       <!-- <b-button variant="secondary" class="home-btn"> -->
         <!-- <b-icon-house-door-fill></b-icon-house-door-fill> -->

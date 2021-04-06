@@ -1,6 +1,6 @@
 <template>
-  <div class="update-tutorial">
-    <Header v-bind:title="'Update Tutorial'" v-bind:showBackButton="true" v-bind:showTutorialButton="false"/>
+  <div class="get-tutorial">
+    <Header v-bind:title="'Get Tutorial'" v-bind:showBackButton="true" v-bind:showTutorialButton="false"/>
     <div class="content">
         <div class="steps">
             <br>
@@ -13,14 +13,21 @@
         </div>
         <div class="steps">
             <h2>
-                2. In the subject field, type "update".
+                2. In the subject field, type "get".
             </h2>
             <br>
-            <b-img src="https://snipboard.io/wrYZL2.jpg" fluid alt="Fluid image" class="image"></b-img>
+            <b-img src="https://snipboard.io/VQYTGo.jpg" fluid alt="Fluid image" class="image"></b-img>
         </div>
         <div class="steps">
             <h2>
-                3. Send the email, check your inbox for a confirmation message.
+                3. In the body, specify the IDs of the documents you would like to retrieve in the following format:
+                <br>
+                <b-img src="https://snipboard.io/WvVdTl.jpg" fluid alt="Fluid image" class="image"></b-img>
+            </h2>
+        </div>
+        <div class="steps">
+            <h2>
+                4. Send the email, check your inbox for a confirmation message.
                 If confirmed, your document should show up on the www.beavdms.com website.
             </h2>
         </div>
@@ -29,10 +36,10 @@
 </template>
 
 <script>
-import Header from './layout/Header';
+import Header from '@/components/Header';
 
 export default {
-  name: "update-tutorial",
+  name: "get-tutorial",
   components: {
       Header
   }

@@ -15,6 +15,22 @@ The document management system time stamps documents, documents are immutable on
 6. npm run server (starts database)
 ```
 
+## Project Notes (Frontend)
+```
+(NOTE: the src folder contains the frontend)
+1. using "@" will start at the src folder (when importing a vue file)
+2. the "views" folder has the main pages for each site (/home /help /etc.)
+3. the "components" folder has reusable pieces of the site
+```
+
+## Project Notes (Backend)
+```
+(NOTE: the server folder contains the backend)
+
+WIP
+```
+
+
 ## Other Commands
 ```
 npm run build (Compiles and minifies for production)

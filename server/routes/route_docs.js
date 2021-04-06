@@ -54,7 +54,7 @@ router.get("/api/search/", (req, res) => {
     if(page.error) { return res.status(422).json(page.error.details[0].message) }
     if(search.error) { return res.status(422).json(search.error.details[0].message) }
 
-    var find_doc = db.prepare("SELECT Documents.DocID, Documents.Year, Documents.Serial, Documents.Name as Dname, Documents.DateAdded, Documents.Name, Projects.Name FROM Documents, Projects WHERE Documents.Project = Projects.ProjID AND (Documents.Name LIKE ? OR Projects.Name LIKE ?) LIMIT ? OFFSET ?")
+    var find_doc = db.prepare("SELECT Documents.DocID, Documents.Year, Documents.Serial, Documents.Name as Dname, Documents.DateAdded, Documents.Name, Projects.ProjID, Projects.Name as Pname FROM Documents, Projects WHERE Documents.Project = Projects.ProjID AND (Documents.Name LIKE ? OR Projects.Name LIKE ?) LIMIT ? OFFSET ?")
     var get_count = db.prepare("SELECT count(*) FROM Documents, Projects WHERE Documents.Project = Projects.ProjID AND (Documents.Name LIKE ? OR Projects.Name LIKE ?)")
 
     var s_req = req.query.search; //keyword we are looking for
