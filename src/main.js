@@ -12,6 +12,7 @@ import Home from './Home';
 import SaveTutorial from './views/SaveTutorial';
 import GetTutorial from './views/GetTutorial';
 import UpdateTutorial from './views/UpdateTutorial';
+import OtherInfo from './views/OtherInfo';
 
 Vue.config.productionTip = false;
 
@@ -28,6 +29,7 @@ const routes = [
   { path: '/save', name: "save", component: SaveTutorial, meta: {force_redirect: true}},
   { path: '/get', name: "get", component: GetTutorial, meta: {force_redirect: true}},
   { path: '/update', name: "update", component: UpdateTutorial, meta: {force_redirect: true}},
+  { path: '/info', name: "other-info", component: OtherInfo, meta: {force_redirect: true}},
 ]
 
 const router = new VueRouter({

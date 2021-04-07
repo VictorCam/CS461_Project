@@ -6,7 +6,7 @@
             <br>
             <h2>
                 1. Open an email message, include gobeavdms@gmail.com as the recipient. Make 
-                sure you are logged into you Oregon State email, otherwise the process will not work.
+                sure you are logged into you Oregon State email (@oregonstate.edu) address, otherwise the process will not work.
             </h2>
             <br>
             <b-img src="https://snipboard.io/lhNGY1.jpg" fluid alt="Fluid image" class="image"></b-img>
@@ -20,7 +20,7 @@
         </div>
         <div class="steps">
             <h2>
-                3. In the body of the email, add a project name.
+                3. (Optional) In the body of the email, add a project name.
                 <br><br>
                 <h4>Follow the format shown below:</h4>
                 <h5>project: Project Name 1</h5>
@@ -30,7 +30,7 @@
         </div>
         <div class="steps">
             <h2>
-                4. In the body of the email include permissions. The permissions are "read", "change", and "manage".
+                4. (Optional) In the body of the email include permissions. The permissions are "read", "change", and "manage".
                 <br> <br>
                 <h4>Follow the format shown below:</h4>
                 <h5>Permission: OSU Email Address, OSU Email Address, OSU Email Address</h5>
@@ -44,7 +44,6 @@
         <div class="steps">
             <h2>
                 5. Below the permissions in the body, optionally add a names field to name the attached documents in the file system.
-                Make sure there are the same number of names as PDF files attached to the email
                 <br> <br>
                 <h4>Follow the format shown below:</h4>
                 <h4>names: Doc 1 Name, Doc 2 Name, Doc 3 Name</h4>

@@ -2,16 +2,28 @@
     <div class="project-detail">
         <div v-if="project">
             <Header v-bind:title="project.Pname" v-bind:showBackButton="true" v-bind:showTutorialButton="true"/>
-            <b-container fluid class="mx-3 my-3" v-if="project">
-                <b-row class="my-4">
+            <b-container fluid class="my-3" v-if="project">
+                <b-row class="my-5 field">
                     <b-col>
-                        <h3>Project Name: {{project.Pname}}</h3>
+                        <h3><b>Project Name:</b>  {{project.Pname}}</h3>
                     </b-col>
                 </b-row>
-                <b-row class="my-4">
+                <b-row class="my-5 field">
                     <b-col>
-                        <h4 v-if="project.Description">Description: {{project.Description}}</h4>
-                        <h4 v-else>No Description - Contact the project maintainers for more information.</h4>
+                        <h4 v-if="project.Description"><b>Description:</b> {{project.Description}}</h4>
+                        <h4 v-else><b>No Description</b> - Contact the project maintainers for more information.</h4>
+                    </b-col>
+                </b-row>
+                <b-row class="my-5 field">
+                    <b-col>
+                        <h4 v-if="project.Permissions"><b>Permissions:</b> {{project.Permission}}</h4>
+                        <h4 v-else><b>No Permissions</b> - Contact the project maintainers for more information.</h4>
+                    </b-col>
+                </b-row>
+                <b-row class="my-5 field">
+                    <b-col>
+                        <h4 v-if="project.Link"><b>Link:</b> {{project.Link}}</h4>
+                        <h4 v-else><b>No Link</b> - Contact the project maintainers for more information.</h4>
                     </b-col>
                 </b-row>
             </b-container> 
@@ -43,5 +55,7 @@ export default {
 </script>
 
 <style scoped>
-    
+    .field {
+        border-bottom: 1px solid #222;
+    }
 </style>
