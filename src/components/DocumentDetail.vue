@@ -2,31 +2,49 @@
     <div class="document-detail">
         <div v-if="doc">
             <Header v-bind:title="doc.Dname" v-bind:showBackButton="true" v-bind:showTutorialButton="true"/>
-            <b-container fluid class="mx-3 my-3" v-if="doc">
-                <b-row class="my-4">
+            <b-container fluid class="my-3" v-if="doc">
+                <b-row class="my-5 field">
                     <b-col>
-                        <h1>ID: {{doc.Year}}-{{doc.Serial.toString().padStart(4, '0')}}</h1>
+                        <h1><b>ID:</b> {{doc.Year}}-{{doc.Serial.toString().padStart(4, '0')}}</h1>
                     </b-col>
                 </b-row>
-                <b-row class="my-4">
+                <b-row class="my-5 field">
                     <b-col>
-                        <h3>Document Name: {{doc.Dname}}</h3>
+                        <h3><b>Document Name:</b> {{doc.Dname}}</h3>
                     </b-col>
                 </b-row>
-                <b-row class="my-4">
+                <b-row class="my-5 field">
                     <b-col>
-                        <h3>Owner: {{doc.Owner}}</h3>
+                        <h3><b>Owner:</b> {{doc.Owner}}</h3>
                     </b-col>
                 </b-row>
-                <b-row class="my-4">
+                <b-row class="my-5 field">
                     <b-col>
-                        <h4>Date Added: {{doc.DateAdded.substring(0, 24)}}</h4>
+                        <h4><b>Date Added:</b> {{doc.DateAdded.substring(0, 24)}}</h4>
                     </b-col>
                 </b-row>
-                <b-row class="my-4">
+                <b-row class="my-5 field">
                     <b-col>
-                        <h4 v-if="doc.Description">Description: {{doc.Description}}</h4>
-                        <h4 v-else>No Description - Contact {{doc.Owner}} for more information.</h4>
+                        <h4 v-if="doc.Description"><b>Description:</b> {{doc.Description}}</h4>
+                        <h4 v-else><b>No Description</b> - Contact {{doc.Owner}} for more information.</h4>
+                    </b-col>
+                </b-row>
+                <b-row class="my-5 field">
+                    <b-col>
+                        <h4 v-if="doc.Permissions"><b>Permissions:</b> {{doc.Permission}}</h4>
+                        <h4 v-else><b>No Permissions</b> - Contact {{doc.Owner}} for more information.</h4>
+                    </b-col>
+                </b-row>
+                <b-row class="my-5 field">
+                    <b-col>
+                        <h4 v-if="doc.Link"><b></b>Link: {{doc.Link}}</h4>
+                        <h4 v-else><b>No Link</b> - Contact {{doc.Owner}} for more information.</h4>
+                    </b-col>
+                </b-row>
+                <b-row class="my-5 field">
+                    <b-col>
+                        <h4 v-if="doc.Note"><b></b>Notes: {{doc.Note}}</h4>
+                        <h4 v-else><b>No Notes</b> - Contact {{doc.Owner}} for more information.</h4>
                     </b-col>
                 </b-row>
             </b-container>
@@ -58,5 +76,7 @@ export default {
 </script>
 
 <style scoped>
-    
+    .field {
+        border-bottom: 1px solid #222;
+    }
 </style>

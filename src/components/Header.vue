@@ -57,6 +57,14 @@
         </router-link>
       </button>
     </div>
+
+    <div v-if="!showTutorialButton">
+      <button class="tutorial">
+        <router-link :to="{name: 'other-info'}">
+          <img class="find-button" src="@/assets/help.png" />
+        </router-link>
+      </button>
+    </div>
       
   </div>
 </template>

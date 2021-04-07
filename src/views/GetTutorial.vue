@@ -6,7 +6,7 @@
             <br>
             <h2>
                 1. Open an email message, include gobeavdms@gmail.com as the recipient. Make 
-                sure you are logged into you Oregon State email, otherwise the process will not work.
+                sure you are logged into you Oregon State email (@oregonstate.edu) address, otherwise the process will not work.
             </h2>
             <br>
             <b-img src="https://snipboard.io/lhNGY1.jpg" fluid alt="Fluid image" class="image"></b-img>
