@@ -10,13 +10,21 @@
                 </b-row>
                 <b-row class="my-5 field">
                     <b-col>
+                        <h3 v-if="project.Dname"><b>Documents:</b>  {{project.Dname}}</h3>
+                        <h3 v-else><b>Documents</b> - No Documents</h3>
+                    </b-col>
+                </b-row>
+                <b-row class="my-5 field">
+                    <b-col>
                         <h4 v-if="project.Description"><b>Description:</b> {{project.Description}}</h4>
                         <h4 v-else><b>No Description</b> - Contact the project maintainers for more information.</h4>
                     </b-col>
                 </b-row>
                 <b-row class="my-5 field">
                     <b-col>
-                        <h4 v-if="project.Permissions"><b>Permissions:</b> {{project.Permission}}</h4>
+                        <h4 v-if="project.Permissions == 1"><b>Permissions:</b> Read</h4>
+                        <h4 v-else-if="project.Permissions == 2"><b>Permissions:</b> Change</h4>
+                        <h4 v-else-if="project.Permissions == 4"><b>Permissions:</b> Manage</h4>
                         <h4 v-else><b>No Permissions</b> - Contact the project maintainers for more information.</h4>
                     </b-col>
                 </b-row>

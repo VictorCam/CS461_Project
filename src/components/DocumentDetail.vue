@@ -31,19 +31,21 @@
                 </b-row>
                 <b-row class="my-5 field">
                     <b-col>
-                        <h4 v-if="doc.Permissions"><b>Permissions:</b> {{doc.Permission}}</h4>
+                        <h4 v-if="doc.Permissions == 1"><b>Permissions:</b> Read</h4>
+                        <h4 v-else-if="doc.Permissions == 2"><b>Permissions:</b> Change</h4>
+                        <h4 v-else-if="doc.Permissions == 4"><b>Permissions:</b> Manage</h4>
                         <h4 v-else><b>No Permissions</b> - Contact {{doc.Owner}} for more information.</h4>
                     </b-col>
                 </b-row>
                 <b-row class="my-5 field">
                     <b-col>
-                        <h4 v-if="doc.Link"><b></b>Link: {{doc.Link}}</h4>
+                        <h4 v-if="doc.Link"><b>Link:</b> {{doc.Link}}</h4>
                         <h4 v-else><b>No Link</b> - Contact {{doc.Owner}} for more information.</h4>
                     </b-col>
                 </b-row>
                 <b-row class="my-5 field">
                     <b-col>
-                        <h4 v-if="doc.Note"><b></b>Notes: {{doc.Note}}</h4>
+                        <h4 v-if="doc.Note"><b>Notes:</b> {{doc.Note}}</h4>
                         <h4 v-else><b>No Notes</b> - Contact {{doc.Owner}} for more information.</h4>
                     </b-col>
                 </b-row>

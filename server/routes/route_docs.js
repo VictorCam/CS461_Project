@@ -29,7 +29,9 @@ router.get("/api", (req, res) => {
 // Get the document the user is currently viewing
 router.get("/api/doc/:docID", (req, res) => {
     const docID = req.params.docID;
-    const query = `SELECT Users.Name as Owner, Documents.Name as Dname, Documents.DocID, Documents.DateAdded, Documents.Year, Documents.Serial FROM Users INNER JOIN Documents ON Documents.DocID = ${docID}`;
+    const query = `SELECT Users.Name AS Owner, Documents.Name AS Dname, Documents.DocID, Documents.DateAdded, Documents.Year, 
+    Documents.Serial, Documents.Description, DocPerms.Permissions, Notes.Note, DocLinks.Link FROM Users INNER JOIN Documents ON Documents.DocID = ${docID}
+     LEFT JOIN DocPerms ON DocPerms.DID = ${docID} LEFT JOIN Notes ON Notes.DID = ${docID} LEFT Join DocLinks ON DocLinks.DID = ${docID}`;
     const results = db.prepare(query);
     const docResults = results.all();
     res.status(200).json(docResults);
@@ -38,7 +40,8 @@ router.get("/api/doc/:docID", (req, res) => {
 // Get the document the user is currently viewing
 router.get("/api/project/:projID", (req, res) => {
     const projID = req.params.projID;
-    const query = `SELECT Projects.Name as Pname from Projects WHERE Projects.ProjID = ${projID}`;
+    const query = `SELECT Projects.Name AS Pname, Projects.Description, Documents.Name AS Dname, ProjLinks.Link, ProjPerms.Permissions FROM Documents INNER JOIN
+     Projects ON Projects.ProjID = ${projID} LEFT JOIN ProjPerms ON ProjPerms.PID = ${projID} LEFT JOIN ProjLinks ON ProjLinks.PID = ${projID}`;
     const results = db.prepare(query);
     const projResults = results.all();
     res.status(200).json(projResults);
