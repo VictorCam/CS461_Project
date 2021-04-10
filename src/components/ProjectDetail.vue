@@ -1,13 +1,8 @@
 <template>
     <div class="project-detail">
         <div v-if="project">
-            <Header v-bind:title="project.Pname" v-bind:showBackButton="true" v-bind:showTutorialButton="true"/>
+            <Header v-bind:title="project.proj[0].Pname" v-bind:showBackButton="true" v-bind:showTutorialButton="true"/>
             <b-container fluid class="my-3" v-if="project">
-                <b-row class="my-5 field">
-                    <b-col>
-                        <h3><b>Project Name:</b>  {{project.proj[0].Pname}}</h3>
-                    </b-col>
-                </b-row>
                 <b-row class="my-5 field">
                     <b-col>
                         <div v-if="project.projDocs.length > 0">

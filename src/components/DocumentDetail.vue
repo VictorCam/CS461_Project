@@ -1,21 +1,16 @@
 <template>
     <div class="document-detail">
         <div v-if="doc">
-            <Header v-bind:title="doc.Dname" v-bind:showBackButton="true" v-bind:showTutorialButton="true"/>
+            <Header v-bind:title="doc.userDoc[0].Dname" v-bind:showBackButton="true" v-bind:showTutorialButton="true"/>
             <b-container fluid class="my-3" v-if="doc">
                 <b-row class="my-5 field">
                     <b-col>
-                        <h1><b>ID:</b> {{doc.userDoc[0].Year}}-{{doc.userDoc[0].Serial.toString().padStart(4, '0')}}</h1>
+                        <h4><b>ID:</b> {{doc.userDoc[0].Year}}-{{doc.userDoc[0].Serial.toString().padStart(4, '0')}}</h4>
                     </b-col>
                 </b-row>
                 <b-row class="my-5 field">
                     <b-col>
-                        <h3><b>Document Name:</b> {{doc.userDoc[0].Dname}}</h3>
-                    </b-col>
-                </b-row>
-                <b-row class="my-5 field">
-                    <b-col>
-                        <h3><b>Owner:</b> {{doc.userDoc[0].Owner}}</h3>
+                        <h4><b>Owner:</b> {{doc.userDoc[0].Owner}}</h4>
                     </b-col>
                 </b-row>
                 <b-row class="my-5 field">

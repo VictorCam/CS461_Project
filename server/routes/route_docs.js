@@ -29,7 +29,7 @@ router.get("/api", (req, res) => {
 // Get the document the user is currently viewing
 router.get("/api/doc/:docID", (req, res) => {
     const docID = req.params.docID;
-    const userDoc = `SELECT Users.Name AS Owner, Documents.Name, Documents.Serial AS Dname, Documents.DocID, Documents.DateAdded, Documents.Year, 
+    const userDoc = `SELECT Users.Name AS Owner, Documents.Name AS Dname, Documents.Serial, Documents.DocID, Documents.DateAdded, Documents.Year, 
     Documents.Serial, Documents.Description FROM Users INNER JOIN Documents ON Documents.DocID = ${docID}`;
 
     const docLinks = `SELECT DocLinks.Link FROM DocLinks WHERE ${docID} = DocLinks.DID`;
