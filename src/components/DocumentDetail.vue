@@ -31,9 +31,9 @@
                 </b-row>
                 <b-row class="my-5 field">
                     <b-col>
-                        <div v-if="doc.docLinks">
-                            <b>Links: </b>
-                            <ul>
+                        <div v-if="doc.docLinks.length > 0">
+                            <h4><b>Links: </b></h4>
+                            <ul class="mx-4">
                                 <li v-for="link in doc.docLinks" :key="link.LinkID">
                                     <h4> {{link.Link}}</h4>
                                 </li>
@@ -46,9 +46,9 @@
                 </b-row>
                 <b-row class="my-5 field">
                     <b-col>
-                        <div v-if="doc.notes">
-                            <b>Notes: </b>
-                            <ul>
+                        <div v-if="doc.notes.length > 0">
+                            <h4><b>Notes: </b></h4>
+                            <ul class="mx-4">
                                 <li v-for="note in doc.notes" :key="note.NoteID">
                                     <h4> {{note.Note}}</h4>
                                 </li>

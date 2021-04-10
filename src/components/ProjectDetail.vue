@@ -10,9 +10,9 @@
                 </b-row>
                 <b-row class="my-5 field">
                     <b-col>
-                        <div v-if="project.projDocs">
-                            <b>Documents: </b>
-                            <ul>
+                        <div v-if="project.projDocs.length > 0">
+                            <h4><b>Documents: </b></h4>
+                            <ul class="mx-4">
                                 <li v-for="doc in project.projDocs" :key="doc.DocID">
                                     <h4> {{doc.Dname}}</h4>
                                 </li>
@@ -25,15 +25,15 @@
                 </b-row>
                 <b-row class="my-5 field">
                     <b-col>
-                        <h4 v-if="project.Description"><b>Description:</b> {{project.proj[0].Description}}</h4>
+                        <h4 v-if="project.proj[0].Description"><b>Description:</b> {{project.proj[0].Description}}</h4>
                         <h4 v-else><b>No Description</b> - Contact the project maintainers for more information.</h4>
                     </b-col>
                 </b-row>
                 <b-row class="my-5 field">
                     <b-col>
-                        <div v-if="project.projLinks">
-                            <b>Links: </b>
-                            <ul>
+                        <div v-if="project.projLinks.length > 0">
+                            <h4><b>Links: </b></h4>
+                            <ul class="mx-4">
                                 <li v-for="link in project.projLinks" :key="link.LinkID">
                                     <h4> {{link.Link}}</h4>
                                 </li>
