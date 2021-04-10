@@ -5,33 +5,43 @@
             <b-container fluid class="my-3" v-if="project">
                 <b-row class="my-5 field">
                     <b-col>
-                        <h3><b>Project Name:</b>  {{project.Pname}}</h3>
+                        <h3><b>Project Name:</b>  {{project.proj[0].Pname}}</h3>
                     </b-col>
                 </b-row>
                 <b-row class="my-5 field">
                     <b-col>
-                        <h3 v-if="project.Dname"><b>Documents:</b>  {{project.Dname}}</h3>
-                        <h3 v-else><b>Documents</b> - No Documents</h3>
+                        <div v-if="project.projDocs">
+                            <b>Documents: </b>
+                            <ul>
+                                <li v-for="doc in project.projDocs" :key="doc.DocID">
+                                    <h4> {{doc.Dname}}</h4>
+                                </li>
+                            </ul>
+                        </div>
+                        <div v-else>
+                            <h4><b>No Documents</b> - Contact the project maintainers for more information.</h4>
+                        </div>
                     </b-col>
                 </b-row>
                 <b-row class="my-5 field">
                     <b-col>
-                        <h4 v-if="project.Description"><b>Description:</b> {{project.Description}}</h4>
+                        <h4 v-if="project.Description"><b>Description:</b> {{project.proj[0].Description}}</h4>
                         <h4 v-else><b>No Description</b> - Contact the project maintainers for more information.</h4>
                     </b-col>
                 </b-row>
                 <b-row class="my-5 field">
                     <b-col>
-                        <h4 v-if="project.Permissions == 1"><b>Permissions:</b> Read</h4>
-                        <h4 v-else-if="project.Permissions == 2"><b>Permissions:</b> Change</h4>
-                        <h4 v-else-if="project.Permissions == 4"><b>Permissions:</b> Manage</h4>
-                        <h4 v-else><b>No Permissions</b> - Contact the project maintainers for more information.</h4>
-                    </b-col>
-                </b-row>
-                <b-row class="my-5 field">
-                    <b-col>
-                        <h4 v-if="project.Link"><b>Link:</b> {{project.Link}}</h4>
-                        <h4 v-else><b>No Link</b> - Contact the project maintainers for more information.</h4>
+                        <div v-if="project.projLinks">
+                            <b>Links: </b>
+                            <ul>
+                                <li v-for="link in project.projLinks" :key="link.LinkID">
+                                    <h4> {{link.Link}}</h4>
+                                </li>
+                            </ul>
+                        </div>
+                        <div v-else>
+                            <h4><b>No Link</b> - Contact the project maintainers for more information.</h4>
+                        </div>
                     </b-col>
                 </b-row>
             </b-container> 
@@ -63,7 +73,5 @@ export default {
 </script>
 
 <style scoped>
-    .field {
-        border-bottom: 1px solid #222;
-    }
+    
 </style>

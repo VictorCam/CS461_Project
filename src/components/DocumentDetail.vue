@@ -5,48 +5,58 @@
             <b-container fluid class="my-3" v-if="doc">
                 <b-row class="my-5 field">
                     <b-col>
-                        <h1><b>ID:</b> {{doc.Year}}-{{doc.Serial.toString().padStart(4, '0')}}</h1>
+                        <h1><b>ID:</b> {{doc.userDoc[0].Year}}-{{doc.userDoc[0].Serial.toString().padStart(4, '0')}}</h1>
                     </b-col>
                 </b-row>
                 <b-row class="my-5 field">
                     <b-col>
-                        <h3><b>Document Name:</b> {{doc.Dname}}</h3>
+                        <h3><b>Document Name:</b> {{doc.userDoc[0].Dname}}</h3>
                     </b-col>
                 </b-row>
                 <b-row class="my-5 field">
                     <b-col>
-                        <h3><b>Owner:</b> {{doc.Owner}}</h3>
+                        <h3><b>Owner:</b> {{doc.userDoc[0].Owner}}</h3>
                     </b-col>
                 </b-row>
                 <b-row class="my-5 field">
                     <b-col>
-                        <h4><b>Date Added:</b> {{doc.DateAdded.substring(0, 24)}}</h4>
+                        <h4><b>Date Added:</b> {{doc.userDoc[0].DateAdded.substring(0, 24)}}</h4>
                     </b-col>
                 </b-row>
                 <b-row class="my-5 field">
                     <b-col>
-                        <h4 v-if="doc.Description"><b>Description:</b> {{doc.Description}}</h4>
-                        <h4 v-else><b>No Description</b> - Contact {{doc.Owner}} for more information.</h4>
+                        <h4 v-if="doc.Description"><b>Description:</b> {{doc.userDoc[0].Description}}</h4>
+                        <h4 v-else><b>No Description</b> - Contact {{doc.userDoc[0].Owner}} for more information.</h4>
                     </b-col>
                 </b-row>
                 <b-row class="my-5 field">
                     <b-col>
-                        <h4 v-if="doc.Permissions == 1"><b>Permissions:</b> Read</h4>
-                        <h4 v-else-if="doc.Permissions == 2"><b>Permissions:</b> Change</h4>
-                        <h4 v-else-if="doc.Permissions == 4"><b>Permissions:</b> Manage</h4>
-                        <h4 v-else><b>No Permissions</b> - Contact {{doc.Owner}} for more information.</h4>
+                        <div v-if="doc.docLinks">
+                            <b>Links: </b>
+                            <ul>
+                                <li v-for="link in doc.docLinks" :key="link.LinkID">
+                                    <h4> {{link.Link}}</h4>
+                                </li>
+                            </ul>
+                        </div>
+                        <div v-else>
+                            <h4><b>No Link</b> - Contact {{doc.userDoc[0].Owner}} for more information.</h4>
+                        </div>
                     </b-col>
                 </b-row>
                 <b-row class="my-5 field">
                     <b-col>
-                        <h4 v-if="doc.Link"><b>Link:</b> {{doc.Link}}</h4>
-                        <h4 v-else><b>No Link</b> - Contact {{doc.Owner}} for more information.</h4>
-                    </b-col>
-                </b-row>
-                <b-row class="my-5 field">
-                    <b-col>
-                        <h4 v-if="doc.Note"><b>Notes:</b> {{doc.Note}}</h4>
-                        <h4 v-else><b>No Notes</b> - Contact {{doc.Owner}} for more information.</h4>
+                        <div v-if="doc.notes">
+                            <b>Notes: </b>
+                            <ul>
+                                <li v-for="note in doc.notes" :key="note.NoteID">
+                                    <h4> {{note.Note}}</h4>
+                                </li>
+                            </ul>
+                        </div>
+                        <div v-else>
+                            <h4><b>No Notes</b> - Contact {{doc.userDoc[0].Owner}} for more information.</h4>
+                        </div>
                     </b-col>
                 </b-row>
             </b-container>
@@ -78,7 +88,7 @@ export default {
 </script>
 
 <style scoped>
-    .field {
-        border-bottom: 1px solid #222;
+    .field:hover {
+        background-color: #ddd;
     }
 </style>
