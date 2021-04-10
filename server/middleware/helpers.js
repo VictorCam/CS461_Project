@@ -12,12 +12,13 @@ exports.makeBody = async function (to, from, subject, message) {
         message
     ].join('');
 
-    encodedMail = new Buffer.from(str).toString("base64").replace(/\+/g, '-').replace(/\//g, '_');
+    var encodedMail = new Buffer.from(str).toString("base64").replace(/\+/g, '-').replace(/\//g, '_');
     return encodedMail
 }
 
 //find where the body of the message is
 exports.findBody = function (g_raw) {
+	var message
     if (g_raw.data.payload.parts[0].body.data) {
         message = Base64.decode(g_raw.data.payload.parts[0].body.data)
     }
@@ -35,7 +36,7 @@ exports.findBody = function (g_raw) {
 
 //get attachments that are pdfs
 exports.findAttachments = function (g_raw) {
-    attachments = []
+    var attachments = []
     if (g_raw.data.payload.parts != undefined) { //check if it exists
         for (let n = 0; n < g_raw.data.payload.parts.length - 1; n++) {
             if (g_raw.data.payload.parts[n + 1].mimeType == "application/pdf") { //MUST BE PDF!
@@ -54,8 +55,8 @@ exports.findAttachments = function (g_raw) {
 
 //find the subject title of the email
 exports.findSubject = function (g_raw) {
-    title = "error"
-    find_index = [19, 21, 3, 4]
+    var title = "error"
+    var find_index = [19, 21, 3, 4]
     for (let i = 0; i < find_index.length; i++) {
         const element = find_index[i]
         if (typeof g_raw.data.payload.headers[element] != 'undefined') { //check if it exists
@@ -70,7 +71,7 @@ exports.findSubject = function (g_raw) {
 
 //want to find the sender email and name 
 exports.findSenderInfo = function (g_raw) {
-    find_index = [16, 4, 18, 5]
+    var find_index = [16, 4, 18, 5]
     for (let i = 0; i < find_index.length; i++) {
         const element = find_index[i]
         if (typeof g_raw.data.payload.headers[element] != 'undefined') {
@@ -85,11 +86,11 @@ exports.findSenderInfo = function (g_raw) {
 }
 
 function parse_from(i, g_raw) {
-    sender_name_and_email = g_raw.data.payload.headers[i].value
-    sender_name = sender_name_and_email.replace(/(?:\\[rn]|[\r\n<>"]+)+/g, "")
+    var sender_name_and_email = g_raw.data.payload.headers[i].value
+    var sender_name = sender_name_and_email.replace(/(?:\\[rn]|[\r\n<>"]+)+/g, "")
 
     var words = sender_name.split(' ')
-    sender_email = words[words.length - 1]
+    var sender_email = words[words.length - 1]
     words.splice(-1, 1)
     sender_name = words.join(' ')
     return sender_name + "=" + sender_email
@@ -97,12 +98,12 @@ function parse_from(i, g_raw) {
 
 //find the date
 exports.findDate = function (g_raw) {
-    find_index = [17, 1, 19]
+    var find_index = [17, 1, 19]
     for (let i = 0; i < find_index.length; i++) {
         const element = find_index[i]
         if (typeof g_raw.data.payload.headers[element] != 'undefined') { //check if it exists
             if (g_raw.data.payload.headers[element].name.toLowerCase() == "date")
-                date = g_raw.data.payload.headers[element].value
+                var date = g_raw.data.payload.headers[element].value
             return date
         }
     }
@@ -110,138 +111,40 @@ exports.findDate = function (g_raw) {
 
 //parses the message and grabs the emails (is accompanied with function below)
 exports.parseBody = function (message) {
-    obj = []
-    m_parse = message.split("\r\n") //split according to "newlines in message"
-    m_parse = m_parse.filter(function (el) { //remove '' from array
-        return el != '';
-    })
-
-    for (let i = 0; i < m_parse.length; i++) { //there should be 4 or less things
-        p_arr = m_parse[i].split(":") //parse between the colons
-        key = p_arr[0].replace(/\s/g, '') //remove spaces
-        value = p_arr[1]
-
-        if (value != undefined && value != null) {
-            if (key.toLowerCase() == 'project') {
-                project = value.trim() //remove spaces to front and end of str
-                obj.push({ "project": project })
+    try {
+        var m_parse = message.split("\n") //split according to "newlines in message"
+        m_parse = m_parse.filter(function (el) { return el != ''; }) //remove '' from array 
+        var data = {}
+        var mode = "none"
+        for (var i = 0; i < m_parse.length; i++) {
+            var kv = m_parse[i].split(":")
+            var key = kv[0].trim().toLowerCase()
+            var value = kv[1]
+            if (key[0] == "#") { 
+                mode = key.replace('#', '') 
+                data[mode] = {}
             }
-            else if (key.toLowerCase() == 'newproject') {  //soft maybe
-
-            }
-            else if (key.toLowerCase() == 'projectdescription') { //need
-
-            }
-            else if (key.toLowerCase() == 'read') {
-                read = loopEmails(value)
-                obj.push({ "read": read })
-            }
-            else if (key.toLowerCase() == 'change') {
-                change = loopEmails(value)
-                obj.push({ "change": change })
-            }
-            else if (key.toLowerCase() == 'manage') {
-                manage = loopEmails(value)
-                obj.push({ "manage": manage })
-            }
-            else if (key.toLowerCase() == 'name' ||
-                key.toLowerCase() == 'names') {
-                names = loopArgs(value)
-                obj.push({ "names": names })
-            }
-            else if (key.toLowerCase() == 'doc' ||
-                key.toLowerCase() == 'docs') {
-                docs = loopArgs(value)
-                obj.push({ "docs": docs })
-            }
-            else if (key.toLowerCase() == 'description') {  //need
-
-            }
-            else if (key.toLowerCase() == 'replaces') { //probably need
-
-            }
-            else if (key.toLowerCase() == 'note' ||  //need
-                key.toLowerCase() == 'notes') {
-                
-            }
-            else if (key.toLowerCase() == 'projectread') { //don't need
-
-            }
-            else if (key.toLowerCase() == 'projectchange') { //don't need
-
-            }
-            else if (key.toLowerCase() == 'projectmanage') { //don't need
-
-            }
-            else if (key.toLowerCase() == 'link' || //probably not
-                key.toLowerCase() == 'links') {
-
-            }
-            else if (key.toLowerCase() == 'projectlink' || //probably not
-                key.toLowerCase() == 'projectlinks') {
-
-            }
-            else if (key.toLowerCase() == 'tag' || //need
-                key.toLowerCase() == 'tags') {
-
-            }
-            else if (key.toLowerCase() == 'revoke') { //don't need
-
-            }
-            else if (key.toLowerCase() == 'projectrevoke') { //don't need
-
-            }
-            else {
-                console.log("bad input included (ignored)")
-                console.log("key: ", key.toLowerCase())
+            else if (data[mode] && value) {
+                while (m_parse[i + 1] && !m_parse[i + 1].match('[#:]')) {
+                    value = value + m_parse[i + 1]
+                    i++;
+                }
+                value = value.replace('\r', '').split('\\\\')
+                for (var j = 0; j < value.length; j++) {
+                    if (!data[mode][key]) { data[mode][key] = [] }
+                    data[mode][key].push(value[j].trim())
+                }
             }
         }
+    } catch (err) {
+        console.log("err: \n", err)
     }
-    return obj
-}
-
-//loop thorugh all the emails
-function loopEmails(value) {
-    email = value.replace(/\s/g, '') //remove spaces
-    email = email.split("\\") //parse by commas
-    data = []
-
-    email = email.filter(function (el) { //remove arrays that contain ''
-        return el != ''
-    })
-
-    for (let e = 0; e < email.length; e++) { //loop though all valid emails according to parsing
-        const element = email[e]
-        if (element.match("@oregonstate.edu") && validator.isEmail(element)) {
-            data.push(element)
-        }
-        else {
-            console.log("match not found") //we will not process this email if its not found
-        }
-    }
-
-    return data
-}
-
-//loop thorugh all the args
-function loopArgs(value) {
-    arg = value.split(",") //parse by commas
-    data = []
-
-    arg = arg.filter(function (el) { //remove arrays that contain ''
-        return el != ''
-    })
-
-    for (let e = 0; e < arg.length; e++) { //loop though all valid args according to parsing
-        arg[e].trim()
-        data.push(arg[e])
-    }
-
-    return data
+    // console.log("data: ", data)
+    return data 
 }
 
 exports.makeBodyAttachments = function (receiverId, subject, message, attach, filenames) {
-    boundary = "dms" // set demarcation value
+    var boundary = "dms" // set demarcation value
     // set email headers
     var str = [
         "MIME-Version: 1.0",

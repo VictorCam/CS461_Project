@@ -4,7 +4,7 @@ const axios = require("axios")
 const fs = require('fs')
 const Database = require('better-sqlite3')
 const db = new Database('./server/database/beavdms.db')
-const dbinit = require('../middleware/open_database')
+const dbfun = require('../middleware/database_functions')
 const helpers = require('../middleware/helpers')
 var path = require('path')
 const { type } = require("os")
@@ -20,7 +20,7 @@ const MANAGE = 4; //Permission to grant access to other users
 const CHANGE = 2; //Permission to add document to project, etc...
 const READ = 1; //Permission to read document
 
-dbinit.createDatabase(db);
+dbfun.createDatabase();
 
 async function get_token() {
     try {
@@ -195,41 +195,15 @@ async function parse_data(g_raw, idx, g_access) {
     }
 }
 
-const get_user = db.prepare("SELECT * FROM Users WHERE Email= ?;")
-const insert_user = db.prepare("INSERT INTO Users (Name, Email) VALUES (?, ?);")
-const insert_doc = db.prepare("INSERT INTO Documents (Year, Serial, Name, Description, Location, OwnerID, Project, DateAdded, Replaces, ReplacedBy) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);")
-const insert_project = db.prepare("INSERT INTO Projects (Name, OwnerID, ProjectCode, Description) VALUES (?, ?, ?, ?);")
-const find_doc = db.prepare("SELECT * FROM Documents WHERE Location = ?;")
-const find_project = db.prepare("SELECT * FROM Projects WHERE Name = ?;")
-const insert_perm = db.prepare("INSERT INTO DocPerms (DID, UID, Permissions) VALUES (?, ?, ?);")
-const get_ownerID = db.prepare("SELECT OwnerID FROM Documents WHERE DocID=?;")
-const get_perm = db.prepare("SELECT D.OwnerID, U.UserID, DP.DID, DP.Permissions FROM Documents D INNER JOIN DocPerms DP ON D.DocID=DP.DID INNER JOIN Users U ON U.UserID=DP.UID WHERE D.DocID=? AND U.UserID=?;")
-const get_permID = db.prepare("SELECT DP.PermID FROM Documents D INNER JOIN DocPerms DP ON D.DocID=DP.DID INNER JOIN Users U ON U.UserID=DP.UID WHERE D.DocID=? AND U.UserID=?;")
-const get_file_path = db.prepare("SELECT Location FROM Documents WHERE DocID = ?;")
-const update_proj = db.prepare("UPDATE Documents SET Project=? WHERE DocID=?;")
-const update_docName = db.prepare("UPDATE Documents SET Name=? WHERE DocID=?;")
-const update_perm = db.prepare("UPDATE DocPerms SET Permissions=? WHERE PermID=?;")
-const get_db_year = db.prepare("SELECT MAX(Year) AS Year FROM Documents;")
-const get_last_Serial = db.prepare("SELECT MAX(Serial) AS Serial FROM Documents WHERE Year=?;")
-const get_DocID = db.prepare("SELECT DocID From Documents Where Year=? and Serial=?;")
-
 //takes a DocID/Year key pair, list of emails, and READ|CHANGE|MANAGE
 //grants the indicated level of permission for each email to the indicated document
-function grantPermission(docID, access_list, permission) {
-    for (let a = 0; a < Object.keys(access_list).length; a++) { //iterate over each email
-        user = get_user.get(`${access_list[a]}`) //check if the user already exists
+function grantPermission(table, perm, idtype, id, access_list) {
+    for (var i = 0; i < access_list.length; i++) { //iterate over each email address
+        dbfun.insert_user.run(access_list[i], access_list[i])
+        user = dbfun.get_user.get(access_list[i])?.UserID 
 
-        //if user does not exist make a new user
-        if (!user) {
-            user = insert_user.run(`${access_list[a]}`, `${access_list[a]}`)
-            user = Object.values(user)[1]
-        } else { user = user.UserID }
-
-        permID = get_permID.get(docID, user) //check if the user was previously granted some level of access
-
-        if (permID) {
-            update_perm.run(`${permission}`, `${permID}`) //if yes, simply change level of access
-        } else { insert_perm.run(docID, user, permission) } //else, create new access relationship
+        dbfun.insert_perms(table, idtype, id, user, perm)
+        dbfun.update_perms(table, idtype, id, user, perm)
     }
 }
 
@@ -240,8 +214,8 @@ async function checkPermission(docID, user, level) {
         if (typeof (docID) == 'object') {
             docID = docID.DocID
         }
-        perms = get_perm.get(docID, user)
-        owner = Object.values(get_ownerID.get(docID))
+        perms = dbfun.get_perm.get(docID, user)
+        owner = Object.values(dbfun.get_ownerID.get(docID))
         if (perms) {
             if (perms.Permissions >= level) {
                 return true //return true if user has sufficient permissions
@@ -253,23 +227,12 @@ async function checkPermission(docID, user, level) {
     return false
 }
 
-//determine whether a keyName exists in the given Object and at which index
-function getKey(obj, keyName) {
-    var vals = Object.values(obj);
-    for (var i = 0; i < Object.keys(obj).length; i++) {
-        if (Object.keys(vals[i]) == keyName) {
-            return i //if key exists, return its index
-        }
-    }
-    return null //key does not exist in the given object
-}
-
 //manages the DocID/Year key pair for Documents, determines the next valid key, and saves all related data to database
-async function saveDocData(docName, g_data, path, ownerID, projID) {
+async function saveDocData(name, desc, pathname, userid, projid, replaces) {
     //use g_data later to get document related data like Notes, Supersedes, etc...
 
     if (!currentDBYear) { //If currentDBYear isn't set, retrieve it from database
-        currentDBYear = get_db_year.get().Year;
+        currentDBYear = dbfun.get_db_year.get().Year;
     }
     if (currentDBYear != currentDate.getFullYear()) { //if no records exist or most recent is dated with other than current year
         currentDBYear = currentDate.getFullYear()   //set currentDBYear to current year
@@ -277,25 +240,30 @@ async function saveDocData(docName, g_data, path, ownerID, projID) {
     }
 
     if (!nextSerial) { //db year matches current but nextSerial not set
-        nextSerial = get_last_Serial.get(currentDBYear).Serial; //get most recent Serial for current year
+        nextSerial = dbfun.get_last_Serial.get(currentDBYear).Serial; //get most recent Serial for current year
     }
     nextSerial++ //increment to next available ID
 
     //null values to be replaced by Description, Supersedes, and SupersededBy respectively 
-    doc = insert_doc.run(currentDBYear, nextSerial, docName, null, path, ownerID, projID, currentDate.toString(), null, null)
-    doc = Object.values(doc)[1]
-    return doc
+    //console.log(`doc save values: ${currentDBYear}, ${nextSerial}, ${name}, ${desc}, ${pathname}, ${userid}, ${projid}, ${currentDate.toString()}, ${replaces}`)
+    docid = dbfun.insert_doc.run(currentDBYear, nextSerial, name, desc, pathname, userid, projid, currentDate.toString(), replaces, null)
+    docid = Object.values(docid)[1]
+    return docid
+}
+
+function saveLinks(id, links, type) {
+
 }
 
 async function g_request(callback) {
     try {
         const g_access = await get_token() //getting access token 
-        const g_id = await get_msg_id(g_access.data.access_token) //getting messages
+        const g_id = await get_msg_id(g_access.data.access_token);
         if (g_id.data.resultSizeEstimate == 0) { return callback() } //called when there is no mail to look through
 
-        valid = true
         //loop through all messages and save them
         for (let idx = 0; idx < Object.keys(g_id.data.messages).length; idx++) {
+            var valid = true
             var g_raw = await get_msg_data(g_access.data.access_token, g_id.data.messages[idx].id) //getting data
             await post_msg_delete(g_access.data.access_token, g_id.data.messages[idx].id) //delete msg to trash
             var g_data = await parse_data(g_raw, idx, g_access.data.access_token) //parse data
@@ -311,44 +279,70 @@ async function g_request(callback) {
 
             //inside here we will save users/documents
             if (g_data.cmd == "save") {
-                console.log("SUCCESS!");
                 for (var j = 0; j < Object.keys(g_data.attachments).length; j++) {
-                    fs.writeFile(`./server/files/${g_data.g_id}-${j}.pdf`, g_data.attachments[j].raw, { encoding: 'base64' }, function (err) { if (err) { return console.log("err with writing pdf file") } })
+                    var doc = g_data.access.document
+                    var proj = g_data.access.project
+                    var grp = g_data.access.group
 
-                    //save or grab user and save document location
-                    user = get_user.get(`${g_data.sender_email}`)
-                    if (!user) { insert_user.run(`${g_data.sender_email}`, `${g_data.sender_email}`) }
+                    //get userid
+                    var userid = dbfun.get_user.get(`${g_data.sender_email}`)
+                    userid = userid ? userid.UserID : Object.values(dbfun.insert_user.run(g_data.sender_email, g_data.sender_email))[1]
 
-                    //create a new user
-                    user = get_user.get(`${g_data.sender_email}`)
-                    if ((keyNum = getKey(g_data.access, "names"))) {
-                        docName = g_data.access[keyNum].names[j]
+                    if(grp) {
+
                     }
-                    else { docName = g_data.attachments[j].filename }
+                    if(proj) {
+                        projName = proj?.name ? proj.name[0] : "None"
 
-                    //add document to project if one is specified
-                    var proj = null
-                    keyNum = getKey(g_data.access, "project") //get index of project name if one was specified
-                    if (keyNum !== null) {
-                        if (!(proj = await find_project.get(`${g_data.access[keyNum].project}`))) { //check if project already exists
-                            proj = insert_project.run(`${g_data.access[keyNum].project}`, user.UserID, null, "Oregon State University Project") //create project if the one specified doesn't exist
-                            proj = Object.values(proj)[1]
-                        } else { proj = proj.ProjID }
+                        //get id of project if one is specified
+                        var projid = dbfun.find_project.get(doc.project)
+                        projid = projid ? projid.ProjID : Object.values(dbfun.insert_project.run(doc.project, userid, 1, "None"))[1]
+
+                        //function grantPermission(table, perm, idtype, id, access_list) {
+                        //save new users and give permissions
+                        // if (proj.read) { grantPermission(projid, proj.read, READ, "proj") } //get index of read permission list if it exists
+                        // if (proj.change) { grantPermission(projid, proj.change, CHANGE, "proj") }//get index of change permission list if it exists
+                        // if (proj.manage) { grantPermission(projid, proj.manage, MANAGE, "proj") } //get index of manage permission list if it exists
                     }
+                    if(doc) {
+                        //get path and filename
+                        var pathname = `./server/files/${g_data.g_id}-${j}.pdf`
 
-                    //save document meta data to database
-                    doc = await saveDocData(docName, g_data, `./server/files/${g_data.g_id}-${j}.pdf`, user.UserID, proj);
+                        //get document name
+                        docName = doc?.names ? doc.names[j] : g_data.attachments[j].filename
 
+                        //get id of project if one is specified
+                        var projid = doc?.project ? dbfun.find_project.get(doc.project) : null
+                        projid = projid ? projid.ProjID : Object.values(dbfun.insert_project.run(doc.project, userid, 1, "None"))[1]
 
-                    //save new users and give permissions
-                    if ((keyNum = getKey(g_data.access, "read"))) { //get index of read permission list if it exists
-                        grantPermission(doc, g_data.access[keyNum].read, READ)
-                    }
-                    if ((keyNum = getKey(g_data.access, "change"))) { //get index of change permission list if it exists
-                        grantPermission(doc, g_data.access[keyNum].change, CHANGE)
-                    }
-                    if ((keyNum = getKey(g_data.access, "manage"))) { //get index of manage permission list if it exists
-                        grantPermission(doc, g_data.access[keyNum].manage, MANAGE)
+                        //get id of document to be superseded if one is specified
+                        var repys = doc?.replaces ? doc.replaces[j].split('-') : null
+                        replaceid = repys ? dbfun.get_DocID?.get(repys[0], repys[1])?.DocID : null
+                        
+                        //get description of document if one is specified
+                        var desc = doc?.description ? doc.description[j] : "None" 
+
+                        //save document to filesystem 
+                        fs.writeFile(pathname, g_data.attachments[j].raw, { encoding: 'base64' }, 
+                            function (err) { if (err) { return console.log("err with writing pdf file") } })
+
+                        //save document data to database
+                        docid = await saveDocData(docName, desc, pathname, userid, projid, replaceid);
+
+                        // if (doc.links) { saveLinks(docid, doc.links[j], "doc") }
+                        // if (doc.notes) { }
+                        // if (doc.tags[j]) {
+                        //     tags = doc.tags[j].split(",")
+                        //     tags.forEach(tag => {
+                        //         dbfun.insert_tag(tag)
+                        //         dbfun.insert_docTag(docid, tag)
+                        //     });
+                        // }
+
+                        //save new users and give permissions
+                        if (doc.read) { grantPermission("DocPerms", READ, "DID", docid, doc.read) } //get index of read permission list if it exists
+                        if (doc.change) { grantPermission("DocPerms", CHANGE, "DID", docid, doc.change) }//get index of change permission list if it exists
+                        if (doc.manage) { grantPermission("DocPerms", MANAGE, "DID", docid, doc.manage) } //get index of manage permission list if it exists
                     }
                 }
 
@@ -366,7 +360,7 @@ async function g_request(callback) {
             else if (g_data.cmd == "get") {
                 var contents = []
                 var filenames = []
-                user = get_user.get(`${g_data.sender_email}`) //find out who sent the request
+                user = dbfun.get_user.get(`${g_data.sender_email}`) //find out who sent the request
                 keyNum = getKey(g_data.access, "docs") //get index of docs list
 
                 // for each document, ensure the sender has permission to read it
@@ -374,8 +368,8 @@ async function g_request(callback) {
                     // only return those documents for which the sender is allowed access
 
                     docSupKey = g_data.access[keyNum].docs[i].split("-"); //splits the Year-DocID value specified by the user so that it can be used
-                    if (checkPermission(get_DocID.get(docSupKey[0], docSupKey[1]), user.UserID, READ)) {
-                        fpath = await get_file_path.get(get_DocID.get(docSupKey[0], docSupKey[1]).DocID)
+                    if (checkPermission(dbfun.get_DocID.get(docSupKey[0], docSupKey[1]), user.UserID, READ)) {
+                        fpath = await dbfun.get_file_path.get(dbfun.get_DocID.get(docSupKey[0], docSupKey[1]).DocID)
                         contents.push(fs.readFileSync(`${fpath.Location}`, { encoding: 'base64' }));
                         filenames.push(path.parse(fpath.Location).base)
                     }
@@ -388,7 +382,7 @@ async function g_request(callback) {
             }
             else if (g_data.cmd == "update") {
 
-                user = Object.values(get_user.get(`${g_data.sender_email}`))[0]
+                user = Object.values(dbfun.get_user.get(`${g_data.sender_email}`))[0]
                 docKey = getKey(g_data.access, "docs")
                 projKey = getKey(g_data.access, "project")
                 nameKey = getKey(g_data.access, "names")
@@ -401,19 +395,19 @@ async function g_request(callback) {
                     for (var i = 0; i < g_data.access[docKey].docs.length; i++) {
                         docSupKey = g_data.access[docKey].docs[i].split("-"); //splits the Year-DocID value specified by the user so that it can be used       
                         if (!isNull(projKey)) {
-                            valid = valid && await checkPermission(get_DocID.get(docSupKey[0], docSupKey[1]), user, CHANGE)
+                            valid = valid && await checkPermission(dbfun.get_DocID.get(docSupKey[0], docSupKey[1]), user, CHANGE)
                         }
                         if (!isNull(nameKey)) {
-                            valid = valid && await checkPermission(get_DocID.get(docSupKey[0], docSupKey[1]), user, CHANGE)
+                            valid = valid && await checkPermission(dbfun.get_DocID.get(docSupKey[0], docSupKey[1]), user, CHANGE)
                         }
                         if (!isNull(readKey)) {
-                            valid = valid && await checkPermission(get_DocID.get(docSupKey[0], docSupKey[1]), user, MANAGE)
+                            valid = valid && await checkPermission(dbfun.get_DocID.get(docSupKey[0], docSupKey[1]), user, MANAGE)
                         }
                         if (!isNull(changeKey)) {
-                            valid = valid && await checkPermission(get_DocID.get(docSupKey[0], docSupKey[1]), user, MANAGE)
+                            valid = valid && await checkPermission(dbfun.get_DocID.get(docSupKey[0], docSupKey[1]), user, MANAGE)
                         }
                         if (!isNull(manageKey)) {
-                            valid = valid && await checkPermission(get_DocID.get(docSupKey[0], docSupKey[1]), user, MANAGE)
+                            valid = valid && await checkPermission(dbfun.get_DocID.get(docSupKey[0], docSupKey[1]), user, MANAGE)
                         }
                     }
                 } else { valid = false }
@@ -423,26 +417,26 @@ async function g_request(callback) {
                     for (var i = 0; i < g_data.access[docKey].docs.length; i++) {
                         docSupKey = g_data.access[docKey].docs[i].split("-");
                         if (!isNull(projKey)) {
-                            projid = find_project.get(`${g_data.access[projKey].project}`)
+                            projid = dbfun.find_project.get(`${g_data.access[projKey].project}`)
                             if (!projid) {
-                                projid = insert_project.run(`${g_data.access[projKey].project}`, user.UserID, null, "Oregon State University Project")
+                                projid = dbfun.insert_project.run(`${g_data.access[projKey].project}`, user.UserID, null, "Oregon State University Project")
                                 projid = Object.values(projid)[1]
                             } else { projid = projid.ProjID }
-                            update_proj.run(projid, get_DocID.get(docSupKey[0], docSupKey[1]).DocID)
+                            dbfun.update_proj.run(projid, dbfun.get_DocID.get(docSupKey[0], docSupKey[1]).DocID)
                         }
                         if (!isNull(nameKey)) {
                             if (g_data.access[nameKey].names[i]) {
-                                update_docName.run(g_data.access[nameKey].names[i], get_DocID.get(docSupKey[0], docSupKey[1]).DocID)
+                                dbfun.update_docName.run(g_data.access[nameKey].names[i], dbfun.get_DocID.get(docSupKey[0], docSupKey[1]).DocID)
                             }
                         }
                         if (!isNull(readKey)) {
-                            grantPermission(get_DocID.get(docSupKey[0], docSupKey[1]), g_data.access[readKey].read, READ)
+                            grantPermission(dbfun.get_DocID.get(docSupKey[0], docSupKey[1]), g_data.access[readKey].read, READ)
                         }
                         if (!isNull(changeKey)) {
-                            grantPermission(get_DocID.get(docSupKey[0], docSupKey[1]), g_data.access[changeKey].change, CHANGE)
+                            grantPermission(dbfun.get_DocID.get(docSupKey[0], docSupKey[1]), g_data.access[changeKey].change, CHANGE)
                         }
                         if (!isNull(manageKey)) {
-                            grantPermission(get_DocID.get(docSupKey[0], docSupKey[1]), g_data.access[manageKey].manage, MANAGE)
+                            grantPermission(dbfun.get_DocID.get(docSupKey[0], docSupKey[1]), g_data.access[manageKey].manage, MANAGE)
                         }
                     }
                 }
