@@ -8,6 +8,7 @@ const dbfun = require('../middleware/database_functions')
 const helpers = require('../middleware/helpers')
 var path = require('path')
 var { date } = require("joi")
+const { faQuoteRight } = require("@fortawesome/free-solid-svg-icons")
 const router = express.Router()
 require('dotenv').config()
 
@@ -39,42 +40,40 @@ get_tag = db.prepare("SELECT * FROM Tags WHERE Name=?")
 update_proj = db.prepare("UPDATE Documents SET Project=? WHERE DocID=?;")
 update_docName = db.prepare("UPDATE Documents SET Name=? WHERE DocID=?;")
 
-insert_user = db.prepare("INSERT INTO Users (Name, Email) VALUES (?, ?);")
+insert_user = db.prepare("REPLACE INTO Users (Name, Email) VALUES (?, ?);")
 insert_doc = db.prepare("INSERT INTO Documents (Year, Serial, Name, Description, Location, OwnerID, Project, DateAdded, Replaces, ReplacedBy) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);")
 insert_project = db.prepare("INSERT INTO Projects (Name, OwnerID, ProjectCode, Description) VALUES (?, ?, ?, ?);")
-insert_tag = db.prepare("INSERT INTO Tags (Name) VALUES (?);")
-insert_docTag = db.prepare("INSERT INTO tagsXdocs (DID, TID) VALUES (?, (SELECT TagID FROM Tags WHERE Name=?))")
+insert_tag = db.prepare("REPLACE INTO Tags (Name) VALUES (?);")
+insert_docTag = db.prepare("REPLACE INTO tagsXdocs (DID, TID) VALUES (?, (SELECT TagID FROM Tags WHERE Name=?))")
 insert_note = db.prepare("INSERT INTO Notes (DID, UID, DateAdded, Note) VALUES (?, ?, ?, ?)")
 insert_docLink = db.prepare("INSERT INTO DocLinks (DID, Link) VALUES (?, ?)")
 insert_projLink = db.prepare("INSERT INTO ProjLinks (PID, Link) VALUES (?, ?)")
 
 function insert_perms(table, idtype, id, uid, perm) {
-    data = [id, uid, perm]
-    q = db.prepare("INSERT INTO " + table + " (" + idtype + ", UID, Permissions) VALUES (?, ?, ?);");
-    query(function (data) {
-       q.run(data)
-    })
+    return db.prepare("REPLACE INTO " + table + " (" + idtype 
+    + ", UID, Permissions) VALUES (?, ?, ?);").run(id, uid, perm);
 }
 
 function update_perms(table, idtype, id, uid, perm) {
     return db.prepare("UPDATE " + table + " SET Permissions=? WHERE PermID=(SELECT PermID FROM "
         + table + " WHERE UID=? AND " + idtype + "=?);").run(perm, uid, id);
 }
-var begin = db.prepare('BEGIN');
-var commit = db.prepare('COMMIT');
-var rollback = db.prepare('ROLLBACK');
 
-function query(func) {
-    return function (args) {
-        begin.run();
-        try {
-            func(args);
-            commit.run();
-        } finally {
-            if (db.inTransaction) rollback.run()
-        }
-    };
-}
+// var begin = db.prepare('BEGIN');
+// var commit = db.prepare('COMMIT');
+// var rollback = db.prepare('ROLLBACK');
+
+// function query(func) {
+//     return function (args) {
+//         begin.run();
+//         try {
+//             func(args);
+//             commit.run();
+//         } finally {
+//             if (db.inTransaction) rollback.run()
+//         }
+//     };
+// }
 
 async function get_token() {
     try {
@@ -253,10 +252,11 @@ async function parse_data(g_raw, idx, g_access) {
 //grants the indicated level of permission for each email to the indicated document
 function grantPermission(table, perm, idtype, id, access_list) {
     for (var i = 0; i < access_list.length; i++) { //iterate over each email address
-        data = [access_list[i], access_list[i]]
-        query(function (data) {
-            insert_user.run(data)
-        })
+        // data = [access_list[i], access_list[i]]
+        // query(function (data) {
+        //     insert_user.run(data)
+        // })
+        insert_user.run(access_list[i], access_list[i])
         user = get_user.get(access_list[i])?.UserID
 
         insert_perms(table, idtype, id, user, perm)
@@ -268,6 +268,7 @@ function grantPermission(table, perm, idtype, id, access_list) {
 async function checkPermission(id, user, level, type) {
     anyone = get_user.get("all")
     anyone = anyone ? anyone.UserID : null
+
 
     // if (!isNull(docID) && !isNull(user) && !isNull(level) &&
     //     docID != undefined && user != undefined && level != undefined) {
@@ -306,8 +307,8 @@ async function saveDocData(name, desc, pathname, userid, projid, replaces) {
 
     //null values to be replaced by Description, Supersedes, and SupersededBy respectively 
     //console.log(`doc save values: ${currentDBYear}, ${nextSerial}, ${name}, ${desc}, ${pathname}, ${userid}, ${projid}, ${currentDate.toString()}, ${replaces}`)
-    docid = insert_doc.run(currentDBYear, nextSerial, name, desc, pathname, userid, projid, currentDate.toString(), replaces, null)
-    docid = Object.values(docid)[1]
+    docid = insert_doc.run(currentDBYear, nextSerial, name, desc, pathname, userid, projid, currentDate.toString(), replaces, null).lastInsertRowid
+    // docid = Object.values(docid)[1]
     return docid
 }
 
@@ -326,12 +327,30 @@ function saveLinks(id, links, type) {
 function saveTags(id, tags) {
     tags = tags.trim().split(",")
     tags.forEach(tag => {
-        query(function (id, tag) {
-            insert_tag.run(tag)
-            insert_docTag.run(id, tag)
-        })
+        insert_tag.run(tag)
+        insert_docTag.run(id, tag)
     });
 }
+var search = {
+    type: "SELECT", 
+    table: "Documents", 
+    cond: {"OwnerID": {sub: "UserID", table: "Users"}}
+}
+
+
+var get = ((table, joins, cond) => {
+    var q 
+    q = "SELECT * FROM " + table 
+    joins.forEach((join) => {
+        q = q + " " + join
+    })
+    q = q + "WHERE"
+    cond.forEach((con) => {
+        q = q + " " + con
+    })
+    q = q + ");" 
+    console.log("q: ", q)
+})
 
 async function g_request(callback) {
     try {
@@ -357,7 +376,7 @@ async function g_request(callback) {
 
             //inside here we will save users/documents
             if (g_data.cmd == "save") {
-                for (var j = 0; j < Object.keys(g_data.attachments).length; j++) {
+                for (var j = 0; j < g_data.attachments.length; j++) {
                     var doc = g_data.access.document
                     var proj = g_data.access.project
                     var grp = g_data.access.group
@@ -366,7 +385,6 @@ async function g_request(callback) {
                     var userid = get_user.get(`${g_data.sender_email}`)
 
                     userid = userid ? userid.UserID : insert_user.run(g_data.sender_email, g_data.sender_email).lastInsertRowid
-                    console.log("userid: ", userid)
 
                     if (grp) {
 
@@ -376,7 +394,7 @@ async function g_request(callback) {
 
                         //get id of project if one is specified
                         var projid = find_project.get(doc.project)
-                        projid = projid ? projid.ProjID : Object.values(insert_project.run(doc.project, userid, 1, "None"))[1]
+                        projid = projid ? projid.ProjID : insert_project.run(doc.project, userid, 1, "None").lastInsertRowid
 
                         //function grantPermission(table, perm, idtype, id, access_list) {
                         //save new users and give permissions
@@ -385,6 +403,8 @@ async function g_request(callback) {
                         if (proj.manage) { grantPermission("ProjPerms", MANAGE, "PID", projid, proj.manage) } //get index of manage permission list if it exists
                     }
                     if (doc) {
+
+                        // get("Documents", [], ["OwnerID", ["UserID", "Users"]])
                         //get path and filename
                         var pathname = `./server/files/${g_data.g_id}-${j}.pdf`
 
@@ -393,7 +413,7 @@ async function g_request(callback) {
 
                         //get id of project if one is specified
                         var projid = doc?.project ? find_project.get(doc.project) : null
-                        projid = projid ? projid.ProjID : Object.values(insert_project.run(doc.project, userid, 1, "None"))[1]
+                        projid = projid ? projid.ProjID : insert_project.run(doc.project, userid, 1, "None").lastInsertRowid
 
                         //get id of document to be superseded if one is specified
                         var repys = doc?.replaces ? doc.replaces[j].split('-') : null
