@@ -9,6 +9,7 @@ const helpers = require('../middleware/helpers')
 var path = require('path')
 var { date } = require("joi")
 const { faQuoteRight } = require("@fortawesome/free-solid-svg-icons")
+const { pid, exit } = require("process")
 const router = express.Router()
 require('dotenv').config()
 
@@ -27,15 +28,15 @@ get_user = db.prepare("SELECT * FROM Users WHERE Email= ?;")
 get_ownerID = db.prepare("SELECT OwnerID FROM Documents WHERE DocID=?;")
 find_doc = db.prepare("SELECT * FROM Documents WHERE Location = ?;")
 find_project = db.prepare("SELECT * FROM Projects WHERE Name = ?;")
-get_perm = db.prepare("SELECT D.OwnerID, U.UserID, DP.DID, DP.Permissions FROM Documents D INNER JOIN DocPerms DP ON D.DocID=DP.DID INNER JOIN Users U ON U.UserID=DP.UID WHERE D.DocID=? AND U.UserID=?;")
 get_file_path = db.prepare("SELECT Location FROM Documents WHERE DocID = ?;")
-get_dpermID = db.prepare("SELECT DP.PermID FROM Documents D INNER JOIN DocPerms DP ON D.DocID=DP.DID INNER JOIN Users U ON U.UserID=DP.UID WHERE D.DocID=? AND U.UserID=?;")
-get_ppermID = db.prepare("SELECT PP.PermID FROM Projects P INNER JOIN ProjPerms PP ON P.ProjID=PP.PID INNER JOIN Users U ON U.UserID=PP.UID WHERE P.ProjID=? AND U.UserID=?;")
-get_gpermID = db.prepare("SELECT GP.PermID FROM Groups G INNER JOIN GroupPerms GP ON G.GroupID=GP.GID INNER JOIN Users U ON U.UserID=GP.UID WHERE G.GroupID=? AND U.UserID=?;")
 get_db_year = db.prepare("SELECT MAX(Year) AS Year FROM Documents;")
 get_last_Serial = db.prepare("SELECT MAX(Serial) AS Serial FROM Documents WHERE Year=?;")
 get_DocID = db.prepare("SELECT DocID From Documents Where Year=? and Serial=?;")
 get_tag = db.prepare("SELECT * FROM Tags WHERE Name=?")
+get_dpermID = db.prepare("SELECT DP.PermID FROM Documents D INNER JOIN DocPerms DP ON D.DocID=DP.DID INNER JOIN Users U ON U.UserID=DP.UID WHERE D.DocID=? AND U.UserID=?;")
+get_ppermID = db.prepare("SELECT PP.PermID FROM Projects P INNER JOIN ProjPerms PP ON P.ProjID=PP.PID INNER JOIN Users U ON U.UserID=PP.UID WHERE P.ProjID=? AND U.UserID=?;")
+get_gpermID = db.prepare("SELECT GP.PermID FROM Groups G INNER JOIN GroupPerms GP ON G.GroupID=GP.GID INNER JOIN Users U ON U.UserID=GP.UID WHERE G.GroupID=? AND U.UserID=?;")
+get_groups = db.prepare("SELECT GroupID FROM Groups INNER JOIN usersXgroups ON GroupID=GID INNER JOIN Users ON UserID=UID WHERE UserID=?")
 
 update_proj = db.prepare("UPDATE Documents SET Project=? WHERE DocID=?;")
 update_docName = db.prepare("UPDATE Documents SET Name=? WHERE DocID=?;")
@@ -49,6 +50,11 @@ insert_note = db.prepare("INSERT INTO Notes (DID, UID, DateAdded, Note) VALUES (
 insert_docLink = db.prepare("INSERT INTO DocLinks (DID, Link) VALUES (?, ?)")
 insert_projLink = db.prepare("INSERT INTO ProjLinks (PID, Link) VALUES (?, ?)")
 
+function get_perms(ptid, table, ptable, idtype, id, uid) {
+    return db.prepare("SELECT OwnerID, UserID, " + ptid + ", Permissions FROM " + table + " INNER JOIN " + 
+    ptable + " ON " + idtype + "=" + ptid + " INNER JOIN Users U ON UserID=UID WHERE " + idtype + "=? AND UserID=?;").get(id, uid)
+}
+
 function insert_perms(table, idtype, id, uid, perm) {
     return db.prepare("INSERT OR IGNORE INTO " + table + " (" + idtype 
     + ", UID, Permissions) VALUES (?, ?, ?);").run(id, uid, perm);
@@ -58,22 +64,6 @@ function update_perms(table, idtype, id, uid, perm) {
     return db.prepare("UPDATE " + table + " SET Permissions=? WHERE PermID=(SELECT PermID FROM "
         + table + " WHERE UID=? AND " + idtype + "=?);").run(perm, uid, id);
 }
-
-// var begin = db.prepare('BEGIN');
-// var commit = db.prepare('COMMIT');
-// var rollback = db.prepare('ROLLBACK');
-
-// function query(func) {
-//     return function (args) {
-//         begin.run();
-//         try {
-//             func(args);
-//             commit.run();
-//         } finally {
-//             if (db.inTransaction) rollback.run()
-//         }
-//     };
-// }
 
 async function get_token() {
     try {
@@ -252,10 +242,6 @@ async function parse_data(g_raw, idx, g_access) {
 //grants the indicated level of permission for each email to the indicated document
 function grantPermission(table, perm, idtype, id, access_list) {
     for (var i = 0; i < access_list.length; i++) { //iterate over each email address
-        // data = [access_list[i], access_list[i]]
-        // query(function (data) {
-        //     insert_user.run(data)
-        // })
         insert_user.run(access_list[i], access_list[i])
         user = get_user.get(access_list[i])?.UserID
 
@@ -265,27 +251,20 @@ function grantPermission(table, perm, idtype, id, access_list) {
 }
 
 //check if user has sufficient permission for the document specified
-async function checkPermission(id, user, level, type) {
+async function checkPermission(ptid, table, ptable, idtype, id, user, level) {
     anyone = get_user.get("all")
     anyone = anyone ? anyone.UserID : null
 
-
-    // if (!isNull(docID) && !isNull(user) && !isNull(level) &&
-    //     docID != undefined && user != undefined && level != undefined) {
-    //     if (typeof (docID) == 'object') {
-    //         docID = docID.DocID
-    //     }
-    //     perms = get_perm.get(docID, user)
-    //     owner = Object.values(get_ownerID.get(docID))
-    //     if (perms) {
-    //         if (perms.Permissions >= level) {
-    //             return true //return true if user has sufficient permissions
-    //         }
-    //     }
-    //     else if (owner == user) { return true } //return true if user owns the document
-    //     console.log("not permitted")
-    // }
-    // return false
+    result = get_perms(ptid, table, ptable, idtype, id, anyone)
+    if(result?.Permissions >= level) { return true }
+    result = get_perms(ptid, table, ptable, idtype, id, user)
+    if(result?.Permissions >= level || result?.OwnerID == user) { return true }
+    groups = get_groups.get(user)
+    groups?.forEach((group) => {
+        result = get_perms(ptid, table, ptable, idtype, id, group)
+        if(result?.Permissions >= level || result?.OwnerID == user) { return true }
+    })
+    return false
 }
 
 //manages the DocID/Year key pair for Documents, determines the next valid key, and saves all related data to database
@@ -306,9 +285,7 @@ async function saveDocData(name, desc, pathname, userid, projid, replaces) {
     nextSerial++ //increment to next available ID
 
     //null values to be replaced by Description, Supersedes, and SupersededBy respectively 
-    //console.log(`doc save values: ${currentDBYear}, ${nextSerial}, ${name}, ${desc}, ${pathname}, ${userid}, ${projid}, ${currentDate.toString()}, ${replaces}`)
     docid = insert_doc.run(currentDBYear, nextSerial, name, desc, pathname, userid, projid, currentDate.toString(), replaces, null).lastInsertRowid
-    // docid = Object.values(docid)[1]
     return docid
 }
 
@@ -413,12 +390,6 @@ async function g_request(callback) {
                         if (proj.manage) { grantPermission("ProjPerms", MANAGE, "PID", projid, proj.manage) } //get index of manage permission list if it exists
                     }
                     if (doc) {
-                        // select = new Query({
-                        //     table: "Documents", 
-                        //     joins: "INNER JOIN Users ON UserID=OwnerID", 
-                        //     conds: "UserID=(SELECT UserID FROM Users WHERE Email=?)"})
-                        //     .build(db)
-                        // console.log(select.get("shandst@oregonstate.edu"))
 
                         //get path and filename
                         var pathname = `./server/files/${g_data.g_id}-${j}.pdf`
@@ -428,6 +399,8 @@ async function g_request(callback) {
 
                         //get id of project if one is specified
                         var projid = doc?.project ? find_project.get(doc.project) : null
+                        if(projid) { permitted = await checkPermission("PID", "Projects", "ProjPerms", "ProjID", projid.ProjID, userid, CHANGE )}
+                        if(!permitted) { console.log("operation not permitted. exiting loop"); break }
                         projid = projid ? projid.ProjID : insert_project.run(doc.project, userid, 1, "None").lastInsertRowid
 
                         //get id of document to be superseded if one is specified
