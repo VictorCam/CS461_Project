@@ -40,17 +40,17 @@ get_tag = db.prepare("SELECT * FROM Tags WHERE Name=?")
 update_proj = db.prepare("UPDATE Documents SET Project=? WHERE DocID=?;")
 update_docName = db.prepare("UPDATE Documents SET Name=? WHERE DocID=?;")
 
-insert_user = db.prepare("REPLACE INTO Users (Name, Email) VALUES (?, ?);")
+insert_user = db.prepare("INSERT OR IGNORE INTO Users (Name, Email) VALUES (?, ?);")
 insert_doc = db.prepare("INSERT INTO Documents (Year, Serial, Name, Description, Location, OwnerID, Project, DateAdded, Replaces, ReplacedBy) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);")
 insert_project = db.prepare("INSERT INTO Projects (Name, OwnerID, ProjectCode, Description) VALUES (?, ?, ?, ?);")
-insert_tag = db.prepare("REPLACE INTO Tags (Name) VALUES (?);")
-insert_docTag = db.prepare("REPLACE INTO tagsXdocs (DID, TID) VALUES (?, (SELECT TagID FROM Tags WHERE Name=?))")
+insert_tag = db.prepare("INSERT OR IGNORE INTO Tags (Name) VALUES (?);")
+insert_docTag = db.prepare("INSERT OR IGNORE INTO tagsXdocs (DID, TID) VALUES (?, (SELECT TagID FROM Tags WHERE Name=?))")
 insert_note = db.prepare("INSERT INTO Notes (DID, UID, DateAdded, Note) VALUES (?, ?, ?, ?)")
 insert_docLink = db.prepare("INSERT INTO DocLinks (DID, Link) VALUES (?, ?)")
 insert_projLink = db.prepare("INSERT INTO ProjLinks (PID, Link) VALUES (?, ?)")
 
 function insert_perms(table, idtype, id, uid, perm) {
-    return db.prepare("REPLACE INTO " + table + " (" + idtype 
+    return db.prepare("INSERT OR IGNORE INTO " + table + " (" + idtype 
     + ", UID, Permissions) VALUES (?, ?, ?);").run(id, uid, perm);
 }
 
@@ -331,26 +331,36 @@ function saveTags(id, tags) {
         insert_docTag.run(id, tag)
     });
 }
-var search = {
-    type: "SELECT", 
-    table: "Documents", 
-    cond: {"OwnerID": {sub: "UserID", table: "Users"}}
-}
 
-
-var get = ((table, joins, cond) => {
-    var q 
-    q = "SELECT * FROM " + table 
-    joins.forEach((join) => {
-        q = q + " " + join
-    })
-    q = q + "WHERE"
-    cond.forEach((con) => {
-        q = q + " " + con
-    })
-    q = q + ");" 
-    console.log("q: ", q)
-})
+// class Query {
+//     type = "SELECT"
+//     cols = "*"
+//     table = "Documents"
+//     constructor(query) {
+//         this.type = query?.type ? query.type : this.type
+//         this.cols = query?.cols  ? query.cols : this.cols
+//         this.table = query?.table ? query.table : this.table
+//         this.joins = query?.joins
+//         this.conds = query?.conds
+//         this.values = query?.values
+//     }
+//     build(db) {
+//         if(this.type == "SELECT"){
+//             var result = `${this.type} ${this.cols} FROM ${this.table}`
+//             result = this?.joins ? result + ` ${this.joins}` : result + ""
+//             result = this?.conds ? result + ` WHERE ${this.conds};` : result + ";"
+//             return db.prepare(result) 
+//         }
+//         else if(this.type == "INSERT") {
+//             var result = `${this.type} INTO ${this.table}(${this.cols}) VALUES (${this.values};`
+//             return db.prepare(result)
+//         }
+//         else if(this.type == "UPDATE") {
+//             var result = `${this.type} ${this.table} SET ${this.cols} WHERE ${this.conds}`
+//             return db.prepare(result)
+//         }
+//     }
+// }
 
 async function g_request(callback) {
     try {
@@ -403,8 +413,13 @@ async function g_request(callback) {
                         if (proj.manage) { grantPermission("ProjPerms", MANAGE, "PID", projid, proj.manage) } //get index of manage permission list if it exists
                     }
                     if (doc) {
+                        // select = new Query({
+                        //     table: "Documents", 
+                        //     joins: "INNER JOIN Users ON UserID=OwnerID", 
+                        //     conds: "UserID=(SELECT UserID FROM Users WHERE Email=?)"})
+                        //     .build(db)
+                        // console.log(select.get("shandst@oregonstate.edu"))
 
-                        // get("Documents", [], ["OwnerID", ["UserID", "Users"]])
                         //get path and filename
                         var pathname = `./server/files/${g_data.g_id}-${j}.pdf`
 
