@@ -23,6 +23,10 @@ const READ = 1; //Permission to read document
 
 dbfun.createDatabase(db);
 
+insert_group = db.prepare("INSERT INTO Groups (Name, GroupID, OwnerID, Description) VALUES (?, ?, ?, ?);")
+
+find_group = db.prepare("SELECT * FROM Groups WHERE Name = ?;")
+
 get_user = db.prepare("SELECT * FROM Users WHERE Email= ?;")
 get_ownerID = db.prepare("SELECT OwnerID FROM Documents WHERE DocID=?;")
 find_doc = db.prepare("SELECT * FROM Documents WHERE Location = ?;")
@@ -256,6 +260,7 @@ function grantPermission(table, perm, idtype, id, access_list) {
         // query(function (data) {
         //     insert_user.run(data)
         // })
+        console.log(access_list[i])
         insert_user.run(access_list[i], access_list[i])
         user = get_user.get(access_list[i])?.UserID
 
@@ -387,7 +392,15 @@ async function g_request(callback) {
                     userid = userid ? userid.UserID : insert_user.run(g_data.sender_email, g_data.sender_email).lastInsertRowid
 
                     if (grp) {
+                        grpName = grp?.name ? proj.name[0] : "None"
+                        
+                        var grpid = find_group.get(doc.project)
+                        grpid = grpid ? grpid.GroupID : Object.values(insert_group.run(doc.project, userid, 1, "None"))[1]
 
+                        console.log("test", grp.change)
+                        if (grp.read) { grantPermission("GroupPerms", READ, "GID", grpid, grp.read) } //get index of read permission list if it exists
+                        if (grp.change) { grantPermission("GroupPerms", CHANGE, "GID", grpid, grp.change) }//get index of change permission list if it exists
+                        if (grp.manage) { grantPermission("GroupPerms", MANAGE, "GID", grpid, grp.manage) } //get index of manage permission list if it exists
                     }
                     if (proj) {
                         projName = proj?.name ? proj.name[0] : "None"
