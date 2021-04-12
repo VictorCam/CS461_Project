@@ -26,6 +26,7 @@ dbfun.createDatabase(db);
 
 get_user = db.prepare("SELECT * FROM Users WHERE Email= ?;")
 find_doc = db.prepare("SELECT * FROM Documents WHERE Location = ?;")
+find_group = db.prepare("SELECT * FROM Groups WHERE Name=?;")
 find_project = db.prepare("SELECT * FROM Projects WHERE Name = ?;")
 get_file_path = db.prepare("SELECT Location FROM Documents WHERE DocID = ?;")
 get_db_year = db.prepare("SELECT MAX(Year) AS Year FROM Documents;")
@@ -43,6 +44,8 @@ update_docName = db.prepare("UPDATE Documents SET Name=? WHERE DocID=?;")
 insert_user = db.prepare("INSERT OR IGNORE INTO Users (Name, Email) VALUES (?, ?);")
 insert_doc = db.prepare("INSERT INTO Documents (Year, Serial, Name, Description, Location, OwnerID, Project, DateAdded, Replaces, ReplacedBy) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);")
 insert_project = db.prepare("INSERT INTO Projects (Name, OwnerID, ProjectCode, Description) VALUES (?, ?, ?, ?);")
+insert_group = db.prepare("INSERT INTO Groups (Name, OwnerID, Description) VALUES (?, ?, ?);")
+add_to_group = db.prepare("INSERT OR IGNORE INTO usersXgroups (UID, GID) VALUES ((SELECT UserID FROM Users WHERE Email=?), ?);")
 insert_tag = db.prepare("INSERT OR IGNORE INTO Tags (Name) VALUES (?);")
 insert_docTag = db.prepare("INSERT OR IGNORE INTO tagsXdocs (DID, TID) VALUES (?, (SELECT TagID FROM Tags WHERE Name=?))")
 insert_note = db.prepare("INSERT INTO Notes (DID, UID, DateAdded, Note) VALUES (?, ?, ?, ?)")
@@ -380,7 +383,23 @@ async function g_request(callback) {
                 userid = userid ? userid.UserID : insert_user.run(g_data.sender_email, g_data.sender_email).lastInsertRowid
 
                 if (grp) {
+                    var grpName = grp?.name ? proj.name[0] : null
+                    if (grpName) {
+                        var grpdata = find_group.get(grpName)
+                        var desc = grp.description ? grp.description : "None"
+                        var grpid = grpdata ? grpdata.GroupID : insert_group.run(grpName, userid, desc).lastInsertRowid
 
+                        if(grp.members) {
+                            grp.members.forEach((member) => {
+                                insert_user.run(member, member)
+                                add_to_group.run(member, grpid)
+                            })
+                        }
+
+                        if (grp.read) { grantPermission("GroupPerms", READ, "GID", grpid, grp.read) } //get index of read permission list if it exists
+                        if (grp.change) { grantPermission("GroupPerms", CHANGE, "GID", grpid, grp.change) }//get index of change permission list if it exists
+                        if (grp.manage) { grantPermission("GroupPerms", MANAGE, "GID", grpid, grp.manage) } //get index of manage permission list if it exists
+                    }
                 }
                 if (proj) {
                     var projName = proj?.name ? proj.name[0] : null
@@ -389,7 +408,7 @@ async function g_request(callback) {
                         var projdata = projName ? find_project.get(projName) : null
                         var projid = projdata ? insert_project.run(projName, userid, projdata.ProjectCode + 1, desc).lastInsertRowid
                             : insert_project.run(projName, userid, 1, desc).lastInsertRowid
-                        var desc = proj?.description ? doc.description : "None"
+                        var desc = proj.description ? doc.description : "None"
                         if (proj.links) { saveLinks(projid, proj.links[0], "proj") }
                         //save new users and give permissions
                         if (proj.read) { grantPermission("ProjPerms", READ, "PID", projid, proj.read) } //get index of read permission list if it exists
