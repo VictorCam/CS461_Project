@@ -42,15 +42,15 @@ export default new vuex.Store({
         set_current_doc({commit}, payload) {
             axios.get(`${prefix}api/doc/${payload.docID}`)
             .then(res => {
-                console.log(res.data[0]);
-                commit("SET_CURRENT_DOC", res.data[0]);
+                console.log(res.data);
+                commit("SET_CURRENT_DOC", res.data);
             })
         },
         set_current_project({commit}, payload) {
             axios.get(`${prefix}api/project/${payload.projID}`)
             .then(res => {
-                console.log(res.data[0]);
-                commit("SET_CURRENT_PROJECT", res.data[0]);
+                console.log(res.data);
+                commit("SET_CURRENT_PROJECT", res.data);
             })
         }
     },

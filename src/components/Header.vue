@@ -61,7 +61,9 @@
     <div v-if="!showTutorialButton">
       <button class="tutorial">
         <router-link :to="{name: 'other-info'}">
-          <img class="find-button" src="@/assets/help.png" />
+          <h3 v-if="this.$route.name==='other-info'" style="color: black">Info</h3>
+          <h3 v-else>Info</h3>
+          <!-- <img class="find-button" src="@/assets/help.png" /> -->
         </router-link>
       </button>
     </div>
