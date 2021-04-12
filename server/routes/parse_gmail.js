@@ -25,7 +25,6 @@ const READ = 1; //Permission to read document
 dbfun.createDatabase(db);
 
 get_user = db.prepare("SELECT * FROM Users WHERE Email= ?;")
-get_ownerID = db.prepare("SELECT OwnerID FROM Documents WHERE DocID=?;")
 find_doc = db.prepare("SELECT * FROM Documents WHERE Location = ?;")
 find_project = db.prepare("SELECT * FROM Projects WHERE Name = ?;")
 get_file_path = db.prepare("SELECT Location FROM Documents WHERE DocID = ?;")
@@ -49,6 +48,10 @@ insert_docTag = db.prepare("INSERT OR IGNORE INTO tagsXdocs (DID, TID) VALUES (?
 insert_note = db.prepare("INSERT INTO Notes (DID, UID, DateAdded, Note) VALUES (?, ?, ?, ?)")
 insert_docLink = db.prepare("INSERT INTO DocLinks (DID, Link) VALUES (?, ?)")
 insert_projLink = db.prepare("INSERT INTO ProjLinks (PID, Link) VALUES (?, ?)")
+
+function get_ownerID (table, idtype, id) {
+    return db.prepare("SELECT OwnerID FROM " + table + " WHERE " + idtype + "=?;").get(id)
+}
 
 function get_perms(ptid, table, ptable, idtype, id, uid) {
     return db.prepare("SELECT OwnerID, UserID, " + ptid + ", Permissions FROM " + table + " INNER JOIN " + 
@@ -254,15 +257,19 @@ function grantPermission(table, perm, idtype, id, access_list) {
 async function checkPermission(ptid, table, ptable, idtype, id, user, level) {
     anyone = get_user.get("all")
     anyone = anyone ? anyone.UserID : null
-
     result = get_perms(ptid, table, ptable, idtype, id, anyone)
     if(result?.Permissions >= level) { return true }
+    
     result = get_perms(ptid, table, ptable, idtype, id, user)
-    if(result?.Permissions >= level || result?.OwnerID == user) { return true }
+    if(result?.Permissions >= level) { return true }
+
+    result = get_ownerID(table, idtype, id)
+    if(result?.OwnerID == user) { return true }
+
     groups = get_groups.get(user)
     groups?.forEach((group) => {
         result = get_perms(ptid, table, ptable, idtype, id, group)
-        if(result?.Permissions >= level || result?.OwnerID == user) { return true }
+        if(result?.Permissions >= level) { return true }
     })
     return false
 }
@@ -363,32 +370,34 @@ async function g_request(callback) {
 
             //inside here we will save users/documents
             if (g_data.cmd == "save") {
-                for (var j = 0; j < g_data.attachments.length; j++) {
-                    var doc = g_data.access.document
-                    var proj = g_data.access.project
-                    var grp = g_data.access.group
+                var doc = g_data.access.document
+                var proj = g_data.access.project
+                var grp = g_data.access.group
 
-                    //get userid
-                    var userid = get_user.get(`${g_data.sender_email}`)
+                //get userid
+                var userid = get_user.get(`${g_data.sender_email}`)
 
-                    userid = userid ? userid.UserID : insert_user.run(g_data.sender_email, g_data.sender_email).lastInsertRowid
+                userid = userid ? userid.UserID : insert_user.run(g_data.sender_email, g_data.sender_email).lastInsertRowid
 
-                    if (grp) {
+                if (grp) {
 
-                    }
-                    if (proj) {
-                        projName = proj?.name ? proj.name[0] : "None"
+                }
+                if (proj) {
+                    var projName = proj?.name ? proj.name[0] : null
 
-                        //get id of project if one is specified
-                        var projid = find_project.get(doc.project)
-                        projid = projid ? projid.ProjID : insert_project.run(doc.project, userid, 1, "None").lastInsertRowid
-
-                        //function grantPermission(table, perm, idtype, id, access_list) {
+                    if (projName) {
+                        var projdata = projName ? find_project.get(projName) : null
+                        var projid = projdata ? insert_project.run(projName, userid, projdata.ProjectCode + 1, desc).lastInsertRowid
+                            : insert_project.run(projName, userid, 1, desc).lastInsertRowid
+                        var desc = proj?.description ? doc.description : "None"
+                        if (proj.links) { saveLinks(projid, proj.links[0], "proj") }
                         //save new users and give permissions
                         if (proj.read) { grantPermission("ProjPerms", READ, "PID", projid, proj.read) } //get index of read permission list if it exists
                         if (proj.change) { grantPermission("ProjPerms", CHANGE, "PID", projid, proj.change) }//get index of change permission list if it exists
                         if (proj.manage) { grantPermission("ProjPerms", MANAGE, "PID", projid, proj.manage) } //get index of manage permission list if it exists
                     }
+                }
+                for (var j = 0; j < g_data.attachments.length; j++) {
                     if (doc) {
 
                         //get path and filename
