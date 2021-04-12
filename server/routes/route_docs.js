@@ -29,18 +29,43 @@ router.get("/api", (req, res) => {
 // Get the document the user is currently viewing
 router.get("/api/doc/:docID", (req, res) => {
     const docID = req.params.docID;
-    const query = `SELECT Users.Name as Owner, Documents.Name as Dname, Documents.DocID, Documents.DateAdded, Documents.Year, Documents.Serial FROM Users INNER JOIN Documents ON Documents.DocID = ${docID}`;
-    const results = db.prepare(query);
-    const docResults = results.all();
+    const userDoc = `SELECT Users.Name AS Owner, Documents.Name AS Dname, Documents.Serial, Documents.DocID, Documents.DateAdded, Documents.Year, 
+    Documents.Serial, Documents.Description FROM Users INNER JOIN Documents ON Documents.DocID = ${docID}`;
+
+    const docLinks = `SELECT DocLinks.Link FROM DocLinks WHERE ${docID} = DocLinks.DID`;
+    const notes = `SELECT Notes.Note FROM Notes WHERE ${docID} = Notes.DID`;
+
+    const userDocRes = db.prepare(userDoc);
+    const docLinksRes = db.prepare(docLinks);
+    const notesRes = db.prepare(notes);
+
+    const docResults = {
+        'userDoc': userDocRes.all(),
+        'docLinks': docLinksRes.all(),
+        'notes': notesRes.all()
+    };
+    console.log(docResults);
     res.status(200).json(docResults);
 });
 
 // Get the document the user is currently viewing
 router.get("/api/project/:projID", (req, res) => {
     const projID = req.params.projID;
-    const query = `SELECT Projects.Name as Pname from Projects WHERE Projects.ProjID = ${projID}`;
-    const results = db.prepare(query);
-    const projResults = results.all();
+    const proj = `SELECT Projects.Name AS Pname, Projects.Description FROM Projects WHERE Projects.ProjID = ${projID}`;
+    const projDocs = `SELECT Documents.Name AS Dname FROM Documents WHERE Documents.Project = ${projID}`
+    const projLinks = `SELECT ProjLinks.Link FROM ProjLinks WHERE ${projID} = ProjLinks.PID`
+
+    const projRes = db.prepare(proj);
+    const projDocsRes = db.prepare(projDocs);
+    const projLinksRes = db.prepare(projLinks);
+    
+    const projResults = {
+        'proj': projRes.all(),
+        'projDocs': projDocsRes.all(),
+        'projLinks': projLinksRes.all()
+    }
+
+    console.log(projResults);
     res.status(200).json(projResults);
 });
 
@@ -69,6 +94,9 @@ router.get("/api/search/", (req, res) => {
 
     res.status(200).json(pag)
 });
+
+
+
 
 function paginatedResults(model, count, page, limit) {
     //get start and end index
