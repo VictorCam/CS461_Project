@@ -24,18 +24,20 @@ const READ = 1; //Permission to read document
 
 dbfun.createDatabase(db);
 
-get_user = db.prepare("SELECT * FROM Users WHERE Email= ?;")
+get_user = db.prepare("SELECT * FROM Users WHERE Email=?;")
+get_group = db.prepare("SELECT * FROM Groups WHERE Name=?")
 find_doc = db.prepare("SELECT * FROM Documents WHERE Location = ?;")
 find_group = db.prepare("SELECT * FROM Groups WHERE Name=?;")
-find_project = db.prepare("SELECT * FROM Projects WHERE Name = ?;")
+find_project = db.prepare("SELECT * FROM Projects WHERE Name = ? AND ProjectCode=?;")
+find_max_proj_id = db.prepare("SELECT MAX(ProjID) AS ProjID FROM Projects WHERE Name=?;")
 get_file_path = db.prepare("SELECT Location FROM Documents WHERE DocID = ?;")
 get_db_year = db.prepare("SELECT MAX(Year) AS Year FROM Documents;")
 get_last_Serial = db.prepare("SELECT MAX(Serial) AS Serial FROM Documents WHERE Year=?;")
 get_DocID = db.prepare("SELECT DocID From Documents Where Year=? and Serial=?;")
 get_tag = db.prepare("SELECT * FROM Tags WHERE Name=?")
-get_dpermID = db.prepare("SELECT DP.PermID FROM Documents D INNER JOIN DocPerms DP ON D.DocID=DP.DID INNER JOIN Users U ON U.UserID=DP.UID WHERE D.DocID=? AND U.UserID=?;")
-get_ppermID = db.prepare("SELECT PP.PermID FROM Projects P INNER JOIN ProjPerms PP ON P.ProjID=PP.PID INNER JOIN Users U ON U.UserID=PP.UID WHERE P.ProjID=? AND U.UserID=?;")
-get_gpermID = db.prepare("SELECT GP.PermID FROM Groups G INNER JOIN GroupPerms GP ON G.GroupID=GP.GID INNER JOIN Users U ON U.UserID=GP.UID WHERE G.GroupID=? AND U.UserID=?;")
+// get_dpermID = db.prepare("SELECT DP.PermID FROM Documents D INNER JOIN DocPerms DP ON D.DocID=DP.DID INNER JOIN Users U ON U.UserID=DP.UID WHERE D.DocID=? AND U.UserID=?;")
+// get_ppermID = db.prepare("SELECT PP.PermID FROM Projects P INNER JOIN ProjPerms PP ON P.ProjID=PP.PID INNER JOIN Users U ON U.UserID=PP.UID WHERE P.ProjID=? AND U.UserID=?;")
+// get_gpermID = db.prepare("SELECT GP.PermID FROM Groups G INNER JOIN GroupPerms GP ON G.GroupID=GP.GID INNER JOIN Users U ON U.UserID=GP.UID WHERE G.GroupID=? AND U.UserID=?;")
 get_groups = db.prepare("SELECT GroupID FROM Groups INNER JOIN usersXgroups ON GroupID=GID INNER JOIN Users ON UserID=UID WHERE UserID=?")
 
 update_proj = db.prepare("UPDATE Documents SET Project=? WHERE DocID=?;")
@@ -44,7 +46,7 @@ update_docName = db.prepare("UPDATE Documents SET Name=? WHERE DocID=?;")
 insert_user = db.prepare("INSERT OR IGNORE INTO Users (Name, Email) VALUES (?, ?);")
 insert_doc = db.prepare("INSERT INTO Documents (Year, Serial, Name, Description, Location, OwnerID, Project, DateAdded, Replaces, ReplacedBy) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);")
 insert_project = db.prepare("INSERT INTO Projects (Name, OwnerID, ProjectCode, Description) VALUES (?, ?, ?, ?);")
-insert_group = db.prepare("INSERT INTO Groups (Name, OwnerID, Description) VALUES (?, ?, ?);")
+insert_group = db.prepare("INSERT OR IGNORE INTO Groups (Name, OwnerID, Description) VALUES (?, ?, ?);")
 add_to_group = db.prepare("INSERT OR IGNORE INTO usersXgroups (UID, GID) VALUES ((SELECT UserID FROM Users WHERE Email=?), ?);")
 insert_tag = db.prepare("INSERT OR IGNORE INTO Tags (Name) VALUES (?);")
 insert_docTag = db.prepare("INSERT OR IGNORE INTO tagsXdocs (DID, TID) VALUES (?, (SELECT TagID FROM Tags WHERE Name=?))")
@@ -56,19 +58,16 @@ function get_ownerID (table, idtype, id) {
     return db.prepare("SELECT OwnerID FROM " + table + " WHERE " + idtype + "=?;").get(id)
 }
 
-function get_perms(ptid, table, ptable, idtype, id, uid) {
-    return db.prepare("SELECT OwnerID, UserID, " + ptid + ", Permissions FROM " + table + " INNER JOIN " + 
-    ptable + " ON " + idtype + "=" + ptid + " INNER JOIN Users U ON UserID=UID WHERE " + idtype + "=? AND UserID=?;").get(id, uid)
+function get_perms(entType, entID, resType, resID) { //
+    return db.prepare(`SELECT Permissions FROM Perms WHERE ${entType}=? AND ${resType}=?;`).get(entID, resID)
 }
 
-function insert_perms(table, idtype, id, uid, perm) {
-    return db.prepare("INSERT OR IGNORE INTO " + table + " (" + idtype 
-    + ", UID, Permissions) VALUES (?, ?, ?);").run(id, uid, perm);
+function insert_perms(entType, entID, resType, resID, perm) {
+    return db.prepare(`INSERT OR IGNORE INTO Perms(${entType}, ${resType}, Permissions) VALUES (?, ?, ?);`).run(entID, resID, perm)
 }
 
-function update_perms(table, idtype, id, uid, perm) {
-    return db.prepare("UPDATE " + table + " SET Permissions=? WHERE PermID=(SELECT PermID FROM "
-        + table + " WHERE UID=? AND " + idtype + "=?);").run(perm, uid, id);
+function update_perms(entType, entID, resType, resID, perm) {
+    return db.prepare(`UPDATE Perms SET Permissions=? WHERE ${entType}=? AND ${resType}=?;`).run(perm, entID, resID)
 }
 
 async function get_token() {
@@ -246,35 +245,44 @@ async function parse_data(g_raw, idx, g_access) {
 
 //takes a DocID/Year key pair, list of emails, and READ|CHANGE|MANAGE
 //grants the indicated level of permission for each email to the indicated document
-function grantPermission(table, perm, idtype, id, access_list) {
+function grantPermission(resType, resID, perm, access_list, granter) {
+    list = typeof(access_list) == 'string' ? [] + access_list : access_list
     for (var i = 0; i < access_list.length; i++) { //iterate over each email address
-        insert_user.run(access_list[i], access_list[i])
-        user = get_user.get(access_list[i])?.UserID
+        // console.log("access_list[i]: ", access_list[i])
+        if(access_list[i].includes("@")){
+            insert_user.run(access_list[i], access_list[i])
+            entID = get_user.get(access_list[i])?.UserID
+            entType = "UserEnt"
+        } else { 
+            insert_group.run(access_list[i], granter, "None") 
+            entID = find_group.get(access_list[i])?.GroupID
+            entType = "GroupEnt"
+        }
 
-        insert_perms(table, idtype, id, user, perm)
-        update_perms(table, idtype, id, user, perm)
+        insert_perms(entType, entID, resType, resID, perm)
+        update_perms(entType, entID, resType, resID, perm)
     }
 }
 
 //check if user has sufficient permission for the document specified
-async function checkPermission(ptid, table, ptable, idtype, id, user, level) {
-    anyone = get_user.get("all")
-    anyone = anyone ? anyone.UserID : null
-    result = get_perms(ptid, table, ptable, idtype, id, anyone)
-    if(result?.Permissions >= level) { return true }
-    
-    result = get_perms(ptid, table, ptable, idtype, id, user)
-    if(result?.Permissions >= level) { return true }
+async function checkPermission(entType, resType, entID, resID) {
+    var level = 0
+    var anyone = get_group.get("all")
+    var groupID = anyone ? anyone.GroupID : null
+    var result = get_perms("GroupEnt", groupID, resType, resID)
+    if(result?.Permissions >= level) { level = result.Permissions  }
 
-    result = get_ownerID(table, idtype, id)
-    if(result?.OwnerID == user) { return true }
+    result = get_perms(entType, entID, resType, resID)
+    if (result?.Permissions >= level) { level = result.Permissions }
 
-    groups = get_groups.get(user)
-    groups?.forEach((group) => {
-        result = get_perms(ptid, table, ptable, idtype, id, group)
-        if(result?.Permissions >= level) { return true }
-    })
-    return false
+    if (entType == "UserEnt") {
+        groups = Object.values(get_groups.get(entID))
+        groups?.forEach((group) => {
+            result = get_perms("GroupEnt", group, resType, resID)
+            if (result?.Permissions >= level) { level = result.Permissions }
+        })
+    }
+    return level
 }
 
 //manages the DocID/Year key pair for Documents, determines the next valid key, and saves all related data to database
@@ -303,7 +311,7 @@ function saveLinks(id, links, type) {
     links = links.trim().split(",")
     links.forEach(link => {
         if (type == "doc") {
-            insert_docLink.run(id, link)
+            insert_docLink.run(id, link.trim())
         }
         else if (type == "proj") {
             insert_projLink.run(id, link)
@@ -314,40 +322,10 @@ function saveLinks(id, links, type) {
 function saveTags(id, tags) {
     tags = tags.trim().split(",")
     tags.forEach(tag => {
-        insert_tag.run(tag)
+        insert_tag.run(tag.trim())
         insert_docTag.run(id, tag)
     });
 }
-
-// class Query {
-//     type = "SELECT"
-//     cols = "*"
-//     table = "Documents"
-//     constructor(query) {
-//         this.type = query?.type ? query.type : this.type
-//         this.cols = query?.cols  ? query.cols : this.cols
-//         this.table = query?.table ? query.table : this.table
-//         this.joins = query?.joins
-//         this.conds = query?.conds
-//         this.values = query?.values
-//     }
-//     build(db) {
-//         if(this.type == "SELECT"){
-//             var result = `${this.type} ${this.cols} FROM ${this.table}`
-//             result = this?.joins ? result + ` ${this.joins}` : result + ""
-//             result = this?.conds ? result + ` WHERE ${this.conds};` : result + ";"
-//             return db.prepare(result) 
-//         }
-//         else if(this.type == "INSERT") {
-//             var result = `${this.type} INTO ${this.table}(${this.cols}) VALUES (${this.values};`
-//             return db.prepare(result)
-//         }
-//         else if(this.type == "UPDATE") {
-//             var result = `${this.type} ${this.table} SET ${this.cols} WHERE ${this.conds}`
-//             return db.prepare(result)
-//         }
-//     }
-// }
 
 async function g_request(callback) {
     try {
@@ -378,42 +356,51 @@ async function g_request(callback) {
                 var grp = g_data.access.group
 
                 //get userid
-                var userid = get_user.get(`${g_data.sender_email}`)
+                var userdata = get_user.get(`${g_data.sender_email}`)
 
-                userid = userid ? userid.UserID : insert_user.run(g_data.sender_email, g_data.sender_email).lastInsertRowid
+                var userid = userdata ? userdata.UserID : insert_user.run(g_data.sender_email, g_data.sender_email).lastInsertRowid
 
                 if (grp) {
-                    var grpName = grp?.name ? proj.name[0] : null
+                    var grpName = grp.name ? grp.name[0] : grp.names[0]
+                    grpName = grpName ? grpName.trim() : null
                     if (grpName) {
-                        var grpdata = find_group.get(grpName)
-                        var desc = grp.description ? grp.description : "None"
-                        var grpid = grpdata ? grpdata.GroupID : insert_group.run(grpName, userid, desc).lastInsertRowid
-
-                        if(grp.members) {
-                            grp.members.forEach((member) => {
-                                insert_user.run(member, member)
-                                add_to_group.run(member, grpid)
-                            })
+                        if (!find_group.get(grpName)) {
+                            var desc = grp.description ? grp.description : grp.descriptions
+                            desc = desc[0] ? desc[0].trim() : null
+                            var grpid = insert_group.run(grpName, userid, desc).lastInsertRowid
+                            var members = grp.member ? grp.member : grp.members
+                            members = members ? members : null
+                            if (members) {
+                                members.forEach((member) => {
+                                    member = member.trim()
+                                    insert_user.run(member, member)
+                                    add_to_group.run(member, grpid)
+                                })
+                            }
+                            grp.manage.push(g_data.sender_email)
+                            if (grp.read) { grantPermission("GID", grpid, READ, grp.read, userid) } //get index of read permission list if it exists
+                            if (grp.change) { grantPermission("GID", grpid, CHANGE, grp.change, userid) }//get index of change permission list if it exists
+                            if (grp.manage) { grantPermission("GID", grpid, MANAGE, grp.manage, userid) } //get index of manage permission list if it exists
                         }
-
-                        if (grp.read) { grantPermission("GroupPerms", READ, "GID", grpid, grp.read) } //get index of read permission list if it exists
-                        if (grp.change) { grantPermission("GroupPerms", CHANGE, "GID", grpid, grp.change) }//get index of change permission list if it exists
-                        if (grp.manage) { grantPermission("GroupPerms", MANAGE, "GID", grpid, grp.manage) } //get index of manage permission list if it exists
                     }
                 }
                 if (proj) {
-                    var projName = proj?.name ? proj.name[0] : null
-
+                    var projName = proj.name ? proj.name[0] : proj.names[0] 
+                    projName = projName ? projName.trim() : null
                     if (projName) {
-                        var projdata = projName ? find_project.get(projName) : null
-                        var projid = projdata ? insert_project.run(projName, userid, projdata.ProjectCode + 1, desc).lastInsertRowid
+                        var desc = proj.description ? doc.description : doc.descriptions
+                        desc = desc ? desc[0].trim() : null
+                        var projdata = projName ? find_project.get(projName, 1) : null
+                        var projid = projdata ? insert_project.run(projName, userid, find_max_proj_id.get(projName).ProjID + 1, desc).lastInsertRowid
                             : insert_project.run(projName, userid, 1, desc).lastInsertRowid
-                        var desc = proj.description ? doc.description : "None"
-                        if (proj.links) { saveLinks(projid, proj.links[0], "proj") }
+                        var links = proj.link ? proj.link : proj.links
+                        links = links ? links : null
+                        if (links) { saveLinks(projid, links[0].trim(), "proj") }
                         //save new users and give permissions
-                        if (proj.read) { grantPermission("ProjPerms", READ, "PID", projid, proj.read) } //get index of read permission list if it exists
-                        if (proj.change) { grantPermission("ProjPerms", CHANGE, "PID", projid, proj.change) }//get index of change permission list if it exists
-                        if (proj.manage) { grantPermission("ProjPerms", MANAGE, "PID", projid, proj.manage) } //get index of manage permission list if it exists
+                        proj.manage.push(g_data.sender_email)
+                        if (proj.read) { grantPermission("PID", projid, READ, proj.read, userid) } //get index of read permission list if it exists
+                        if (proj.change) { grantPermission("PID", projid, CHANGE, proj.change, userid) }//get index of change permission list if it exists
+                        if (proj.manage) { grantPermission("PID", projid, MANAGE, proj.manage, userid) } //get index of manage permission list if it exists
                     }
                 }
                 for (var j = 0; j < g_data.attachments.length; j++) {
@@ -423,36 +410,49 @@ async function g_request(callback) {
                         var pathname = `./server/files/${g_data.g_id}-${j}.pdf`
 
                         //get document name
-                        docName = doc?.names ? doc.names[j] : g_data.attachments[j].filename
+                        var docNames = doc.name ? doc.name : doc.names
+                        docName = docNames ? docNames[j].trim() : g_data.attachments[j].filename
 
                         //get id of project if one is specified
-                        var projid = doc?.project ? find_project.get(doc.project) : null
-                        if(projid) { permitted = await checkPermission("PID", "Projects", "ProjPerms", "ProjID", projid.ProjID, userid, CHANGE )}
-                        if(!permitted) { console.log("operation not permitted. exiting loop"); break }
-                        projid = projid ? projid.ProjID : insert_project.run(doc.project, userid, 1, "None").lastInsertRowid
+                        if (doc.project) {
+                            var fullName = doc.project[0].split("#") //get full name of project and split on #
+                            var projName = fullName[0]
+                            var projNum = fullName[1] ? fullName[1] : 1 //if project code wasn't specificed, assume 1
+                            var projdata = doc.project ? find_project.get(projName, projNum) : null //lookup project using name and project code
+                            if (projdata) { level = await checkPermission("UserEnt", "PID", userid, projdata.ProjID) }
+                            else { level = MANAGE | CHANGE | READ }
+                            projid = projdata ? projdata.ProjID : insert_project.run(doc.project, userid, 1, "None").lastInsertRowid
+                        } else { projid = null }
 
                         //get id of document to be superseded if one is specified
                         var repys = doc?.replaces ? doc.replaces[j].split('-') : null
                         replaceid = repys ? get_DocID?.get(repys[0], repys[1])?.DocID : null
 
                         //get description of document if one is specified
-                        var desc = doc?.description ? doc.description[j] : "None"
+                        var desc = doc.description ? doc.description[j] : doc.descriptions[j]
+                        desc = desc ? desc.trim() : null
+                        // console.log("level: ", level, "CHANGE: ", CHANGE, "!doc.project: ", !doc.project)
+                        if (level >= CHANGE) {
+                            //save document to filesystem 
+                            fs.writeFile(pathname, g_data.attachments[j].raw, { encoding: 'base64' },
+                                function (err) { if (err) { return console.log("err with writing pdf file") } })
 
-                        //save document to filesystem 
-                        fs.writeFile(pathname, g_data.attachments[j].raw, { encoding: 'base64' },
-                            function (err) { if (err) { return console.log("err with writing pdf file") } })
+                            //save document data to database
+                            docid = await saveDocData(docName, desc, pathname, userid, projid, replaceid);
+                            //DID, UID, DateAdded, Note
+                            var links = doc.link ? doc.link : doc.links
+                            var tags = doc.tag ? doc.tag : doc.tags
+                            var notes = doc.note ? doc.note : doc.notes
+                            if (links[j]) { saveLinks(docid, links[j].trim(), "doc") }
+                            if (tags[j]) { saveTags(docid, tags[j].trim()) }
+                            if (notes[j]) { insert_note.run(docid, userid, date.toString(), notes[j]) }
 
-                        //save document data to database
-                        docid = await saveDocData(docName, desc, pathname, userid, projid, replaceid);
-                        //DID, UID, DateAdded, Note
-                        if (doc.links) { saveLinks(docid, doc.links[j], "doc") }
-                        if (doc.tags[j]) { saveTags(docid, doc.tags[j]) }
-                        if (doc.notes[j]) { insert_note.run(docid, userid, date.toString(), doc.notes[j]) }
-
-                        //save new users and give permissions
-                        if (doc.read) { grantPermission("DocPerms", READ, "DID", docid, doc.read) } //get index of read permission list if it exists
-                        if (doc.change) { grantPermission("DocPerms", CHANGE, "DID", docid, doc.change) }//get index of change permission list if it exists
-                        if (doc.manage) { grantPermission("DocPerms", MANAGE, "DID", docid, doc.manage) } //get index of manage permission list if it exists
+                            //save new users and give permissions
+                            doc.manage.push(g_data.sender_email)
+                            if (doc.read) { grantPermission("DID", docid, READ, doc.read, userid) } //get index of read permission list if it exists
+                            if (doc.change) { grantPermission("DID", docid, CHANGE, doc.change, userid) }//get index of change permission list if it exists
+                            if (doc.manage) { grantPermission("DID", docid, MANAGE, doc.manage, userid) } //get index of manage permission list if it exists
+                        }
                     }
                 }
 
@@ -468,94 +468,164 @@ async function g_request(callback) {
             }
 
             else if (g_data.cmd == "get") {
-                var contents = []
-                var filenames = []
-                user = get_user.get(`${g_data.sender_email}`) //find out who sent the request
-                keyNum = getKey(g_data.access, "docs") //get index of docs list
+                var doc = g_data.access.document
+                var proj = g_data.access.project
+                var grp = g_data.access.group
 
-                // for each document, ensure the sender has permission to read it
-                for (var i = 0; i < g_data.access[keyNum].docs.length; i++) {
-                    // only return those documents for which the sender is allowed access
+                //get userid
+                var userdata = get_user.get(`${g_data.sender_email}`)
+                var userid = userdata ? userdata.UserID : insert_user.run(g_data.sender_email, g_data.sender_email).lastInsertRowid
 
-                    docSupKey = g_data.access[keyNum].docs[i].split("-"); //splits the Year-DocID value specified by the user so that it can be used
-                    if (checkPermission(get_DocID.get(docSupKey[0], docSupKey[1]), user.UserID, READ)) {
-                        fpath = await get_file_path.get(get_DocID.get(docSupKey[0], docSupKey[1]).DocID)
-                        contents.push(fs.readFileSync(`${fpath.Location}`, { encoding: 'base64' }));
-                        filenames.push(path.parse(fpath.Location).base)
+                var replyMessage
+
+                if (grp) {
+                    //TODO
+                    //If user has READ access or greater to specified group, return list of group members, description, and owner email
+                    //Acceptable to assume that only one group will be requested at a time or only process the first group listed in a request
+                    //Don't return results immediately. Instead add them to replyMessage with appropriate formatting
+                }
+                if (proj) {   
+                    //TODO
+                    //If user has READ access or greater to the project specified, return Name#ProjectCode, description, owner email, 
+                    //and a list of documents belonging to the project.
+                    //If more than one project was speficied, it's fine to only process the first one
+                    //Add results to replyMessage
+                }
+                if (doc) {
+                    for (var j = 0; j < doc.docs.length; j++) {
+                        //TODO
+                        //If user has READ access or greater to the document(s) specified, attach them to the reply email
                     }
                 }
+                // var contents = []
+                // var filenames = []
+                // user = get_user.get(`${g_data.sender_email}`) //find out who sent the request
+                // keyNum = getKey(g_data.access, "docs") //get index of docs list
 
-                //send email with all authorized attachments to requestor
-                encMail = await helpers.makeBodyAttachments(g_data.sender_email, "Your Requested Attachments", "Hello, please find your requested document(s) in the attachments", contents, filenames)
-                await post_send_msg(g_access.data.access_token, encMail)
+                // // for each document, ensure the sender has permission to read it
+                // for (var i = 0; i < g_data.access[keyNum].docs.length; i++) {
+                //     // only return those documents for which the sender is allowed access
+
+                //     docSupKey = g_data.access[keyNum].docs[i].split("-"); //splits the Year-DocID value specified by the user so that it can be used
+                //     if (checkPermission(get_DocID.get(docSupKey[0], docSupKey[1]), user.UserID, READ)) {
+                //         fpath = await get_file_path.get(get_DocID.get(docSupKey[0], docSupKey[1]).DocID)
+                //         contents.push(fs.readFileSync(`${fpath.Location}`, { encoding: 'base64' }));
+                //         filenames.push(path.parse(fpath.Location).base)
+                //     }
+                // }
+
+                // //send email with all authorized attachments to requestor
+                // encMail = await helpers.makeBodyAttachments(g_data.sender_email, "Your Requested Attachments", "Hello, please find your requested document(s) in the attachments", contents, filenames)
+                // await post_send_msg(g_access.data.access_token, encMail)
 
             }
             else if (g_data.cmd == "update") {
+                var doc = g_data.access.document
+                var proj = g_data.access.project
+                var grp = g_data.access.group
 
-                user = Object.values(get_user.get(`${g_data.sender_email}`))[0]
-                docKey = getKey(g_data.access, "docs")
-                projKey = getKey(g_data.access, "project")
-                nameKey = getKey(g_data.access, "names")
-                readKey = getKey(g_data.access, "read")
-                changeKey = getKey(g_data.access, "change")
-                manageKey = getKey(g_data.access, "manage")
+                //get userid
+                var userdata = get_user.get(`${g_data.sender_email}`)
+                var userid = userdata ? userdata.UserID : insert_user.run(g_data.sender_email, g_data.sender_email).lastInsertRowid
 
-                //validate all operations before attempting any
-                if (!isNull(docKey)) {
-                    for (var i = 0; i < g_data.access[docKey].docs.length; i++) {
-                        docSupKey = g_data.access[docKey].docs[i].split("-"); //splits the Year-DocID value specified by the user so that it can be used       
-                        if (!isNull(projKey)) {
-                            valid = valid && await checkPermission(get_DocID.get(docSupKey[0], docSupKey[1]), user, CHANGE)
-                        }
-                        if (!isNull(nameKey)) {
-                            valid = valid && await checkPermission(get_DocID.get(docSupKey[0], docSupKey[1]), user, CHANGE)
-                        }
-                        if (!isNull(readKey)) {
-                            valid = valid && await checkPermission(get_DocID.get(docSupKey[0], docSupKey[1]), user, MANAGE)
-                        }
-                        if (!isNull(changeKey)) {
-                            valid = valid && await checkPermission(get_DocID.get(docSupKey[0], docSupKey[1]), user, MANAGE)
-                        }
-                        if (!isNull(manageKey)) {
-                            valid = valid && await checkPermission(get_DocID.get(docSupKey[0], docSupKey[1]), user, MANAGE)
-                        }
-                    }
-                } else { valid = false }
-                //if request is valid, perform requested operations
-
-                if (valid) {
-                    for (var i = 0; i < g_data.access[docKey].docs.length; i++) {
-                        docSupKey = g_data.access[docKey].docs[i].split("-");
-                        if (!isNull(projKey)) {
-                            projid = find_project.get(`${g_data.access[projKey].project}`)
-                            if (!projid) {
-                                projid = insert_project.run(`${g_data.access[projKey].project}`, user.UserID, null, "Oregon State University Project")
-                                projid = Object.values(projid)[1]
-                            } else { projid = projid.ProjID }
-                            update_proj.run(projid, get_DocID.get(docSupKey[0], docSupKey[1]).DocID)
-                        }
-                        if (!isNull(nameKey)) {
-                            if (g_data.access[nameKey].names[i]) {
-                                update_docName.run(g_data.access[nameKey].names[i], get_DocID.get(docSupKey[0], docSupKey[1]).DocID)
-                            }
-                        }
-                        if (!isNull(readKey)) {
-                            grantPermission(get_DocID.get(docSupKey[0], docSupKey[1]), g_data.access[readKey].read, READ)
-                        }
-                        if (!isNull(changeKey)) {
-                            grantPermission(get_DocID.get(docSupKey[0], docSupKey[1]), g_data.access[changeKey].change, CHANGE)
-                        }
-                        if (!isNull(manageKey)) {
-                            grantPermission(get_DocID.get(docSupKey[0], docSupKey[1]), g_data.access[manageKey].manage, MANAGE)
-                        }
+                if (grp) {
+                    //TODO
+                    //If user has CHANGE access or greater to specified group, perform the following operations if specified
+                    //name: replace existing name with grp.name
+                    //description: replace existing one with grp.description
+                    //If user has MANAGE permission, use grantPermission to process lists in grp.read, grp.change, or grp.manage if they exist
+                    //Acceptable to assume that only one group will be requested at a time or only process the first group listed in a request
+                }
+                if (proj) {   
+                    //TODO
+                    //If user has CHANGE access or greater to the project specified, perform the following operations if specified
+                    //name: replace existing name with proj.name
+                    //links or link: use saveLinks to save new links to the project
+                    //description: replace existing description with one specified
+                    //group: replace exising group with one specified
+                    //If user has MANAGE permission, use grantPermission to process lists in proj.read, proj.change, or proj.manage if they exist
+                    //If more than one project was speficied, it's fine to only process the first one
+                }
+                if (doc) {
+                    for (var j = 0; j < doc.docs.length; j++) {
+                        //TODO
+                        //If user has CHANGE access or greater to the document(s) specified, perform the following operations if specified
+                        //project: replace project name with doc.project 
+                        //name or names: replace names of any documents specified with corresponding names 
+                        //link or links: add links to corresponding docs using saveLinks
+                        //description or description: replaces descriptions on docs with corresponding ones listed
+                        //note or notes: add notes to corresponding docs
+                        //tag or tags: add tags to corresponding docs using saveTags
+                        //If user has MANAGE permissions, process doc.read, doc.change, and doc.manage accordingly using grantPermission
+                        //project, read, change, and manage are applied to all documents listed doc.docs. All other fields are applied to 
+                        //individual documents
                     }
                 }
-                //if request is invalid, send reply without changing anything
-                else {
-                    console.log("update request is either invalid or unauthorized")
-                    raw = await helpers.makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] ERROR PERFORMING THE REQUESTED OPERATION(S)`, `Failure: could not perform the operations requested. Please confirm that your e-mail is correctly formatted and you have permission to perform the actions you requested`)
-                    await post_send_msg(g_access.data.access_token, raw)
-                }
+
+                // user = Object.values(get_user.get(`${g_data.sender_email}`))[0]
+                // docKey = getKey(g_data.access, "docs")
+                // projKey = getKey(g_data.access, "project")
+                // nameKey = getKey(g_data.access, "names")
+                // readKey = getKey(g_data.access, "read")
+                // changeKey = getKey(g_data.access, "change")
+                // manageKey = getKey(g_data.access, "manage")
+
+                // //validate all operations before attempting any
+                // if (!isNull(docKey)) {
+                //     for (var i = 0; i < g_data.access[docKey].docs.length; i++) {
+                //         docSupKey = g_data.access[docKey].docs[i].split("-"); //splits the Year-DocID value specified by the user so that it can be used       
+                //         if (!isNull(projKey)) {
+                //             valid = valid && await checkPermission(get_DocID.get(docSupKey[0], docSupKey[1]), user, CHANGE)
+                //         }
+                //         if (!isNull(nameKey)) {
+                //             valid = valid && await checkPermission(get_DocID.get(docSupKey[0], docSupKey[1]), user, CHANGE)
+                //         }
+                //         if (!isNull(readKey)) {
+                //             valid = valid && await checkPermission(get_DocID.get(docSupKey[0], docSupKey[1]), user, MANAGE)
+                //         }
+                //         if (!isNull(changeKey)) {
+                //             valid = valid && await checkPermission(get_DocID.get(docSupKey[0], docSupKey[1]), user, MANAGE)
+                //         }
+                //         if (!isNull(manageKey)) {
+                //             valid = valid && await checkPermission(get_DocID.get(docSupKey[0], docSupKey[1]), user, MANAGE)
+                //         }
+                //     }
+                // } else { valid = false }
+                // //if request is valid, perform requested operations
+
+                // if (valid) {
+                //     for (var i = 0; i < g_data.access[docKey].docs.length; i++) {
+                //         docSupKey = g_data.access[docKey].docs[i].split("-");
+                //         if (!isNull(projKey)) {
+                //             projid = find_project.get(`${g_data.access[projKey].project}`)
+                //             if (!projid) {
+                //                 projid = insert_project.run(`${g_data.access[projKey].project}`, user.UserID, null, "Oregon State University Project")
+                //                 projid = Object.values(projid)[1]
+                //             } else { projid = projid.ProjID }
+                //             update_proj.run(projid, get_DocID.get(docSupKey[0], docSupKey[1]).DocID)
+                //         }
+                //         if (!isNull(nameKey)) {
+                //             if (g_data.access[nameKey].names[i]) {
+                //                 update_docName.run(g_data.access[nameKey].names[i], get_DocID.get(docSupKey[0], docSupKey[1]).DocID)
+                //             }
+                //         }
+                //         if (!isNull(readKey)) {
+                //             grantPermission(get_DocID.get(docSupKey[0], docSupKey[1]), g_data.access[readKey].read, READ)
+                //         }
+                //         if (!isNull(changeKey)) {
+                //             grantPermission(get_DocID.get(docSupKey[0], docSupKey[1]), g_data.access[changeKey].change, CHANGE)
+                //         }
+                //         if (!isNull(manageKey)) {
+                //             grantPermission(get_DocID.get(docSupKey[0], docSupKey[1]), g_data.access[manageKey].manage, MANAGE)
+                //         }
+                //     }
+                // }
+                // //if request is invalid, send reply without changing anything
+                // else {
+                //     console.log("update request is either invalid or unauthorized")
+                //     raw = await helpers.makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] ERROR PERFORMING THE REQUESTED OPERATION(S)`, `Failure: could not perform the operations requested. Please confirm that your e-mail is correctly formatted and you have permission to perform the actions you requested`)
+                //     await post_send_msg(g_access.data.access_token, raw)
+                // }
             }
             else if (g_data.cmd == "help") {
                 console.log("help request received")
