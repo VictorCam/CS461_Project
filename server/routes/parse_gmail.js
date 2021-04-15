@@ -58,14 +58,15 @@ function get_ownerID (table, idtype, id) {
     return db.prepare("SELECT OwnerID FROM " + table + " WHERE " + idtype + "=?;").get(id)
 }
 
-function get_perms(entType, entID, resType, resID) { //
+//compose query for checking permissions of Documents, Projects, Groups (ResID) on behalf of Users or Groups (entID)
+function get_perms(entType, entID, resType, resID) {
     return db.prepare(`SELECT Permissions FROM Perms WHERE ${entType}=? AND ${resType}=?;`).get(entID, resID)
 }
-
+//compose query for inserting permissions to Documents, Projects, Groups (ResID) on behalf of Users or Groups (entID)
 function insert_perms(entType, entID, resType, resID, perm) {
     return db.prepare(`INSERT OR IGNORE INTO Perms(${entType}, ${resType}, Permissions) VALUES (?, ?, ?);`).run(entID, resID, perm)
 }
-
+//compose query for updating permissions to Documents, Projects, Groups (ResID) on behalf of Users or Groups (entID)
 function update_perms(entType, entID, resType, resID, perm) {
     return db.prepare(`UPDATE Perms SET Permissions=? WHERE ${entType}=? AND ${resType}=?;`).run(perm, entID, resID)
 }
@@ -243,17 +244,18 @@ async function parse_data(g_raw, idx, g_access) {
     }
 }
 
-//takes a DocID/Year key pair, list of emails, and READ|CHANGE|MANAGE
-//grants the indicated level of permission for each email to the indicated document
+//grants permissions to users and groups in access_list permissions indicated by perm to a resource indicate by resType and resID
+//if user or group does not exist, it is automatically created. granter is made owner of the new group
+//usage: granPermissions("DID"||"PID"||"GID", DID||PID||GID, READ||CHANGE||MANAGE, [emails|groups], email sender id)
 function grantPermission(resType, resID, perm, access_list, granter) {
     list = typeof(access_list) == 'string' ? [] + access_list : access_list
     for (var i = 0; i < access_list.length; i++) { //iterate over each email address
         // console.log("access_list[i]: ", access_list[i])
-        if(access_list[i].includes("@")){
+        if(access_list[i].includes("@")){ //if entity name contains '@', assume entity type is User
             insert_user.run(access_list[i], access_list[i])
             entID = get_user.get(access_list[i])?.UserID
             entType = "UserEnt"
-        } else { 
+        } else { //if entity name does not contain '@', assume entity type is Group
             insert_group.run(access_list[i], granter, "None") 
             entID = find_group.get(access_list[i])?.GroupID
             entType = "GroupEnt"
@@ -264,25 +266,28 @@ function grantPermission(resType, resID, perm, access_list, granter) {
     }
 }
 
-//check if user has sufficient permission for the document specified
+//entType is "GroupEnt" or "UserEnt" and idicates whether permissions are being checked on behalf of a User or Group
+//resType is "DID", "PID", or "GID" and idicates the type of resource that a User or Group is attempting to access
+//DID == document, PID == project, GID == group
+//entID and resID are Integers and are the IDs corresponding to the afforementioned entType and resType
 async function checkPermission(entType, resType, entID, resID) {
-    var level = 0
+    var level = 0 //no permissions is assumed until proven otherwise
     var anyone = get_group.get("all")
     var groupID = anyone ? anyone.GroupID : null
-    var result = get_perms("GroupEnt", groupID, resType, resID)
+    var result = get_perms("GroupEnt", groupID, resType, resID) //check if the all group has been granted access and what level
     if(result?.Permissions >= level) { level = result.Permissions  }
 
-    result = get_perms(entType, entID, resType, resID)
+    result = get_perms(entType, entID, resType, resID) //check if the user has been explicitly granted permissions and what level
     if (result?.Permissions >= level) { level = result.Permissions }
 
     if (entType == "UserEnt") {
-        groups = Object.values(get_groups.get(entID))
+        groups = Object.values(get_groups.get(entID)) //get IDs of all groups that the user belongs to 
         groups?.forEach((group) => {
             result = get_perms("GroupEnt", group, resType, resID)
-            if (result?.Permissions >= level) { level = result.Permissions }
+            if (result?.Permissions >= level) { level = result.Permissions } //check permissions of each group that the user belongs to and what level
         })
     }
-    return level
+    return level //return highest level of permission that user has been granted whether explicitly or through some group
 }
 
 //manages the DocID/Year key pair for Documents, determines the next valid key, and saves all related data to database
@@ -307,8 +312,11 @@ async function saveDocData(name, desc, pathname, userid, projid, replaces) {
     return docid
 }
 
+//id == DocID or ProjID to which the tag is to be applied
+//links contains a comma separated list of links or a single link
+//type == "doc" or "proj" to indicate which resource the link is to be applied to
 function saveLinks(id, links, type) {
-    links = links.trim().split(",")
+    links = links.trim().split(",") //turn comma separated list into array
     links.forEach(link => {
         if (type == "doc") {
             insert_docLink.run(id, link.trim())
@@ -318,12 +326,12 @@ function saveLinks(id, links, type) {
         }
     })
 }
-
+//id == DocID, tags contains comma separated list of tags or a single tag
 function saveTags(id, tags) {
-    tags = tags.trim().split(",")
+    tags = tags.trim().split(",") //turn comma separated list into array
     tags.forEach(tag => {
-        insert_tag.run(tag.trim())
-        insert_docTag.run(id, tag)
+        insert_tag.run(tag.trim()) //create tag if it doesn't exist
+        insert_docTag.run(id, tag) //add tag to document
     });
 }
 
@@ -358,49 +366,50 @@ async function g_request(callback) {
                 //get userid
                 var userdata = get_user.get(`${g_data.sender_email}`)
 
+                //check if sender is already in database. If yes, sets users id as userid otherwise adds user and sets the new id as userid
                 var userid = userdata ? userdata.UserID : insert_user.run(g_data.sender_email, g_data.sender_email).lastInsertRowid
 
                 if (grp) {
-                    var grpName = grp.name ? grp.name[0] : grp.names[0]
-                    grpName = grpName ? grpName.trim() : null
-                    if (grpName) {
-                        if (!find_group.get(grpName)) {
+                    var grpName = grp.name ? grp.name[0] : grp.names[0] //determine whether sender used name: or names:
+                    grpName = grpName ? grpName.trim() : null   //trim spaces off either side of the group name and set it to grpName
+                    if (grpName) { //Don't do anything if a name wasn't given
+                        if (!find_group.get(grpName)) { //check if group by that name already exists. Do nothing if true
                             var desc = grp.description ? grp.description : grp.descriptions
-                            desc = desc[0] ? desc[0].trim() : null
-                            var grpid = insert_group.run(grpName, userid, desc).lastInsertRowid
+                            desc = desc[0] ? desc[0].trim() : null //set description(s) as desc
+                            var grpid = insert_group.run(grpName, userid, desc).lastInsertRowid //creat the group
                             var members = grp.member ? grp.member : grp.members
-                            members = members ? members : null
-                            if (members) {
+                            members = members ? members : null 
+                            if (members) { //add member(s) to group
                                 members.forEach((member) => {
                                     member = member.trim()
-                                    insert_user.run(member, member)
+                                    insert_user.run(member, member) //create user if they don't already exist
                                     add_to_group.run(member, grpid)
                                 })
                             }
-                            grp.manage.push(g_data.sender_email)
-                            if (grp.read) { grantPermission("GID", grpid, READ, grp.read, userid) } //get index of read permission list if it exists
-                            if (grp.change) { grantPermission("GID", grpid, CHANGE, grp.change, userid) }//get index of change permission list if it exists
-                            if (grp.manage) { grantPermission("GID", grpid, MANAGE, grp.manage, userid) } //get index of manage permission list if it exists
+                            grp.manage.push(g_data.sender_email) //ensure that the sender has manage permissions to their new group
+                            if (grp.read) { grantPermission("GID", grpid, READ, grp.read, userid) }
+                            if (grp.change) { grantPermission("GID", grpid, CHANGE, grp.change, userid) }
+                            if (grp.manage) { grantPermission("GID", grpid, MANAGE, grp.manage, userid) }
                         }
                     }
                 }
                 if (proj) {
-                    var projName = proj.name ? proj.name[0] : proj.names[0] 
+                    var projName = proj.name ? proj.name[0] : proj.names[0] //determine whether user used name: or names:
                     projName = projName ? projName.trim() : null
-                    if (projName) {
+                    if (projName) { //don't do anything if no name was specified 
                         var desc = proj.description ? doc.description : doc.descriptions
-                        desc = desc ? desc[0].trim() : null
+                        desc = desc ? desc[0].trim() : null //perpare des with description or descriptions
                         var projdata = projName ? find_project.get(projName, 1) : null
                         var projid = projdata ? insert_project.run(projName, userid, find_max_proj_id.get(projName).ProjID + 1, desc).lastInsertRowid
-                            : insert_project.run(projName, userid, 1, desc).lastInsertRowid
+                            : insert_project.run(projName, userid, 1, desc).lastInsertRowid //if project with same name exists, create new one with highest existing project code +1
                         var links = proj.link ? proj.link : proj.links
                         links = links ? links : null
-                        if (links) { saveLinks(projid, links[0].trim(), "proj") }
+                        if (links) { saveLinks(projid, links[0].trim(), "proj") } //save link(s) to ProjLinks
                         //save new users and give permissions
-                        proj.manage.push(g_data.sender_email)
-                        if (proj.read) { grantPermission("PID", projid, READ, proj.read, userid) } //get index of read permission list if it exists
-                        if (proj.change) { grantPermission("PID", projid, CHANGE, proj.change, userid) }//get index of change permission list if it exists
-                        if (proj.manage) { grantPermission("PID", projid, MANAGE, proj.manage, userid) } //get index of manage permission list if it exists
+                        proj.manage.push(g_data.sender_email) //ensure sender has manage permissions to their new project
+                        if (proj.read) { grantPermission("PID", projid, READ, proj.read, userid) }
+                        if (proj.change) { grantPermission("PID", projid, CHANGE, proj.change, userid) }
+                        if (proj.manage) { grantPermission("PID", projid, MANAGE, proj.manage, userid) } 
                     }
                 }
                 for (var j = 0; j < g_data.attachments.length; j++) {
@@ -411,7 +420,7 @@ async function g_request(callback) {
 
                         //get document name
                         var docNames = doc.name ? doc.name : doc.names
-                        docName = docNames ? docNames[j].trim() : g_data.attachments[j].filename
+                        docName = docNames ? docNames[j].trim() : g_data.attachments[j].filename //set name(s) as docName
 
                         //get id of project if one is specified
                         if (doc.project) {
@@ -419,30 +428,30 @@ async function g_request(callback) {
                             var projName = fullName[0]
                             var projNum = fullName[1] ? fullName[1] : 1 //if project code wasn't specificed, assume 1
                             var projdata = doc.project ? find_project.get(projName, projNum) : null //lookup project using name and project code
-                            if (projdata) { level = await checkPermission("UserEnt", "PID", userid, projdata.ProjID) }
+                            if (projdata) { level = await checkPermission("UserEnt", "PID", userid, projdata.ProjID) } //check if user has permission to add to project
                             else { level = MANAGE | CHANGE | READ }
-                            projid = projdata ? projdata.ProjID : insert_project.run(doc.project, userid, 1, "None").lastInsertRowid
-                        } else { projid = null }
+                            projid = projdata ? projdata.ProjID : insert_project.run(doc.project, userid, 1, "None").lastInsertRowid //create new project with project code 0001 if this is the first one by its name
+                        } else { projid = null } //not 100% sure what this is for. Might be vestigial 
 
                         //get id of document to be superseded if one is specified
                         var repys = doc?.replaces ? doc.replaces[j].split('-') : null
-                        replaceid = repys ? get_DocID?.get(repys[0], repys[1])?.DocID : null
+                        replaceid = repys ? get_DocID?.get(repys[0], repys[1])?.DocID : null //get DocID that correlates to the YYYY-#### specified by the user
 
                         //get description of document if one is specified
                         var desc = doc.description ? doc.description[j] : doc.descriptions[j]
                         desc = desc ? desc.trim() : null
-                        // console.log("level: ", level, "CHANGE: ", CHANGE, "!doc.project: ", !doc.project)
-                        if (level >= CHANGE) {
+                        if (level >= CHANGE) { //don't allow the user to make any changes if they don't have sufficient permission
                             //save document to filesystem 
                             fs.writeFile(pathname, g_data.attachments[j].raw, { encoding: 'base64' },
                                 function (err) { if (err) { return console.log("err with writing pdf file") } })
 
                             //save document data to database
                             docid = await saveDocData(docName, desc, pathname, userid, projid, replaceid);
-                            //DID, UID, DateAdded, Note
+                            //figure out whether the user used link: or links:, tag: or tags:, and note: or notes:
                             var links = doc.link ? doc.link : doc.links
                             var tags = doc.tag ? doc.tag : doc.tags
                             var notes = doc.note ? doc.note : doc.notes
+                            //process the fields accordingly
                             if (links[j]) { saveLinks(docid, links[j].trim(), "doc") }
                             if (tags[j]) { saveTags(docid, tags[j].trim()) }
                             if (notes[j]) { insert_note.run(docid, userid, date.toString(), notes[j]) }
