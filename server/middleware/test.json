@@ -96,5 +96,5 @@
     },
     "date":"Sat, 10 Apr 2021 13:18:17 -0700",
     "cmd":"save",
-    "attachment": ["1", "2", "3"]
+    "attachments": ["1", "2", "3"]
  }

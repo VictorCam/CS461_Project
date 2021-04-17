@@ -1,15 +1,6 @@
 const Joi = require('joi')
 
 exports.save_filter = function(db, json) {
-    // ee = db.prepare("SELECT * FROM Users")
-    // testres = ee.all()
-    // console.log(json.access.document.project)
-
-    //check if the permission we are saving is a duplicate
-
-    var doc_count = 0;
-
-    //don't worry about pluralized tags //THIS IS FOR SAVE
     const schema = Joi.object({
         id: Joi.number().required(),
         g_id: Joi.string().alphanum().required(),
@@ -32,13 +23,13 @@ exports.save_filter = function(db, json) {
                     tag: Joi.array().items(Joi.string().allow('')),
                     replace: Joi.array().items(Joi.string().allow(''))
                 }).unknown(),
-                project: Joi.object().keys({ //ALL OPTIONAL (EXCEPT NAME) //removed project link
+                project: Joi.object().keys({ //ALL OPTIONAL (EXCEPT NAME)
                     name: Joi.array().items(Joi.string()).min(1).required(),
                     read: Joi.array().items(Joi.string()),
                     change: Joi.array().items(Joi.string()),
                     manage: Joi.array().items(Joi.string()),
                     description: Joi.array().items(Joi.string()),
-                    group: Joi.array().items(Joi.string()).min(1),
+                    group: Joi.array().items(Joi.string()).min(1)
                 }).unknown(),
                 group: Joi.object().keys({ //ALL OPTIONAL (EXCEPT NAME)
                     name: Joi.array().items(Joi.string()).min(1).required(),
@@ -46,39 +37,27 @@ exports.save_filter = function(db, json) {
                     read: Joi.array().items(Joi.string()),
                     change: Joi.array().items(Joi.string()),
                     manage: Joi.array().items(Joi.string()),
-                    description: Joi.array().items(Joi.string()),
-
+                    description: Joi.array().items(Joi.string())
                 }).unknown()
             },
         )
     })
 
+    validate = schema.validate(json)
 
-    valid = schema.validate(json)
-
-    if(valid.error) {
-        console.log(valid.error.details)
-        //send email message with error prompt
+    if(!validate.error) {
+        console.log("JSON SUCCESS -> now check tables")
+        find_proj = db.prepare("SELECT * FROM Projects WHERE Name = ?")
+        proj_query = find_proj.all(json.access.project.name[0])
+        if(proj_query.length == 1) { return { "error": `the project name already exist please pick another project name that isn't the name "${json.access.project.name[0]}".`} }
+        return //if we return nothing then it was all succesful
     }
-    else {
-        console.log("WE SUCCEDDED :)")
-        console.log(valid)
-    }
-
-
-
-    //if project name does not exist create a temporary one
-    // test = db.prepare("SELECT * FROM Projects WHERE Projects.Name = ?")
-
-    //if project exists and but does not have permission to add a doc?
-
-    //error message when project already has the name
-
-
-    //error message of project name does not exist
+    console.log(validate.error.details[0].message)
+    return { "error": validate.error.details[0].message }
 }
 
 exports.update_filter = function(db, json) {
     // test = db.prepare("SELECT * FROM ")
     //error message when user does not have enough permissions
+    //if project exists and but does not have permission to add a doc?
 }
