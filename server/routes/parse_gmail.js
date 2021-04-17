@@ -4,14 +4,14 @@ const axios = require("axios")
 const fs = require('fs')
 const Database = require('better-sqlite3')
 const db = new Database('./server/database/beavdms.db')
-const dbfun = require('../middleware/database_functions')
+const dbfun = require('../middleware/create_db')
 const helpers = require('../middleware/helpers')
-var path = require('path')
-var { date } = require("joi")
-const { faQuoteRight } = require("@fortawesome/free-solid-svg-icons")
-const { pid, exit } = require("process")
+const filters = require('../middleware/filters')
 const router = express.Router()
 require('dotenv').config()
+
+const json = require('../middleware/test.json');
+// filters.save_filter(db, json)
 
 //global constants
 var currentDate = new Date(); //current date for database saving
@@ -359,6 +359,11 @@ async function g_request(callback) {
 
             //inside here we will save users/documents
             if (g_data.cmd == "save") {
+
+                //validate the json data, and if we fail then we send error to user who sent it 
+                filters.save_filter(db, g_data)
+
+
                 var doc = g_data.access.document
                 var proj = g_data.access.project
                 var grp = g_data.access.group

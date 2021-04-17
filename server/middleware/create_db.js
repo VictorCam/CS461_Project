@@ -1,7 +1,3 @@
-const { DocDB } = require("aws-sdk");
-const Database = require('better-sqlite3')
-// var db = Database('./server/database/beavdms.db')
-
 exports.createDatabase = function(db) {
 
     db.exec("CREATE TABLE IF NOT EXISTS Profiles (ProfileID INTEGER PRIMARY KEY, Hash TEXT NOT NULL)");
