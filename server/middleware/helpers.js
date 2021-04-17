@@ -111,6 +111,9 @@ exports.findDate = function (g_raw) {
 
 //parses the message and grabs the emails (is accompanied with function below)
 exports.parseBody = function (message) {
+    var singulars = {projects: "project", reads: "read", changes: "change", manages: "manage", 
+    names: "name", links: "link", descriptions: "description", notes: "note", tags: "tag",
+    members: "member", docs: "doc"}
     try {
         var m_parse = message.split("\n") //split according to "newlines in message"
         m_parse = m_parse.filter(function (el) { return el != ''; }) //remove '' from array 
@@ -129,7 +132,9 @@ exports.parseBody = function (message) {
                     value = value + m_parse[i + 1]
                     i++;
                 }
+                key = singulars[key] ? singulars[key] : key
                 value = value.replace('\r', '').split('\\\\')
+                console.log(key)
                 for (var j = 0; j < value.length; j++) {
                     if (!data[mode][key]) { data[mode][key] = [] }
                     data[mode][key].push(value[j].trim())
