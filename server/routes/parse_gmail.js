@@ -10,8 +10,8 @@ const filters = require('../middleware/filters')
 const router = express.Router()
 require('dotenv').config()
 
-// const json = require('../middleware/test.json')
-// var test = filters.save_filter(db, json)
+const json = require('../middleware/test.json')
+var test = filters.save_filter(db, json)
 
 //global constants
 var currentDate = new Date(); //current date for database saving
@@ -361,12 +361,12 @@ async function g_request(callback) {
             if (g_data.cmd == "save") {
 
                 //validate the json data, and if we fail then we send error to user who sent it 
-                var save_filter = filters.save_filter(db, g_data)
-                if(save_filter.error) {
-                   raw = await helpers.makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] ERROR`, `Error: ${save_filter.error}`)
-                   await post_send_msg(g_access.data.access_token, raw)
-                   return await callback()
-                }
+                // var save_filter = filters.save_filter(db, g_data)
+                // if(save_filter.error) {
+                //    raw = await helpers.makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] ERROR`, `Error: ${save_filter.error}`)
+                //    await post_send_msg(g_access.data.access_token, raw)
+                //    return await callback()
+                // }
 
 
                 var doc = g_data.access.document
