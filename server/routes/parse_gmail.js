@@ -11,7 +11,6 @@ const router = express.Router()
 require('dotenv').config()
 
 const json = require('../middleware/test.json')
-var test = filters.save_filter(db, json)
 
 //global constants
 var currentDate = new Date(); //current date for database saving
@@ -23,6 +22,7 @@ const CHANGE = 2; //Permission to add document to project, etc...
 const READ = 1; //Permission to read document
 
 dbfun.createDatabase(db);
+var test = filters.save_filter(db, json)
 
 get_user = db.prepare("SELECT * FROM Users WHERE Email=?;")
 get_group = db.prepare("SELECT * FROM Groups WHERE Name=?")
@@ -429,27 +429,31 @@ async function g_request(callback) {
                         var pathname = `./server/files/${g_data.g_id}-${j}.pdf`
 
                         //get document name
-                        var docNames = doc.name ? doc.name : doc.names
-                        docName = docNames ? docNames[j].trim() : g_data.attachments[j].filename //set name(s) as docName
+                        var docName = doc?.name ? doc.name[j].trim() : g_data.attachments[j].filename //set name(s) as docName
 
                         //get id of project if one is specified
-                        if (doc.project) {
+                        if (doc?.project) {
                             var fullName = doc.project[0].split("#") //get full name of project and split on #
                             var projName = fullName[0]
                             var projNum = fullName[1] ? fullName[1] : 1 //if project code wasn't specificed, assume 1
                             var projdata = doc.project ? find_project.get(projName, projNum) : null //lookup project using name and project code
-                            if (projdata) { level = await checkPermission("UserEnt", "PID", userid, projdata.ProjID) } //check if user has permission to add to project
-                            else { level = MANAGE | CHANGE | READ }
-                            projid = projdata ? projdata.ProjID : insert_project.run(doc.project, userid, 1, "None").lastInsertRowid //create new project with project code 0001 if this is the first one by its name
-                        } else { projid = null } //not 100% sure what this is for. Might be vestigial 
+                            if (projdata) {
+                                level = await checkPermission("UserEnt", "PID", userid, projdata.ProjID) 
+                                projid = projdata.ProjID
+                            } //check if user has permission to add to project
+                            else {
+                                level = MANAGE | CHANGE | READ
+                                projid = insert_project.run(doc.project, userid, 1, "None").lastInsertRowid //create new project with project code 0001 if this is the first one by its name
+                                grantPermission("PID", projid, MANAGE, [g_data.sender_email], userid)
+                            }
+                    } else { projid = null; level = MANAGE | CHANGE | READ } //not 100% sure what this is for. Might be vestigial 
 
                         //get id of document to be superseded if one is specified
                         var repys = doc?.replaces ? doc.replaces[j].split('-') : null
                         replaceid = repys ? get_DocID?.get(repys[0], repys[1])?.DocID : null //get DocID that correlates to the YYYY-#### specified by the user
 
                         //get description of document if one is specified
-                        var desc = doc.description ? doc.description[j] : doc.descriptions[j]
-                        desc = desc ? desc.trim() : null
+                        var desc = doc?.description ? doc.description[j].trim() : null 
                         if (level >= CHANGE) { //don't allow the user to make any changes if they don't have sufficient permission
                             //save document to filesystem 
                             fs.writeFile(pathname, g_data.attachments[j].raw, { encoding: 'base64' },
@@ -458,19 +462,20 @@ async function g_request(callback) {
                             //save document data to database
                             docid = await saveDocData(docName, desc, pathname, userid, projid, replaceid);
                             //figure out whether the user used link: or links:, tag: or tags:, and note: or notes:
-                            var links = doc.link ? doc.link : doc.links
-                            var tags = doc.tag ? doc.tag : doc.tags
-                            var notes = doc.note ? doc.note : doc.notes
+                            var link = doc?.link ? doc.link[j] : null 
+                            var tag = doc?.tag ? doc.tag[j] : null 
+                            var note = doc?.note ? doc.note[j] : null 
                             //process the fields accordingly
-                            if (links[j]) { saveLinks(docid, links[j].trim(), "doc") }
-                            if (tags[j]) { saveTags(docid, tags[j].trim()) }
-                            if (notes[j]) { insert_note.run(docid, userid, date.toString(), notes[j]) }
+                            if (link) { saveLinks(docid, link.trim(), "doc") }
+                            if (tag) { saveTags(docid, tag.trim()) }
+                            if (note) { insert_note.run(docid, userid, date.toString(), note) }
 
                             //save new users and give permissions
-                            doc.manage.push(g_data.sender_email)
-                            if (doc.read) { grantPermission("DID", docid, READ, doc.read, userid) } //get index of read permission list if it exists
-                            if (doc.change) { grantPermission("DID", docid, CHANGE, doc.change, userid) }//get index of change permission list if it exists
-                            if (doc.manage) { grantPermission("DID", docid, MANAGE, doc.manage, userid) } //get index of manage permission list if it exists
+                            if(doc?.manage) {doc?.manage.push(g_data.sender_email)}
+                            else {doc.manage = [g_data.sender_email]}
+                            if (doc?.read) { grantPermission("DID", docid, READ, doc.read, userid) } //get index of read permission list if it exists
+                            if (doc?.change) { grantPermission("DID", docid, CHANGE, doc.change, userid) }//get index of change permission list if it exists
+                            if (doc?.manage) { grantPermission("DID", docid, MANAGE, doc.manage, userid) } //get index of manage permission list if it exists
                         }
                     }
                 }

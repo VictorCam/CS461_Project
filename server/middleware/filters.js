@@ -84,7 +84,7 @@ exports.save_filter = function(db, json) {
         if(proj_query.length == 1) { return { "error": `the project name already exist please pick another project name that isn't the name "${json.access.project.name[0]}".`} }
         return //if we return nothing then it was all succesful
     }
-    console.log(validate.error.details[0].message)
+    // console.log(validate.error.details[0].message)
     return { "error": validate.error.details[0].message }
 }
 

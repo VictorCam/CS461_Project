@@ -18,7 +18,7 @@ exports.makeBody = async function (to, from, subject, message) {
 
 //find where the body of the message is
 exports.findBody = function (g_raw) {
-	var message
+    var message
     if (g_raw.data.payload.parts[0].body.data) {
         message = Base64.decode(g_raw.data.payload.parts[0].body.data)
     }
@@ -39,15 +39,15 @@ exports.findAttachments = function (g_raw) {
     var attachments = []
     if (g_raw.data.payload.parts != undefined) { //check if it exists
         for (let n = 0; n < g_raw.data.payload.parts.length - 1; n++) {
-            if (g_raw.data.payload.parts[n + 1].mimeType == "application/pdf") { //MUST BE PDF!
-                var attach_json = {
-                    "mime": g_raw.data.payload.parts[n + 1].mimeType,
-                    "filename": g_raw.data.payload.parts[n + 1].filename,
-                    "attach_id": g_raw.data.payload.parts[n + 1].body.attachmentId,
-                    "raw": null
-                }
-                attachments.push(attach_json)
+            // if (g_raw.data.payload.parts[n + 1].mimeType == "application/pdf") { //MUST BE PDF!
+            var attach_json = {
+                "mime": g_raw.data.payload.parts[n + 1].mimeType,
+                "filename": g_raw.data.payload.parts[n + 1].filename,
+                "attach_id": g_raw.data.payload.parts[n + 1].body.attachmentId,
+                "raw": null
             }
+            attachments.push(attach_json)
+            // }
         }
     }
     return attachments
@@ -111,9 +111,11 @@ exports.findDate = function (g_raw) {
 
 //parses the message and grabs the emails (is accompanied with function below)
 exports.parseBody = function (message) {
-    var singulars = {projects: "project", reads: "read", changes: "change", manages: "manage", 
-    names: "name", links: "link", descriptions: "description", notes: "note", tags: "tag",
-    members: "member", docs: "doc"}
+    var singulars = {
+        projects: "project", reads: "read", changes: "change", manages: "manage",
+        names: "name", links: "link", descriptions: "description", notes: "note", tags: "tag",
+        members: "member", docs: "doc"
+    }
     try {
         var m_parse = message.split("\n") //split according to "newlines in message"
         m_parse = m_parse.filter(function (el) { return el != ''; }) //remove '' from array 
@@ -123,18 +125,22 @@ exports.parseBody = function (message) {
             var kv = m_parse[i].split(":")
             var key = kv[0].trim().toLowerCase()
             var value = kv[1]
-            if (key[0] == "#") { 
-                mode = key.replace('#', '') 
+            if (key[0] == "#") {
+                mode = key.replace('#', '')
                 data[mode] = {}
             }
-            else if (data[mode] && value) {
+            else if (value) {
+                if (mode == "none") {
+                    mode = "document"
+                    data[mode] = {}
+                }
                 while (m_parse[i + 1] && !m_parse[i + 1].match('[#:]')) {
                     value = value + m_parse[i + 1]
                     i++;
                 }
                 key = singulars[key] ? singulars[key] : key
                 value = value.replace('\r', '').split('\\\\')
-                console.log(key)
+                // console.log(key)
                 for (var j = 0; j < value.length; j++) {
                     if (!data[mode][key]) { data[mode][key] = [] }
                     data[mode][key].push(value[j].trim())
@@ -145,7 +151,9 @@ exports.parseBody = function (message) {
         console.log("err: \n", err)
     }
     // console.log("data: ", data)
-    return data 
+    if (Object.keys(data).length == 0) { data.document = {} }
+    // console.log("m_parse.length: ", m_parse.length)
+    return data
 }
 
 exports.makeBodyAttachments = function (receiverId, subject, message, attach, filenames) {
@@ -162,9 +170,9 @@ exports.makeBodyAttachments = function (receiverId, subject, message, attach, fi
         "Content-Transfer-Encoding: 7bit" + "\n",
         message + "\n",
     ].join("\n") // set format
-    
+
     // append each attachment to the email
-    for(var i = 0; i < attach.length; i++) {
+    for (var i = 0; i < attach.length; i++) {
         str += ["--" + boundary,
         "--" + boundary,
         `Content-Type: Application/pdf; name=${filenames[i]}`,
@@ -173,7 +181,7 @@ exports.makeBodyAttachments = function (receiverId, subject, message, attach, fi
         `${attach[i]}`,
         ].join("\n")
     }
-    
+
     // append email tail
     str += ["--" + boundary + "--"].join("\n")
 
