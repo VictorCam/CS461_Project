@@ -1,0 +1,114 @@
+// Every field is an array, reference index 0 in most cases (applies to save and get)
+// Update: Old value \\ New value for Projects and Groups with the name field. 'Doc' field is mandatory for update and get
+// For Documents, just specify the new value
+// Update doc example: oldyear-serial \\ oldyear2-serial
+//		name: \\\\newName2 -> updates the name of the second document specified
+// Documents: can save, get and update multiple documents at a time
+// Project/Groups: only one doc at a time
+// Documents: Will have arrays in each of its fields being processed, to be reference by index
+// Use '\\' to separate entities, except for project fields under doc header
+// If you have multiple docs in the same email, all of the docs go into the same project
+//get example -> gets a project:
+//#project
+//project: projName#projectCode
+
+// Update example: add a note to the second document specified, the '\\' skips the first document and gets to the second
+//#document
+//Doc: 2021-0005 \\ 2021-0006
+//Note: \\newNote
+
+
+save
+
+#document
+project:	//if subject == save && !projectcode (number after #) assume project#0001; User must have change permissions to project to add documents to it
+read:		//can be an array of emails, groups, or both
+change:		//can be an array of emails, groups, or both
+manage:		//can be an array of emails, groups, or both
+name:		//each index of the array should contain the name of the corresponding attachment. If the index is empty, the attachment filename is used instead
+names:		//a person could, understandably, reflexively pluralize this field and we should account for that
+replaces:	//document to be superseded must exist
+link:		//links per document are contained in each index of the array multiple links for a single document are separated by ',' within each index
+links:		//a person could, understandably, reflexively pluralize this field and we should account for that
+description:	//descriptions per document are contained in each index of the array
+descriptions:	//a person could, understandably, reflexively pluralize this field and we should account for that
+note:		//notes per document are contained in each idex of the array
+notes:		//a person could, understandably, reflexively pluralize this field and we should account for that
+tag:		//tags per document are contained in each index of the array multiple tags for a single document are separated by ',' within each index
+tags:		//a person could, understandably, reflexively pluralize this field and we should account for that
+
+#project
+name:		//should not contain '#'. If it does remove '#' and everything thereafter. If project(s) by this name exist, find next project code and assign it to this one. If more 			than one name is specified, only considered the first
+read:		//can be an array of emails, groups, or both
+change:		//can be an array of emails, groups, or both
+manage:		//can be an array of emails, groups, or both
+link:		//multiple links for a project are separated by ','. If link.length > 1, only consider the first index
+links: 		//a person could, understandably, reflexively pluralize this field and we should account for that
+description:	//if more than one is specified, only consider the first
+
+#group
+name:		//if a group by this name already exists, reject the request. If more than one name is specified only consider the first
+read:		//can be an array of emails, groups, or both
+change:		//can be an array of emails, groups, or both
+manage:		//can be an array of emails, groups, or both
+member:		//should only contain an array of emails and not groups. Reject if any non-emails are found
+members:	//a person could, understandably, reflexively pluralize this field and we should account for that
+decription:	//if more than one dscription is specified, only consider the first
+decriptions:	//a person could, understandably, reflexively pluralize this field and we should account for that
+
+
+
+update
+
+#document
+doc:		//Should be an array of YYYY-#### format identifiers in each array index. Documents specified must exist and user must have at least CHANGE permissions
+docs:		//a person could, understandably, reflexively pluralize this field and we should account for that
+project:	//user must have >= CHANGE permission to target project if it already exists. If project does not include #projectCode, assume 0001. If no projects by that name exist, 		create one with projectCode 0001 and ignore any project code given by the user.
+read:		//user must have MANAGE permissions to all documents specified in doc or docs. All members in array are granted READ permission to all documents specified in doc or docs
+change:		//user must have MANAGE permissions to all documents specified in doc or docs. All members in array are granted CHANGE permission to all documents specified in doc or 			docs
+manage:		//user must have MANAGE permissions to all documents specified in doc or docs. All members in array are granted MANAGE permission to all documents specified in doc or 			docs
+name:		//user must have >= CHANGE permissions to the document to which the name is to be applied. name[i] corresponds to doc[i]. If name[i] == '', no action should be taken
+names:		//a person could, understandably, reflexively pluralize this field and we should account for that
+link:		//user must have >= CHANGE permissions to document to which the link is to be applied. Links per document are contained in each index of the array multiple links for a 		single document are separated by ',' within each index
+links:		//a person could, understandably, reflexively pluralize this field and we should account for that
+description:	//user must have >= CHANGE permissions to document to which the description is to be applied. Descriptions per document are contained in each index of the array
+descriptions:	//a person could, understandably, reflexively pluralize this field and we should account for that
+note:		//user must have >= CHANGE permissions to document to which the note is to be applied. Notes per document are contained in each idex of the array
+notes:		//a person could, understandably, reflexively pluralize this field and we should account for that
+tag:		//user must have >= CHANGE permissions to document to which the tag is to be applied. Tags per document are contained in each index of the array multiple tags for a 			single document are separated by ',' within each index
+tags:		//a person could, understandably, reflexively pluralize this field and we should account for that
+
+#project
+name:		//former name should preced new name and they should be separated by '\\' in the email (name[0] == former project name, name[1] == new project name). User must have >= 		CHANGE permission for the project specified. If former name does not contain '#', assume project code 0001. New name should not contain '#'. If it does remove '#' and 			everything thereafter. If project(s) by this name exist, find next project code and assign it to this one.
+read:		//user must have MANAGE permissions to the project. Can be an array of emails, groups, or both
+change:		//user must have MANAGE permissions to the project. Can be an array of emails, groups, or both
+manage:		//user must have MANAGE permissions to the project. Can be an array of emails, groups, or both
+link:		//user must have >= CHANGE permission to the project. Multiple links for a project are separated by ','. If link.length > 1, only consider the first index
+links:		//a person could, understandably, reflexively pluralize this field and we should account for that
+description:	//user must have >= CHANGE permission to the project. If more than one is specified, only consider the first
+descriptions:	//a person could, understandably, reflexively pluralize this field and we should account for that
+
+#group
+name:		//former name should preced new name and they should be separated by '\\' in the email (name[0] == form group name, name[1] == new project name). 
+		User must have >= CHANGE permission fo the group specified in name[0]. If a group with the new name already exists, reject the request.
+read:		//user must have MANAGE permissions to the group. Can be an array of emails, groups, or both
+change:		//user must have MANAGE permissions to the group. Can be an array of emails, groups, or both
+manage:		//user must have MANAGE permissions to the group. Can be an array of emails, groups, or both
+member:		//user must have MANAGE permissions to the group. Should only contain an array of emails and not groups. Reject if any non-emails are found
+members:	//a person could, understandably, reflexively pluralize this field and we should account for that
+decription:	//User must have >= CHANGE permissions to the group. Replace existing description. If more than one dscription is specified, only consider the first
+
+
+
+get
+
+#document
+doc:		//user must have >= READ permissions to document. doc should contain an array of ids of the form YYYY-####. All docs indicated must exist. Attach docs to reply email
+docs:		//a person could, understandably, reflexively pluralize this field and we should account for that
+
+#project
+project:	//user must have >= READ permissions to the project. If project does not contain '#' assume project code 0001. Return list of documents belonging to project and other 			details
+
+#group
+name:		//user must have >= READ permissions to the group. Return list of group members and other details
+names:		//a person could, understandably, reflexively pluralize this field and we should account for that

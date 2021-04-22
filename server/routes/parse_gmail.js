@@ -500,27 +500,41 @@ async function g_request(callback) {
                 var userdata = get_user.get(`${g_data.sender_email}`)
                 var userid = userdata ? userdata.UserID : insert_user.run(g_data.sender_email, g_data.sender_email).lastInsertRowid
 
-                var replyMessage
+                var replyMessage = {}
 
                 if (grp) {
+                    console.log(grp)
                     //TODO
                     //If user has READ access or greater to specified group, return list of group members, description, and owner email
                     //Acceptable to assume that only one group will be requested at a time or only process the first group listed in a request
                     //Don't return results immediately. Instead add them to replyMessage with appropriate formatting
+                    const descrip = db.prepare(`SELECT Groups.Description FROM Groups WHERE Groups.Name = ?`).all(grp.name[0])
+                    console.log(descrip)
+                    replyMessage.members = grp.member
+                    replyMessage.description = grp.description
+                    replyMessage.ownerEmail = userdata.Email // assuming those with manage lever permissions are the owners of the group
                 }
                 if (proj) {   
+                    console.log(proj)
                     //TODO
                     //If user has READ access or greater to the project specified, return Name#ProjectCode, description, owner email, 
                     //and a list of documents belonging to the project.
                     //If more than one project was speficied, it's fine to only process the first one
                     //Add results to replyMessage
+                    var projCode = "code"
+                    replyMessage.name_projcode = proj.name + "#" + projCode
+                    replyMessage.description = proj.description
+                    replyMessage.ownerEmail = userdata.Email
                 }
                 if (doc) {
-                    for (var j = 0; j < doc.docs.length; j++) {
+                    console.log(doc)
+                    for (var j = 0; j < doc.length; j++) {
                         //TODO
                         //If user has READ access or greater to the document(s) specified, attach them to the reply email
                     }
                 }
+
+                console.log(replyMessage)
                 // var contents = []
                 // var filenames = []
                 // user = get_user.get(`${g_data.sender_email}`) //find out who sent the request
@@ -571,7 +585,7 @@ async function g_request(callback) {
                     //If more than one project was speficied, it's fine to only process the first one
                 }
                 if (doc) {
-                    for (var j = 0; j < doc.docs.length; j++) {
+                    for (var j = 0; j < doc.length; j++) {
                         //TODO
                         //If user has CHANGE access or greater to the document(s) specified, perform the following operations if specified
                         //project: replace project name with doc.project 

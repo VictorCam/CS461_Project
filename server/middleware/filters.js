@@ -1,3 +1,5 @@
+// Validate JSON objects & check permissions
+
 const Joi = require('joi')
 
 exports.save_filter = function(db, json) {

@@ -2,67 +2,38 @@
   <div class="save-tutorial">
     <Header v-bind:title="'Save Tutorial'" v-bind:showBackButton="true" v-bind:showTutorialButton="false"/>
     <div class="content">
+        <div class="general-info">
+            <ul class="gi-list">
+                <li><h3>Only fields displayed as bold in the images below are required, all other fields are optional. (You do not need to bold anything in the emails.)</h3></li>
+                <li><h3>When including multiple items in a field, use a double backslash '\\' to separate the items.</h3></li>
+                <li><h3>Use a comma ',' to separate items within double backslash '\\' deliminators.</h3></li>
+                <li><h3>In a save-document email, if no names are specified then a document will be created and named after each corresponding attachment.</h3></li>
+            </ul>
+        </div>
         <div class="steps">
             <br>
             <h2>
-                1. Open an email message, include gobeavdms@gmail.com as the recipient. Make 
-                sure you are logged into you Oregon State email (@oregonstate.edu) address, otherwise the process will not work.
+                Document
             </h2>
             <br>
-            <b-img src="https://snipboard.io/lhNGY1.jpg" fluid alt="Fluid image" class="image"></b-img>
+            <b-img src="https://snipboard.io/0tujOc.jpg" fluid alt="Fluid image" class="image"></b-img>
+            <br>
         </div>
         <div class="steps">
             <h2>
-                2. In the subject field, type "save".
+                Project
             </h2>
             <br>
-            <b-img src="https://snipboard.io/wrYZL2.jpg" fluid alt="Fluid image" class="image"></b-img>
+            <b-img src="https://snipboard.io/wkrAdJ.jpg" fluid alt="Fluid image" class="image"></b-img>
+            <br>
         </div>
         <div class="steps">
             <h2>
-                3. (Optional) In the body of the email, add a project name.
-                <br><br>
-                <h4>Follow the format shown below:</h4>
-                <h5>project: Project Name 1</h5>
+                Group
             </h2>
             <br>
-            <b-img src="https://snipboard.io/Pa7Jf2.jpg" fluid alt="Fluid image" class="image"></b-img>
-        </div>
-        <div class="steps">
-            <h2>
-                4. (Optional) In the body of the email include permissions. The permissions are "read", "change", and "manage".
-                <br> <br>
-                <h4>Follow the format shown below:</h4>
-                <h5>Permission: OSU Email Address, OSU Email Address, OSU Email Address</h5>
-                <h5>Permission: OSU Email Address, OSU Email Address, OSU Email Address</h5>
-                <h5>Permission: OSU Email Address, OSU Email Address, OSU Email Address</h5>
-                <h5>...</h5>
-                <br>
-            </h2>
-            <b-img src="https://snipboard.io/u7xmY8.jpg" fluid alt="Fluid image" class="image"></b-img>
-        </div>
-        <div class="steps">
-            <h2>
-                5. Below the permissions in the body, optionally add a names field to name the attached documents in the file system.
-                <br> <br>
-                <h4>Follow the format shown below:</h4>
-                <h4>names: Doc 1 Name, Doc 2 Name, Doc 3 Name</h4>
-                <br>
-            </h2>
-            <b-img src="https://snipboard.io/gQAV4c.jpg" fluid alt="Fluid image" class="image"></b-img>
-        </div>
-        <div class="steps">
-            <h2>
-                6. Include any necessary attachments to the email The attachments must be PDF files.
-            </h2>
+            <b-img src="https://snipboard.io/du8H5a.jpg" fluid alt="Fluid image" class="image"></b-img>
             <br>
-            <b-img src="https://snipboard.io/XUv4Lg.jpg" fluid alt="Fluid image" class="image"></b-img>
-        </div>
-        <div class="steps">
-            <h2>
-                7. Send the email, check your inbox for a confirmation message.
-                If confirmed, your document should show up on the www.beavdms.com website.
-            </h2>
         </div>
     </div>
   </div>
@@ -89,8 +60,16 @@ export default {
     margin-left: 40px;
     margin-right: 40px;
     margin-bottom: 100px;
+    text-align: center;
 }
 .image {
     justify-content: center;
+}
+.general-info {
+    margin: 20px;
+    align-self: flex-start;
+}
+.gi-list {
+    margin: 40px;
 }
 </style>
