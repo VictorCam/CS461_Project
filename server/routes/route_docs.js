@@ -44,7 +44,7 @@ router.get("/api/doc/:docID", (req, res) => {
         'docLinks': docLinksRes.all(),
         'notes': notesRes.all()
     };
-    console.log(docResults);
+    // console.log(docResults);
     res.status(200).json(docResults);
 });
 
@@ -65,7 +65,7 @@ router.get("/api/project/:projID", (req, res) => {
         'projLinks': projLinksRes.all()
     }
 
-    console.log(projResults);
+    // console.log(projResults);
     res.status(200).json(projResults);
 });
 

@@ -1,0 +1,100 @@
+{
+    "id":0,
+    "g_id":"178bd6f9924541b9",
+    "sender_name":"Shands, Travis Patrick",
+    "sender_email":"shandst@oregonstate.edu",
+    "access":{
+       "document":{
+          "project":[
+             "Cryptography"
+          ],
+          "read":[
+             "all"
+          ],
+          "change":[
+             "a@oregonstate.edu",
+             "b@oregonstate.edu"
+          ],
+          "manage":[
+             "c@oregonstate.edu"
+          ],
+          "name":[
+             "Chapter 15",
+             "Chapter 14",
+             "Chapter 12"
+          ],
+          "link":[
+             "",
+             "",
+             "www.github.com/shandstp, www.linkedin.com/shandstp"
+          ],
+          "description":[
+             "Public-Key Encryption",
+             "Diffie-Hellman Key Agreement",
+             "Authenticated Encryption & AEAD"
+          ],
+          "note":[
+             "A math heavy and mind bendy but ultimately very interestingchapter",
+             "Very interesting stuff; remember, can't be used for encryption",
+             "How else are you going to know who you're talking to and that the message\rhasn't been changed?"
+          ],
+          "tag":[
+             "crypto, oregonstate",
+             "crypto, cybersecurity"
+          ]
+       },
+       "project":{
+          "name":[
+             "Cryptography"
+          ],
+          "read":[
+             "all"
+          ],
+          "change":[
+             "a@oregonstate.edu",
+             "b@oregonstate.edu"
+          ],
+          "manage":[
+             "c@oregonstate.edu"
+          ],
+          "dumb": [
+             "HAHA IM A BAD USSER XD"
+          ],
+          "description":[
+             "A test project containing documents from CS427"
+          ],
+          "group":[
+             "beavdms"
+          ]
+       },
+       "group":{
+          "name":[
+             "beavdms"
+          ],
+          "member":[
+             "shandst@oregonstate.edu",
+             "campav@oregonstate.edu",
+             "albertab@oregonstate.edu"
+          ],
+          "read":[
+             "all"
+          ],
+          "change":[
+             "shandst@oregonstate.edu",
+             "campav@oregonstate.edu",
+             "albertab@oregonstate.edu"
+          ],
+          "manage":[
+             "shandst@oregonstate.edu",
+             "campav@oregonstate.edu",
+             "albertab@oregonstate.edu"
+          ],
+          "description":[
+             "The team responsible for developing Beavdms"
+          ]
+       }
+    },
+    "date":"Sat, 10 Apr 2021 13:18:17 -0700",
+    "cmd":"save",
+    "attachments": ["1", "2", "3"]
+ }
