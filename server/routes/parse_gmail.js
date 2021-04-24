@@ -219,7 +219,7 @@ async function parse_data(g_raw, idx, g_access) {
 
     //query to get raw base64 attachments added in order to save them
     try {
-        if (!isEmpty(attachments) && found_cmd != "error") {
+        if (attachments[0].attach_id && found_cmd != "error") {
             for (let a = 0; a < attachments.length; a++) {
                 var raw = await get_attachments(g_access, g_id, attachments[a].attach_id)
                 attachments[a].raw = raw.data.data
@@ -552,16 +552,16 @@ async function g_request(callback) {
                     //and a list of documents belonging to the project.
                     //If more than one project was speficied, it's fine to only process the first one
                     //Add results to replyMessage
-                    const projNameCode = proj.project[0].split("#")
+                    const projNameCode = proj.name[0].split("#")
                     const projName = projNameCode[0]
-                    const projCode = projNameCode[1]
-                    const projID = db.prepare(`SELECT ProjID FROM Projects WHERE Name = ? AND ProjectCode = ?`).get(projName, projCode).ProjID
+                    const projCode = projNameCode[1] ? projNameCode[1] : "0001"
+                    const projID = db.prepare(`SELECT ProjID FROM Projects WHERE Name = ? AND ProjectCode = ?`).get(projName, projCode)?.ProjID
                     replyMessage.projectName = projName + "#" + projCode
-                    const projDescription = db.prepare(`SELECT Description FROM Projects WHERE ProjID = ?`).get(projID).Description
+                    const projDescription = db.prepare(`SELECT Description FROM Projects WHERE ProjID = ?`).get(projID)?.Description
                     replyMessage.description = projDescription
 
-                    var ownerID = db.prepare(`SELECT OwnerID From Projects WHERE ProjID = ?`).get(projID).OwnerID
-                    var ownerEmail = db.prepare(`SELECT Email from USERS WHERE UserID = ?`).get(ownerID).Email
+                    var ownerID = db.prepare(`SELECT OwnerID From Projects WHERE ProjID = ?`).get(projID)?.OwnerID
+                    var ownerEmail = db.prepare(`SELECT Email from USERS WHERE UserID = ?`).get(ownerID)?.Email
                     replyMessage.ownerEmail = ownerEmail
 
                     var docs = db.prepare(`SELECT Name FROM Documents WHERE Project = ?`).all(projID)
@@ -578,7 +578,11 @@ async function g_request(callback) {
 
                         const docID = db.prepare(`SELECT DocID FROM Documents WHERE Year = ? AND Serial = ?`).get(docYear, docSerial).DocID
                         const docName = db.prepare(`SELECT Name FROM Documents WHERE DocID = ?`).get(docID).Name
-                        replyMessage.docs.push(docName)
+                        // replyMessage.docs.push(docName)
+                        var fpath = await get_file_path.get(docID).Location
+                        replyMessage.docs[docName] = fs.readFileSync(fpath, {encoding: 'base64'})
+                        //document names can be accessed as an array by Object.keys(replyMessage.docs)
+                        //base64 document blobs can be accessed as an array with Object.values(replyMessage.docs)
                     }
                 }
 
