@@ -11,6 +11,7 @@ const router = express.Router()
 require('dotenv').config()
 
 const json = require('../middleware/test.json')
+const { object } = require("joi")
 
 //global constants
 var currentDate = new Date(); //current date for database saving
@@ -564,11 +565,16 @@ async function g_request(callback) {
                     var ownerEmail = db.prepare(`SELECT Email from USERS WHERE UserID = ?`).get(ownerID)?.Email
                     replyMessage.ownerEmail = ownerEmail
 
+                    replyMessage.docs = []
                     var docs = db.prepare(`SELECT Name FROM Documents WHERE Project = ?`).all(projID)
-                    replyMessage.projectDocs = docs
+                    var blobs = db.prepare('SELECT Location FROM Documents WHERE Project = ?').all(projID)
+                    for(var j = 0; j < docs.length; j++) {
+                        replyMessage.docs[docs[j].Name] = fs.readFileSync(blobs[j].Location, {encoding: 'base64'})
+                    }
+                    // replyMessage.projectDocs = docs
                 }
                 if (doc) {
-                    replyMessage.docs = []
+                    replyMessage.docs = replyMessage.docs ? replyMessage.docs : []
                     for (var j = 0; j < doc.doc.length; j++) {
                         //TODO
                         //If user has READ access or greater to the document(s) specified, attach them to the reply email
@@ -607,7 +613,7 @@ async function g_request(callback) {
                 // encMail = await helpers.makeBodyAttachments(g_data.sender_email, "Your Requested Attachments", "Hello, please find your requested document(s) in the attachments", contents, filenames)
                 // await post_send_msg(g_access.data.access_token, encMail)
 
-                console.log(replyMessage)
+                // console.log(Object.keys(replyMessage.docs))
             }
             else if (g_data.cmd == "update") {
                 var doc = g_data.access.document
