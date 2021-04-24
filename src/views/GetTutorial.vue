@@ -2,34 +2,37 @@
   <div class="get-tutorial">
     <Header v-bind:title="'Get Tutorial'" v-bind:showBackButton="true" v-bind:showTutorialButton="false"/>
     <div class="content">
+        <div class="general-info">
+            <ul class="gi-list">
+                <li><h3>Only fields displayed as bold in the images below are required, all other fields are optional. (You do not need to bold anything in the emails.)</h3></li>
+                <li><h3>When including multiple items in a field, use a double backslash '\\' to separate the items.</h3></li>
+                <li><h3>Use a comma ',' to separate items within double backslash '\\' deliminators.</h3></li>
+            </ul>
+        </div>
         <div class="steps">
             <br>
             <h2>
-                1. Open an email message, include gobeavdms@gmail.com as the recipient. Make 
-                sure you are logged into you Oregon State email (@oregonstate.edu) address, otherwise the process will not work.
+                Document
             </h2>
             <br>
-            <b-img src="https://snipboard.io/lhNGY1.jpg" fluid alt="Fluid image" class="image"></b-img>
+            <b-img src="https://snipboard.io/wYIe2Q.jpg" fluid alt="Fluid image" class="image"></b-img>
+            <br>
         </div>
         <div class="steps">
             <h2>
-                2. In the subject field, type "get".
+                Project
             </h2>
             <br>
-            <b-img src="https://snipboard.io/VQYTGo.jpg" fluid alt="Fluid image" class="image"></b-img>
+            <b-img src="https://snipboard.io/FpsYZW.jpg" fluid alt="Fluid image" class="image"></b-img>
+            <br>
         </div>
         <div class="steps">
             <h2>
-                3. In the body, specify the IDs of the documents you would like to retrieve in the following format:
-                <br>
-                <b-img src="https://snipboard.io/WvVdTl.jpg" fluid alt="Fluid image" class="image"></b-img>
+                Group
             </h2>
-        </div>
-        <div class="steps">
-            <h2>
-                4. Send the email, check your inbox for a confirmation message.
-                If confirmed, your document should show up on the www.beavdms.com website.
-            </h2>
+            <br>
+            <b-img src="https://snipboard.io/8aUkhK.jpg" fluid alt="Fluid image" class="image"></b-img>
+            <br>
         </div>
     </div>
   </div>
@@ -56,8 +59,16 @@ export default {
     margin-left: 40px;
     margin-right: 40px;
     margin-bottom: 100px;
+    text-align: center;
 }
 .image {
     justify-content: center;
+}
+.general-info {
+    margin: 20px;
+    align-self: flex-start;
+}
+.gi-list {
+    margin: 40px;
 }
 </style>

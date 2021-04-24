@@ -335,6 +335,26 @@ function saveTags(id, tags) {
     });
 }
 
+function saveProj(proj, userid) {
+    var projName = proj.name ? proj.name[1] : proj.names[1] //determine whether user used name: or names:
+    projName = projName ? projName.trim() : null
+    if (projName) { //don't do anything if no name was specified 
+        var desc = proj.description ? proj.description : proj.descriptions
+        desc = desc ? desc[0].trim() : null //perpare des with description or descriptions
+        var projdata = projName ? find_project.get(projName, 1) : null
+        var projid = projdata ? insert_project.run(projName, userid, find_max_proj_id.get(projName).ProjID + 1, desc).lastInsertRowid
+            : insert_project.run(projName, userid, 1, desc).lastInsertRowid //if project with same name exists, create new one with highest existing project code +1
+        var links = proj.link ? proj.link : proj.links
+        links = links ? links : null
+        if (links) { saveLinks(projid, links[0].trim(), "proj") } //save link(s) to ProjLinks
+        //save new users and give permissions
+        proj.manage.push(g_data.sender_email) //ensure sender has manage permissions to their new project
+        if (proj.read) { grantPermission("PID", projid, READ, proj.read, userid) }
+        if (proj.change) { grantPermission("PID", projid, CHANGE, proj.change, userid) }
+        if (proj.manage) { grantPermission("PID", projid, MANAGE, proj.manage, userid) } 
+    }
+}
+
 async function g_request(callback) {
     try {
         const g_access = await get_token() //getting access token 
@@ -407,7 +427,7 @@ async function g_request(callback) {
                     var projName = proj.name ? proj.name[0] : proj.names[0] //determine whether user used name: or names:
                     projName = projName ? projName.trim() : null
                     if (projName) { //don't do anything if no name was specified 
-                        var desc = proj.description ? doc.description : doc.descriptions
+                        var desc = proj.description ? proj.description : proj.descriptions
                         desc = desc ? desc[0].trim() : null //perpare des with description or descriptions
                         var projdata = projName ? find_project.get(projName, 1) : null
                         var projid = projdata ? insert_project.run(projName, userid, find_max_proj_id.get(projName).ProjID + 1, desc).lastInsertRowid
@@ -500,13 +520,31 @@ async function g_request(callback) {
                 var userdata = get_user.get(`${g_data.sender_email}`)
                 var userid = userdata ? userdata.UserID : insert_user.run(g_data.sender_email, g_data.sender_email).lastInsertRowid
 
-                var replyMessage
+                var replyMessage = {}
 
                 if (grp) {
                     //TODO
                     //If user has READ access or greater to specified group, return list of group members, description, and owner email
                     //Acceptable to assume that only one group will be requested at a time or only process the first group listed in a request
                     //Don't return results immediately. Instead add them to replyMessage with appropriate formatting
+                    var groupIDQuery = db.prepare(`SELECT GroupID FROM Groups WHERE Name = ?`).get(grp.name[0])
+                    const groupID = groupIDQuery.GroupID
+
+                    const memberUserIDs = db.prepare(`SELECT UID FROM usersXgroups WHERE GID = ?`).all(groupID)
+                    var groupMembers = []
+                    for (var i = 0; i < memberUserIDs.length; i++) {
+                        let id = memberUserIDs[i].UID
+                        const queryForMember = db.prepare(`SELECT Name, Email FROM Users WHERE UserID = ?`).get(id)
+                        groupMembers.push(queryForMember)
+                    }
+                    replyMessage.members = groupMembers
+
+                    replyMessage.description = db.prepare(`SELECT Groups.Description FROM Groups WHERE Groups.Name = ?`).get(grp.name[0])
+
+                    var ownerID = db.prepare(`SELECT OwnerID From GROUPS WHERE GroupID = ?`).get(groupID).OwnerID
+                    var ownerEmail = db.prepare(`SELECT Email from USERS WHERE UserID = ?`).get(ownerID).Email
+
+                    replyMessage.ownerEmail = ownerEmail // assuming those with manage lever permissions are the owners of the group
                 }
                 if (proj) {   
                     //TODO
@@ -514,13 +552,36 @@ async function g_request(callback) {
                     //and a list of documents belonging to the project.
                     //If more than one project was speficied, it's fine to only process the first one
                     //Add results to replyMessage
+                    const projNameCode = proj.project[0].split("#")
+                    const projName = projNameCode[0]
+                    const projCode = projNameCode[1]
+                    const projID = db.prepare(`SELECT ProjID FROM Projects WHERE Name = ? AND ProjectCode = ?`).get(projName, projCode).ProjID
+                    replyMessage.projectName = projName + "#" + projCode
+                    const projDescription = db.prepare(`SELECT Description FROM Projects WHERE ProjID = ?`).get(projID).Description
+                    replyMessage.description = projDescription
+
+                    var ownerID = db.prepare(`SELECT OwnerID From Projects WHERE ProjID = ?`).get(projID).OwnerID
+                    var ownerEmail = db.prepare(`SELECT Email from USERS WHERE UserID = ?`).get(ownerID).Email
+                    replyMessage.ownerEmail = ownerEmail
+
+                    var docs = db.prepare(`SELECT Name FROM Documents WHERE Project = ?`).all(projID)
+                    replyMessage.projectDocs = docs
                 }
                 if (doc) {
-                    for (var j = 0; j < doc.docs.length; j++) {
+                    replyMessage.docs = []
+                    for (var j = 0; j < doc.doc.length; j++) {
                         //TODO
                         //If user has READ access or greater to the document(s) specified, attach them to the reply email
+                        const docString = doc.doc[j].split("-")
+                        const docYear = docString[0]
+                        const docSerial = docString[1]
+
+                        const docID = db.prepare(`SELECT DocID FROM Documents WHERE Year = ? AND Serial = ?`).get(docYear, docSerial).DocID
+                        const docName = db.prepare(`SELECT Name FROM Documents WHERE DocID = ?`).get(docID).Name
+                        replyMessage.docs.push(docName)
                     }
                 }
+
                 // var contents = []
                 // var filenames = []
                 // user = get_user.get(`${g_data.sender_email}`) //find out who sent the request
@@ -542,6 +603,7 @@ async function g_request(callback) {
                 // encMail = await helpers.makeBodyAttachments(g_data.sender_email, "Your Requested Attachments", "Hello, please find your requested document(s) in the attachments", contents, filenames)
                 // await post_send_msg(g_access.data.access_token, encMail)
 
+                console.log(replyMessage)
             }
             else if (g_data.cmd == "update") {
                 var doc = g_data.access.document
@@ -552,13 +614,22 @@ async function g_request(callback) {
                 var userdata = get_user.get(`${g_data.sender_email}`)
                 var userid = userdata ? userdata.UserID : insert_user.run(g_data.sender_email, g_data.sender_email).lastInsertRowid
 
+                
                 if (grp) {
+                    console.log(grp)
                     //TODO
                     //If user has CHANGE access or greater to specified group, perform the following operations if specified
                     //name: replace existing name with grp.name
                     //description: replace existing one with grp.description
                     //If user has MANAGE permission, use grantPermission to process lists in grp.read, grp.change, or grp.manage if they exist
                     //Acceptable to assume that only one group will be requested at a time or only process the first group listed in a request
+                    
+                    const groupID = db.prepare(`SELECT GroupID FROM Groups WHERE Name = ?`).get(grp.name[0]).GroupID
+                    console.log(groupID)
+                    db.prepare(`UPDATE Groups SET Name = ? WHERE GroupID = ?`).run(grp.name[1], groupID)
+                    if (grp.description) {
+                        db.prepare(`UPDATE Groups SET Description = ? WHERE GroupID = ?`).run(grp.description[0], groupID)
+                    }
                 }
                 if (proj) {   
                     //TODO
@@ -569,9 +640,21 @@ async function g_request(callback) {
                     //group: replace exising group with one specified
                     //If user has MANAGE permission, use grantPermission to process lists in proj.read, proj.change, or proj.manage if they exist
                     //If more than one project was speficied, it's fine to only process the first one
+
+                    // if (links) { saveLinks(projid, links[0].trim(), "proj") } //save link(s) to ProjLinks
+                    const projString = proj.name[0].split("#")
+                    const projName = projString[0]
+                    const projCode = parseInt(projString[1])
+                    const projID = db.prepare(`SELECT ProjID FROM Projects WHERE Name = ? AND ProjectCode = ?`).get(projName, projCode).ProjID
+
+                    db.prepare(`DELETE FROM Projects WHERE ProjID = ?`).run(projID)
+                    saveProj(proj, userid)
+
                 }
                 if (doc) {
-                    for (var j = 0; j < doc.docs.length; j++) {
+                    console.log(doc)
+                    for (var j = 0; j < doc.doc.length; j++) {
+                        let currDoc = doc.doc[j]
                         //TODO
                         //If user has CHANGE access or greater to the document(s) specified, perform the following operations if specified
                         //project: replace project name with doc.project 
@@ -583,6 +666,38 @@ async function g_request(callback) {
                         //If user has MANAGE permissions, process doc.read, doc.change, and doc.manage accordingly using grantPermission
                         //project, read, change, and manage are applied to all documents listed doc.docs. All other fields are applied to 
                         //individual documents
+
+                        const docString = currDoc.split("-")
+                        const docYear = docString[0]
+                        const docSerial = docString[1]
+                        const docQuery = db.prepare(`SELECT DocID, Project FROM Documents WHERE Year = ? AND Serial = ?`).get(docYear, docSerial)
+                        const docID = docQuery.DocID
+
+                        if (doc.project) {
+                            const currProj = doc.project[0]
+                            const projString = currProj.split("#")
+                            const projName = projString[0]
+                            const projCode = projString[1]
+                            const projID = db.prepare(`SELECT ProjID FROM Projects WHERE Name = ? AND ProjectCode = ?`).get(projName, projCode).ProjID
+                            
+                            db.prepare(`UPDATE DOCUMENTS SET Project = ? WHERE DocID = ?`).run(projID, docID)
+                        }
+
+                        if (doc.name) {
+                            const newDocName = doc.name[j]
+                            db.prepare(`UPDATE Documents SET Name = ? WHERE DocID = ?`).run(newDocName, docID)
+                        }
+
+                        if (doc.description) {
+                            const newDocDesc = doc.description[j]
+                            db.prepare(`UPDATE Documents SET Description = ? WHERE DocID = ?`).run(newDocDesc, docID)
+                        }
+
+                        if (doc.note) {
+                            const newDocNote = doc.note[j]
+                            const currDate = currentDate.getDay() + "/" + currentDate.getDate() + "/" + currentDate.getFullYear()
+                            db.prepare(`INSERT INTO Notes (DID, UID, DateAdded, Note) VALUES (?, ?, ?, ?)`).run(docID, userid, currDate, newDocNote)
+                        }
                     }
                 }
 

@@ -1,15 +1,17 @@
 <template>
     <div class="documents">
         <DocumentItemLabels/>
-            <div v-for="doc in loadedDocuments" :key="doc.DocID">
-                <DocumentItem v-bind:doc="doc"/>
-            </div>
+        <div v-for="doc in loadedDocuments" :key="doc.DocID">
+            <DocumentItem v-bind:doc="doc"/>
+        </div>
 
-            <p>Page: {{this.$route.query.page}} / {{max.page}}</p>
+        <div class="page-num">
+            <h4><b>Page: {{this.$route.query.page}} / {{max.page}}</b></h4>
+        </div>
 
-        <div class="paginate_buttons">
-            <button @click="navigate(Number($route.query.page)-1, Number(max.page))">Previous</button>
-            <button  @click="navigate(Number($route.query.page)+1, Number(max.page))">Next</button>
+        <div class="paginate-buttons">
+            <b-button class="btn" @click="navigate(Number($route.query.page)-1, Number(max.page))">Previous</b-button>
+            <b-button class="btn"  @click="navigate(Number($route.query.page)+1, Number(max.page))">Next</b-button>
         </div>
 
     </div>
@@ -73,5 +75,14 @@ export default {
     }
     .field {
         color: #444
+    }
+    .page-num {
+        margin: 20px;
+    }
+    .paginate-buttons {
+        margin: 20px;
+    }
+    .btn {
+        margin-right: 10px;
     }
 </style>
