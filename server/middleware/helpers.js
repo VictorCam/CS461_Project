@@ -114,7 +114,7 @@ exports.parseBody = function (message) {
     var singulars = {
         projects: "project", reads: "read", changes: "change", manages: "manage",
         names: "name", links: "link", descriptions: "description", notes: "note", tags: "tag",
-        members: "member", docs: "doc"
+        members: "member", docs: "doc", replaces: "replace"
     }
     try {
         var m_parse = message.split("\n") //split according to "newlines in message"

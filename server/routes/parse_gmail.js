@@ -449,7 +449,7 @@ async function g_request(callback) {
                     } else { projid = null; level = MANAGE | CHANGE | READ } //not 100% sure what this is for. Might be vestigial 
 
                         //get id of document to be superseded if one is specified
-                        var repys = doc?.replaces ? doc.replaces[j].split('-') : null
+                        var repys = doc?.replace ? doc.replace[j].split('-') : null
                         replaceid = repys ? get_DocID?.get(repys[0], repys[1])?.DocID : null //get DocID that correlates to the YYYY-#### specified by the user
 
                         //get description of document if one is specified
