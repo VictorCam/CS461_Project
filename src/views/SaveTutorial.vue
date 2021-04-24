@@ -24,7 +24,7 @@
                 Project
             </h2>
             <br>
-            <b-img src="https://snipboard.io/wkrAdJ.jpg" fluid alt="Fluid image" class="image"></b-img>
+            <b-img src="https://snipboard.io/eXQoF4.jpg" fluid alt="Fluid image" class="image"></b-img>
             <br>
         </div>
         <div class="steps">
@@ -32,7 +32,7 @@
                 Group
             </h2>
             <br>
-            <b-img src="https://snipboard.io/du8H5a.jpg" fluid alt="Fluid image" class="image"></b-img>
+            <b-img src="https://snipboard.io/B31sZJ.jpg" fluid alt="Fluid image" class="image"></b-img>
             <br>
         </div>
     </div>

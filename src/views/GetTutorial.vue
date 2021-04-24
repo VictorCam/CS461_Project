@@ -15,7 +15,7 @@
                 Document
             </h2>
             <br>
-            <b-img src="https://snipboard.io/wYIe2Q.jpg" fluid alt="Fluid image" class="image"></b-img>
+            <b-img src="https://snipboard.io/1UXA9P.jpg" fluid alt="Fluid image" class="image"></b-img>
             <br>
         </div>
         <div class="steps">
