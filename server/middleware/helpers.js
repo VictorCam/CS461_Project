@@ -56,12 +56,10 @@ exports.findAttachments = function (g_raw) {
 //find the subject title of the email
 exports.findSubject = function (g_raw) {
     var title = "error"
-    var find_index = [19, 21, 3, 4]
-    for (let i = 0; i < find_index.length; i++) {
-        const element = find_index[i]
-        if (typeof g_raw.data.payload.headers[element] != 'undefined') { //check if it exists
-            if (g_raw.data.payload.headers[element].name.toLowerCase() == "subject") {
-                title = g_raw.data.payload.headers[element].value
+    for (let i = 0; i < g_raw.data.payload.headers.length-1; i++) {
+        if (typeof g_raw.data.payload.headers[i] != 'undefined') { //check if it exists
+            if (g_raw.data.payload.headers[i].name.toLowerCase() == "subject") {
+                title = g_raw.data.payload.headers[i].value
                 return title
             }
         }
@@ -71,12 +69,10 @@ exports.findSubject = function (g_raw) {
 
 //want to find the sender email and name 
 exports.findSenderInfo = function (g_raw) {
-    var find_index = [16, 4, 18, 5]
-    for (let i = 0; i < find_index.length; i++) {
-        const element = find_index[i]
-        if (typeof g_raw.data.payload.headers[element] != 'undefined') {
-            if (g_raw.data.payload.headers[element].name == "From") {
-                var raw_from = parse_from(element, g_raw)
+    for (let i = 0; i < g_raw.data.payload.headers.length-1; i++) {
+        if (typeof g_raw.data.payload.headers[i] != 'undefined') {
+            if (g_raw.data.payload.headers[i].name == "From") {
+                var raw_from = parse_from(i, g_raw)
                 var words = raw_from.split('=')
                 return words
             }

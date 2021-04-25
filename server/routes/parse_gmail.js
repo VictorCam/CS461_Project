@@ -23,7 +23,7 @@ const CHANGE = 2; //Permission to add document to project, etc...
 const READ = 1; //Permission to read document
 
 dbfun.createDatabase(db);
-var test = filters.save_filter(db, json)
+// var test = filters.save_filter(db, json)
 
 get_user = db.prepare("SELECT * FROM Users WHERE Email=?;")
 get_group = db.prepare("SELECT * FROM Groups WHERE Name=?")
@@ -144,6 +144,13 @@ async function parse_data(g_raw, idx, g_access) {
         return { "cmd": "error" }
     }
 
+    //use this if you want to see the data of a giant json object
+    // var fs = require('fs');
+    // fs.writeFile(`j_${g_id}.json`, JSON.stringify(g_raw.data), function(err) {
+    //     if (err) throw err;
+    //     console.log('complete');
+    // })
+
     //ignore messages that are sent from gobeavdms@gmail.com (isn't an error but we still want to ignore it)
     if (title == "error") {
         console.log("deleting auto message that was sent to user")
@@ -163,7 +170,7 @@ async function parse_data(g_raw, idx, g_access) {
 
     //relay error if the title does not specify a command or the match isn't found
     var matches = title.match(/save|get|update|help/g)
-    if (matches == undefined || matches == null || title == undefined || title == null || sender_name == 'NA' || sender_name == 'NA') {
+    if (matches == undefined || matches == null || title == undefined || title == null || sender_name == 'NA' || sender_email == 'NA') {
         console.log("matches or title is undefined or null")
         return { "cmd": "relay_error", "sender_email": sender_email }
     }
@@ -382,12 +389,12 @@ async function g_request(callback) {
             if (g_data.cmd == "save") {
 
                 //validate the json data, and if we fail then we send error to user who sent it 
-                // var save_filter = filters.save_filter(db, g_data)
-                // if(save_filter.error) {
-                //    raw = await helpers.makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] ERROR`, `Error: ${save_filter.error}`)
-                //    await post_send_msg(g_access.data.access_token, raw)
-                //    return await callback()
-                // }
+                var save_filter = filters.save_filter(db, g_data)
+                if(save_filter?.error) {
+                   raw = await helpers.makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] ERROR`, `Error: ${save_filter.error}`)
+                   await post_send_msg(g_access.data.access_token, raw)
+                   return await callback()
+                }
 
 
                 var doc = g_data.access.document
@@ -522,6 +529,14 @@ async function g_request(callback) {
             }
 
             else if (g_data.cmd == "get") {
+
+                var get_filter = filters.get_filter(db, g_data)
+                if(get_filter?.error) {
+                   raw = await helpers.makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] ERROR`, `Error: ${save_filter.error}`)
+                   await post_send_msg(g_access.data.access_token, raw)
+                   return await callback()
+                }
+
                 var doc = g_data.access.document
                 var proj = g_data.access.project
                 var grp = g_data.access.group

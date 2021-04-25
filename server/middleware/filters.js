@@ -79,16 +79,66 @@ exports.save_filter = function(db, json) {
 
     validate = fschema.validate(json)
 
+    //check perms when there are duplicates
+
     if(!validate.error) {
-        console.log("JSON SUCCESS -> now check tables")
+        console.log("passed filtered")
         find_proj = db.prepare("SELECT * FROM Projects WHERE Name = ?")
         proj_query = find_proj.all(json.access.project.name[0])
         if(proj_query.length == 1) { return { "error": `the project name already exist please pick another project name that isn't the name "${json.access.project.name[0]}".`} }
         return //if we return nothing then it was all succesful
     }
-    // console.log(validate.error.details[0].message)
+    console.log("joi validation error in save_filter()")
     return { "error": validate.error.details[0].message }
 }
 
-exports.update_filter = function(db, json) {
+exports.get_filter = function(db, json) {
+    
+const fschema = Joi.object({
+    id: Joi.number().required(),
+    g_id: Joi.string().alphanum().required(),
+    sender_name: Joi.string().required(),
+    sender_email: Joi.string().email({ tlds: { allow: false } }).required(),
+    date: Joi.string().required(),
+    cmd: Joi.string().required(),
+    attachments: Joi.array().optional(),
+    access: Joi.object().keys(
+            {
+                document: Joi.object().keys({
+                    doc: Joi.array().required(),
+                }).unknown().optional(),
+                project: Joi.object().keys({
+                    project: Joi.array().items(Joi.string()).max(1).required(),
+                }).unknown().optional(),
+                group: Joi.object().keys({
+                    name: Joi.array().required(),
+                }).unknown().optional()
+            }
+        )
+    })
+
+    validate = fschema.validate(json)
+
+    if(!validate.error) {
+        console.log("passed filter")
+        
+        if(json.access?.document?.doc) {
+            console.log("check doc perms")
+            
+        }
+
+        if(json.access?.project?.project) {
+            console.log("check project perms")
+        }
+
+        if(json.access?.group?.name) {
+            console.log("check group perms")
+        }
+
+        return
+    }
+    console.log("joi validation error in get_filter()")
+    return { "error": validate.error.details[0].message }
+    // console.log("joi validation error in get_filter()")
+    // return { "error": validate.error.details[0].message }
 }
