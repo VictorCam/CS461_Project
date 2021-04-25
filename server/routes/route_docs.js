@@ -51,7 +51,7 @@ router.get("/api/doc/:docID", (req, res) => {
 // Get the document the user is currently viewing
 router.get("/api/project/:projID", (req, res) => {
     const projID = req.params.projID;
-    const proj = `SELECT Projects.Name AS Pname, Projects.Description FROM Projects WHERE Projects.ProjID = ${projID}`;
+    const proj = `SELECT Projects.Name AS Pname, Projects.ProjectCode AS Pcode, Projects.Description FROM Projects WHERE Projects.ProjID = ${projID}`;
     const projDocs = `SELECT Documents.Name AS Dname FROM Documents WHERE Documents.Project = ${projID}`
     const projLinks = `SELECT ProjLinks.Link FROM ProjLinks WHERE ${projID} = ProjLinks.PID`
 

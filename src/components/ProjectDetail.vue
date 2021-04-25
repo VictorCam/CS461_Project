@@ -5,6 +5,11 @@
             <b-container fluid class="my-3" v-if="project">
                 <b-row class="my-5 field">
                     <b-col>
+                        <h4><b>Full Name: </b> {{project.proj[0].Pname}}#{{project.proj[0].Pcode.toString().padStart(4, '0')}}</h4>
+                    </b-col>
+                </b-row>
+                <b-row class="my-5 field">
+                    <b-col>
                         <div v-if="project.projDocs.length > 0">
                             <h4><b>Documents: </b></h4>
                             <ul class="mx-4">
