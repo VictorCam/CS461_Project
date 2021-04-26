@@ -152,10 +152,10 @@ async function parse_data(g_raw, idx, g_access) {
     // })
 
     //ignore messages that are sent from gobeavdms@gmail.com (isn't an error but we still want to ignore it)
-    if (title == "error") {
-        console.log("deleting auto message that was sent to user")
-        return { "cmd": "error" }
-    }
+    // if (title == "error") {
+    //     console.log("deleting auto message that was sent to user")
+    //     return { "cmd": "error" }
+    // }
 
     //sender_name and sender_email (if we cannot find it then we cannot send a error msg)
     try {
@@ -165,6 +165,12 @@ async function parse_data(g_raw, idx, g_access) {
     }
     catch (err) {
         console.log("error with sender_info arr")
+        return { "cmd": "error" }
+    }
+
+    // ignore messages that are sent from gobeavdms@gmail.com (isn't an error but we still want to ignore it)
+    if(sender_email == 'beavdms3@gmail.com') {
+        console.log("deleting programmatically sent BOT message that was sent to user")
         return { "cmd": "error" }
     }
 
