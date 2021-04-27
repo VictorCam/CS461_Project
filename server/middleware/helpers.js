@@ -39,7 +39,7 @@ exports.findAttachments = function (g_raw) {
     var attachments = []
     if (g_raw.data.payload.parts != undefined) { //check if it exists
         for (let n = 0; n < g_raw.data.payload.parts.length - 1; n++) {
-            // if (g_raw.data.payload.parts[n + 1].mimeType == "application/pdf") { //MUST BE PDF!
+            if (g_raw.data.payload.parts[n + 1].mimeType != "text/html") { //cannot be text/html
             var attach_json = {
                 "mime": g_raw.data.payload.parts[n + 1].mimeType,
                 "filename": g_raw.data.payload.parts[n + 1].filename,
@@ -47,7 +47,7 @@ exports.findAttachments = function (g_raw) {
                 "raw": null
             }
             attachments.push(attach_json)
-            // }
+            }
         }
     }
     return attachments

@@ -4,15 +4,15 @@ const Joi = require('joi')
 
 exports.save_filter = function(db, json) {
 
-    const fschema = Joi.alternatives().conditional(Joi.object({ attachments: Joi.array().min(1) }).unknown(), {
-        then: Joi.object({
+    if(json.attachments.length > 0) {
+        fschema = Joi.object({
             id: Joi.number().required(),
             g_id: Joi.string().alphanum().required(),
             sender_name: Joi.string().required(),
             sender_email: Joi.string().email({ tlds: { allow: false } }).required(),
             date: Joi.string().required(),
             cmd: Joi.string().required(),
-            attachments: Joi.array().min(1),
+            attachments: Joi.array(),
             access: Joi.object().keys(
                 {
                     document: Joi.object().keys({ //ALL OPTIONAL
@@ -20,7 +20,7 @@ exports.save_filter = function(db, json) {
                         read: Joi.array().items(Joi.string()),
                         change: Joi.array().items(Joi.string()),
                         manage: Joi.array().items(Joi.string()),
-                        name: Joi.array().items(Joi.string().allow('')),
+                        name: Joi.array().min(json.attachments.length).items(Joi.string().allow('')),
                         link: Joi.array().items(Joi.string().allow('')),
                         description: Joi.array().items(Joi.string().allow('')),
                         note: Joi.array().items(Joi.string().allow('')),
@@ -45,17 +45,21 @@ exports.save_filter = function(db, json) {
                     }).unknown().optional()
                 }
             )
-        }),
-        otherwise: Joi.object({
+        })
+    }
+    
+    if(json.attachments.length == 0) {
+        fschema = Joi.object({
             id: Joi.number().required(),
             g_id: Joi.string().alphanum().required(),
             sender_name: Joi.string().required(),
             sender_email: Joi.string().email({ tlds: { allow: false } }).required(),
             date: Joi.string().required(),
             cmd: Joi.string().required(),
-            attachments: Joi.array().optional(),
+            attachments: Joi.array(),
             access: Joi.object().keys(
                 {
+                    document: Joi.object().keys().forbidden(),
                     project: Joi.object().keys({ //ALL OPTIONAL (EXCEPT NAME)
                         name: Joi.array().items(Joi.string()).max(1).required(),
                         read: Joi.array().items(Joi.string()),
@@ -75,18 +79,30 @@ exports.save_filter = function(db, json) {
                 }
             )
         })
-    });
+    }
 
     validate = fschema.validate(json)
 
     //check perms when there are duplicates
-
     if(!validate.error) {
-        console.log("passed filtered")
-        find_proj = db.prepare("SELECT * FROM Projects WHERE Name = ?")
-        proj_query = find_proj.all(json.access.project.name[0])
-        if(proj_query.length == 1) { return { "error": `the project name already exist please pick another project name that isn't the name "${json.access.project.name[0]}".`} }
-        return //if we return nothing then it was all succesful
+
+        if(json?.access?.document?.name) {
+            console.log("check if doc name already exists")
+        }
+
+        if(json?.access?.project?.name) {
+            console.log("check if proj name already exists")
+            // find_proj = db.prepare("SELECT * FROM Projects WHERE Name = ?").all(json.access.project.name[0])
+            // console.log(find_proj.length)
+            // if(find_proj.length == 1) { return { "error": `the project name already exist please pick another project name that isn't the name "${json.access.project.name[0]}".`} }
+        }
+
+        if(json?.access?.group?.name) {
+            console.log("check if group name already exists")
+        }
+        
+        console.log("data filtered properly")
+        return //if we return nothing then it was all successful
     }
     console.log("joi validation error in save_filter()")
     return { "error": validate.error.details[0].message }
@@ -120,7 +136,6 @@ const fschema = Joi.object({
     validate = fschema.validate(json)
 
     if(!validate.error) {
-        console.log("passed filter")
         
         if(json.access?.document?.doc) {
             console.log("check doc perms")
@@ -135,6 +150,7 @@ const fschema = Joi.object({
             console.log("check group perms")
         }
 
+        console.log("data filtered properly")
         return
     }
     console.log("joi validation error in get_filter()")

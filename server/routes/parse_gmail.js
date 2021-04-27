@@ -197,13 +197,6 @@ async function parse_data(g_raw, idx, g_access) {
         return { "cmd": "relay_error", "sender_email": sender_email }
     }
 
-
-    //if there is no attachments then we want to send an error since there is nothing to save
-    if (attachments.length == 0 && found_cmd == "save") {
-        console.log("there is no attachments in this email")
-        return { "cmd": "relay_error", "sender_email": sender_email }
-    }
-
     //date
     try {
         date = helpers.findDate(g_raw)
@@ -233,7 +226,7 @@ async function parse_data(g_raw, idx, g_access) {
 
     //query to get raw base64 attachments added in order to save them
     try {
-        if (attachments[0].attach_id && found_cmd != "error") {
+        if (attachments[0]?.attach_id && found_cmd != "error") {
             for (let a = 0; a < attachments.length; a++) {
                 var raw = await get_attachments(g_access, g_id, attachments[a].attach_id)
                 attachments[a].raw = raw.data.data
@@ -241,8 +234,7 @@ async function parse_data(g_raw, idx, g_access) {
         }
     }
     catch (err) {
-        console.log("error with checking attachments")
-        return { "cmd": "relay_error", "sender_email": sender_email }
+        console.log("error with checking attachments OR no attachments found", err)
     }
 
     //json format
@@ -397,8 +389,9 @@ async function g_request(callback) {
                 //validate the json data, and if we fail then we send error to user who sent it 
                 var save_filter = filters.save_filter(db, g_data)
                 if(save_filter?.error) {
-                   raw = await helpers.makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] ERROR`, `Error: ${save_filter.error}`)
-                   await post_send_msg(g_access.data.access_token, raw)
+                    console.log("sending error message:", save_filter.error)
+                //    raw = await helpers.makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] ERROR`, `Error: ${save_filter.error}`)
+                //    await post_send_msg(g_access.data.access_token, raw)
                    return await callback()
                 }
 
@@ -538,8 +531,9 @@ async function g_request(callback) {
 
                 var get_filter = filters.get_filter(db, g_data)
                 if(get_filter?.error) {
-                   raw = await helpers.makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] ERROR`, `Error: ${save_filter.error}`)
-                   await post_send_msg(g_access.data.access_token, raw)
+                    console.log("sending error message:", get_filter.error)
+                //    raw = await helpers.makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] ERROR`, `Error: ${get_filter.error}`)
+                //    await post_send_msg(g_access.data.access_token, raw)
                    return await callback()
                 }
 
