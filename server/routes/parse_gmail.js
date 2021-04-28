@@ -28,7 +28,7 @@ dbfun.createDatabase(db);
 get_user = db.prepare("SELECT * FROM Users WHERE Email=?;")
 get_group = db.prepare("SELECT * FROM Groups WHERE Name=?")
 find_doc = db.prepare("SELECT * FROM Documents WHERE Location = ?;")
-find_group = db.prepare("SELECT * FROM Groups WHERE Name=?;")
+var find_group = db.prepare("SELECT * FROM Groups WHERE Name=?")
 find_project = db.prepare("SELECT * FROM Projects WHERE Name = ? AND ProjectCode=?;")
 find_max_proj_code = db.prepare("SELECT MAX(ProjectCode) AS ProjectCode FROM Projects WHERE Name=?;")
 get_file_path = db.prepare("SELECT Location FROM Documents WHERE DocID = ?;")
@@ -150,12 +150,6 @@ async function parse_data(g_raw, idx, g_access) {
     //     if (err) throw err;
     //     console.log('complete');
     // })
-
-    //ignore messages that are sent from gobeavdms@gmail.com (isn't an error but we still want to ignore it)
-    // if (title == "error") {
-    //     console.log("deleting auto message that was sent to user")
-    //     return { "cmd": "error" }
-    // }
 
     //sender_name and sender_email (if we cannot find it then we cannot send a error msg)
     try {
@@ -410,15 +404,13 @@ async function g_request(callback) {
 
                 if (grp) {
                     replyMessage.grp = {}
-                    var grpName = grp.name ? grp.name[0] : grp.names[0] //determine whether sender used name: or names:
-                    grpName = grpName ? grpName.trim() : null   //trim spaces off either side of the group name and set it to grpName
+                    var grpName = grp.name ? grp.name[0].trim() : null //trim spaces off either side of the group name and set it to grpName
                     if (grpName) { //Don't do anything if a name wasn't given
-                        if (!find_group.get(grpName)) { //check if group by that name already exists. Do nothing if true
-                            var desc = grp.description ? grp.description : grp.descriptions
-                            desc = desc[0] ? desc[0].trim() : null //set description(s) as desc
+                        if (find_group.all(grpName).length == 0) { //check if group by that name already exists. Do nothing if true
+
+                            var desc = grp.description ? grp.description[0].trim() : null //set description(s) as desc
                             var grpid = insert_group.run(grpName, userid, desc).lastInsertRowid //creat the group
-                            var members = grp.member ? grp.member : grp.members
-                            members = members ? members : null 
+                            var members = grp.member ? grp.member : null 
                             if (members) { //add member(s) to group
                                 members.forEach((member) => {
                                     member = member.trim()
@@ -426,6 +418,8 @@ async function g_request(callback) {
                                     add_to_group.run(member, grpid)
                                 })
                             }
+
+                            if(!grp.manage) { grp.manage = [] } //create array if grp.manage does not exist
                             grp.manage.push(g_data.sender_email) //ensure that the sender has manage permissions to their new group
                             if (grp.read) { grantPermission("GID", grpid, READ, grp.read, userid) }
                             if (grp.change) { grantPermission("GID", grpid, CHANGE, grp.change, userid) }
@@ -447,6 +441,9 @@ async function g_request(callback) {
                         var projid = insert_project.run(projName, userid, projCode, desc).lastInsertRowid
                         if (proj.link) { saveLinks(projid, proj.link[0].trim(), "proj") } //save link(s) to ProjLinks
                         //save new users and give permissions
+
+                        if(!proj.manage) { proj.manage = [] } //create array if proj.manage does not exist
+
                         proj.manage.push(g_data.sender_email) //ensure sender has manage permissions to their new project
                         if (proj.read) { grantPermission("PID", projid, READ, proj.read, userid) }
                         if (proj.change) { grantPermission("PID", projid, CHANGE, proj.change, userid) }
@@ -515,7 +512,7 @@ async function g_request(callback) {
                     }
                 }
 
-                console.log(replyMessage.doc)
+                console.log("reply msg:", replyMessage.doc)
                 //case in where if the parse data has empty arrays then the parse() function found a formatting issue
                 if (!isEmpty(g_data.sender_email) && !isEmpty(g_data.attachments)) {
                     raw = await helpers.makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] SAVED ATTACHMENTS`, `Success: Saved document(s) successfully to gobeavdms!`)

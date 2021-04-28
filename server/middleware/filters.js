@@ -87,18 +87,27 @@ exports.save_filter = function(db, json) {
     if(!validate.error) {
 
         if(json?.access?.document?.name) {
-            console.log("check if doc name already exists")
+            find_doc = db.prepare("SELECT * FROM Documents WHERE Name = ?").all(json.access.document.name[0])
+            if(find_doc.length >= 1) {
+                console.log("error document name already exist")
+                return { "error": "document name already exist" }
+            }
         }
 
         if(json?.access?.project?.name) {
-            console.log("check if proj name already exists")
-            // find_proj = db.prepare("SELECT * FROM Projects WHERE Name = ?").all(json.access.project.name[0])
-            // console.log(find_proj.length)
-            // if(find_proj.length == 1) { return { "error": `the project name already exist please pick another project name that isn't the name "${json.access.project.name[0]}".`} }
+            find_proj = db.prepare("SELECT * FROM Projects WHERE Name = ?").all(json.access.project.name[0])
+            if(find_proj.length >= 1) {
+                console.log("error project name already exist")
+                return { "error": `the project name already exist please pick another project name that isn't the name "${json.access.project.name[0]}".`} 
+            }
         }
 
         if(json?.access?.group?.name) {
-            console.log("check if group name already exists")
+            find_group = db.prepare("SELECT * FROM Groups WHERE Name = ?").all(json.access.group.name[0])
+            if(find_group.length >= 1) {
+                console.log("error group name already exist")
+                return { "error": `the group name already exist please pick another project name that isn't the name "${json.access.group.name[0]}".`} 
+            }
         }
         
         console.log("data filtered properly")
@@ -158,3 +167,4 @@ const fschema = Joi.object({
     // console.log("joi validation error in get_filter()")
     // return { "error": validate.error.details[0].message }
 }
+
