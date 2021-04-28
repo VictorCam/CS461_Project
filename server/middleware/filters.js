@@ -86,22 +86,6 @@ exports.save_filter = function(db, json) {
     //check perms when there are duplicates
     if(!validate.error) {
 
-        if(json?.access?.document?.name) {
-            find_doc = db.prepare("SELECT * FROM Documents WHERE Name = ?").all(json.access.document.name[0])
-            if(find_doc.length >= 1) {
-                console.log("error document name already exist")
-                return { "error": "document name already exist" }
-            }
-        }
-
-        if(json?.access?.project?.name) {
-            find_proj = db.prepare("SELECT * FROM Projects WHERE Name = ?").all(json.access.project.name[0])
-            if(find_proj.length >= 1) {
-                console.log("error project name already exist")
-                return { "error": `the project name already exist please pick another project name that isn't the name "${json.access.project.name[0]}".`} 
-            }
-        }
-
         if(json?.access?.group?.name) {
             find_group = db.prepare("SELECT * FROM Groups WHERE Name = ?").all(json.access.group.name[0])
             if(find_group.length >= 1) {
