@@ -160,7 +160,7 @@ async function parse_data(g_raw, idx, g_access) {
     }
 
     // ignore messages that are sent from gobeavdms@gmail.com (isn't an error but we still want to ignore it)
-    if(sender_email == process.env.USER_ID) {
+    if(sender_email == userId) {
         console.log("deleting programmatically sent BOT message that was sent to user")
         return { "cmd": "error" }
     }
