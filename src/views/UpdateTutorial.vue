@@ -19,7 +19,7 @@
                 Document
             </h2>
             <br>
-            <b-img src="https://snipboard.io/XagH3E.jpg" fluid alt="Fluid image" class="image"></b-img>
+            <b-img src="https://snipboard.io/uA5CFn.jpg" fluid alt="Fluid image" class="image"></b-img>
             <br>
         </div>
         <div class="steps">
@@ -27,7 +27,7 @@
                 Project
             </h2>
             <br>
-            <b-img src="https://snipboard.io/F42Ets.jpg" fluid alt="Fluid image" class="image"></b-img>
+            <b-img src="https://snipboard.io/6lBypK.jpg" fluid alt="Fluid image" class="image"></b-img>
             <br>
         </div>
         <div class="steps">
@@ -35,7 +35,7 @@
                 Group
             </h2>
             <br>
-            <b-img src="https://snipboard.io/aUuCoH.jpg" fluid alt="Fluid image" class="image"></b-img>
+            <b-img src="https://snipboard.io/i2qjeV.jpg" fluid alt="Fluid image" class="image"></b-img>
             <br>
         </div>
     </div>

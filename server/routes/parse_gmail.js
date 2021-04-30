@@ -370,7 +370,7 @@ async function g_request(callback) {
             //relay a message back mentioning that an error has occurred
             if (g_data.cmd == "relay_error") {
                 raw = await helpers.makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] ERROR`, `An unknown error has occured.\nPlease verify that your e-mail was correctly formated and sent from your oregonstate e-mail account`)
-                await post_send_msg(g_access.data.access_token, raw)
+                await post_send_msg(g_access.data.access_token, ts)
                 return await callback()
             }
 
@@ -425,6 +425,17 @@ async function g_request(callback) {
                     }
                     replyMessage.grp.name = grpName
                     replyMessage.grp.members = members
+
+                    // Construct email
+                    var emailBodyMessage = `Name: ${replyMessage.grp.name}\n`
+                    if (members) {
+                        for (var i = 0; i < replyMessage.grp.members.length; i++) {
+                            emailBodyMessage.concat(replyMessage.grp.members[i])
+                        }
+                    }
+                    console.log(emailBodyMessage)
+                    raw = await helpers.makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] SAVE GROUP SUCCESS`, `${emailBodyMessage}`)
+                    await post_send_msg(g_access.data.access_token, raw)
                 }
                 if (proj) {
                     replyMessage.proj = {}
@@ -447,6 +458,11 @@ async function g_request(callback) {
                         if (proj.manage) { grantPermission("PID", projid, MANAGE, proj.manage, userid) } 
                         replyMessage.proj.name = projName + "#" + projCode.toString().padStart(4, '0')
                     }
+
+                    // Construct email
+                    var emailBodyMessage = replyMessage.proj.name
+                    raw = await helpers.makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] SAVE PROJECT SUCCESS`, `Name: ${emailBodyMessage}`)
+                    await post_send_msg(g_access.data.access_token, raw)
                 }
                 for (var j = 0; j < g_data.attachments.length; j++) {
                     if (doc) {
@@ -506,10 +522,17 @@ async function g_request(callback) {
                             if (doc?.change) { grantPermission("DID", docid, CHANGE, doc.change, userid) }//get index of change permission list if it exists
                             if (doc?.manage) { grantPermission("DID", docid, MANAGE, doc.manage, userid) } //get index of manage permission list if it exists
                         }
+                        // Construct email
+                        var emailBodyMessage = "Name: " + docName + "\nSerial: "
+                        for (var i = 0; i < replyMessage.doc.length; i++) {
+                            emailBodyMessage = emailBodyMessage.concat(replyMessage.doc + "\n")
+                        }
+                        console.log(emailBodyMessage)
+                        raw = await helpers.makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] SAVE DOCUMENT SUCCESS`, `${emailBodyMessage}`)
+                        await post_send_msg(g_access.data.access_token, raw)
                     }
                 }
 
-                console.log("reply msg:", replyMessage.doc)
                 //case in where if the parse data has empty arrays then the parse() function found a formatting issue
                 if (!isEmpty(g_data.sender_email) && !isEmpty(g_data.attachments)) {
                     raw = await helpers.makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] SAVED ATTACHMENTS`, `Success: Saved document(s) successfully to gobeavdms!`)
@@ -544,6 +567,8 @@ async function g_request(callback) {
                 if (grp) {
                     var groupIDQuery = db.prepare(`SELECT GroupID FROM Groups WHERE Name = ?`).get(grp.name[0])
                     const groupID = groupIDQuery.GroupID
+                    
+                    replyMessage.name = grp.name
 
                     const memberUserIDs = db.prepare(`SELECT UID FROM usersXgroups WHERE GID = ?`).all(groupID)
                     var groupMembers = []
@@ -560,9 +585,22 @@ async function g_request(callback) {
                     var ownerEmail = db.prepare(`SELECT Email from USERS WHERE UserID = ?`).get(ownerID).Email
 
                     replyMessage.ownerEmail = ownerEmail // assuming those with manage lever permissions are the owners of the group
+                    // Construct email
+                    var emailBodyMessage = "Name: " + replyMessage.name + "\nMembers:\n"
+                    for (var i = 0; i < replyMessage.members.length; i++) {
+                        emailBodyMessage = emailBodyMessage.concat(replyMessage.members[i].Name + "\n")
+                    }
+                    if (replyMessage.description) {
+                        emailBodyMessage = emailBodyMessage.concat("Description: " + replyMessage.description + "\n")
+                    }
+                    if (replyMessage.ownerEmail) {
+                        emailBodyMessage = emailBodyMessage.concat("Owner: " + replyMessage.ownerEmail + "\n")
+                    }
+                    raw = await helpers.makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] GET GROUP SUCCESS`, `${emailBodyMessage}`)
+                    await post_send_msg(g_access.data.access_token, raw)
                 }
                 if (proj) {
-                    const projNameCode = proj.name[0].split("#")
+                    const projNameCode = proj.project[0].split("#")
                     const projName = projNameCode[0]
                     const projCode = projNameCode[1] ? projNameCode[1] : "0001"
                     const projID = db.prepare(`SELECT ProjID FROM Projects WHERE Name = ? AND ProjectCode = ?`).get(projName, projCode)?.ProjID
@@ -580,6 +618,21 @@ async function g_request(callback) {
                     for (var j = 0; j < docs.length; j++) {
                         replyMessage.docs[docs[j].Name] = fs.readFileSync(blobs[j].Location, { encoding: 'base64' })
                     }
+
+                    // Construct email
+                    var emailBodyMessage = "Name # Code: " + replyMessage.projectName
+                    if (replyMessage.description) {
+                        emailBodyMessage = emailBodyMessage.concat("\nDescription: " + replyMessage.description)
+                    }
+                    if (replyMessage.ownerEmail) {
+                        emailBodyMessage = emailBodyMessage.concat("\nOwner: " + replyMessage.ownerEmail)
+                    }
+                    console.log(replyMessage.docs)
+
+                    console.log(emailBodyMessage)
+                    raw = await helpers.makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] GET PROJECT SUCCESS`, `${emailBodyMessage}`)
+                    await post_send_msg(g_access.data.access_token, raw)
+
                 }
                 if (doc) {
                     replyMessage.docs = replyMessage.docs ? replyMessage.docs : []
@@ -592,9 +645,17 @@ async function g_request(callback) {
                         var docName = db.prepare(`SELECT Name FROM Documents WHERE DocID = ?`).get(docID).Name
                         var fpath = await get_file_path.get(docID).Location
                         replyMessage.docs[docName] = fs.readFileSync(fpath, { encoding: 'base64' })
+                        console.log(Object.keys(replyMessage.docs))
                         //document names can be accessed as an array by Object.keys(replyMessage.docs)
                         //base64 document blobs can be accessed as an array with Object.values(replyMessage.docs)
+
+                        
+
                     }
+                    // exports.makeBodyAttachments = function (receiverId, subject, message, attach, filenames)
+                    // Construct email
+                    raw = await helpers.makeBodyAttachments(`${g_data.sender_email}`, "GET DOCS SUCCESS", `${emailBodyMessage}`, Object.values(replyMessage.docs), Object.keys(replyMessage.docs))
+                        await post_send_msg(g_access.data.access_token, raw)
                 }
             }
             else if (g_data.cmd == "update") {
@@ -631,6 +692,12 @@ async function g_request(callback) {
                             })
                         }
                     }
+                    // Construct email
+                    var emailBodyMessage = "New Name: " + replyMessage.grp.name
+                    
+                    console.log(emailBodyMessage)
+                    raw = await helpers.makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] UPDATE GROUP SUCCESS`, `${emailBodyMessage}`)
+                    await post_send_msg(g_access.data.access_token, raw)
                 }
                 if (proj) {
                     replyMessage.proj = {}
@@ -657,6 +724,12 @@ async function g_request(callback) {
                         if (proj.description) { db.prepare('UPDATE Projects SET Description=? WHERE ProjID=?').run(proj.description, curID) }
                     }
 
+                    // Construct email
+                    var emailBodyMessage = replyMessage.proj.newName
+                    
+                    console.log(emailBodyMessage)
+                    raw = await helpers.makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] UPDATE PROJECT SUCCESS`, `New Name # Code: ${emailBodyMessage}`)
+                    await post_send_msg(g_access.data.access_token, raw)
                 }
                 if (doc) {
                     replyMessage.doc = doc.doc
@@ -717,6 +790,11 @@ async function g_request(callback) {
                             saveLinks(docID, doc.link[j].trim(), "doc")
                         }
                     }
+                    // Construct email
+                    // var emailBodyMessage = replyMessage.doc
+                    // console.log(replyMessage.doc)
+                    raw = await helpers.makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] UPDATE Document SUCCESS`, `Documents Successfully updated`)
+                    await post_send_msg(g_access.data.access_token, raw)
                 }
             }
             else if (g_data.cmd == "help") {
