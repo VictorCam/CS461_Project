@@ -10,9 +10,6 @@ const filters = require('../middleware/filters')
 const router = express.Router()
 require('dotenv').config()
 
-const json = require('../middleware/test.json')
-const { object } = require("joi")
-
 //global constants
 var currentDate = new Date(); //current date for database saving
 var currentDBYear;
@@ -163,7 +160,7 @@ async function parse_data(g_raw, idx, g_access) {
     }
 
     // ignore messages that are sent from gobeavdms@gmail.com (isn't an error but we still want to ignore it)
-    if(sender_email == 'beavdms3@gmail.com') {
+    if(sender_email == userId) {
         console.log("deleting programmatically sent BOT message that was sent to user")
         return { "cmd": "error" }
     }
