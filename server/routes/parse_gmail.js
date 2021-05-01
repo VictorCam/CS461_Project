@@ -373,7 +373,7 @@ async function g_request(callback) {
             //relay a message back mentioning that an error has occurred
             if (g_data.cmd == "relay_error") {
                 raw = await helpers.makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] ERROR`, `An unknown error has occured.\nPlease verify that your e-mail was correctly formated and sent from your oregonstate e-mail account`)
-                await post_send_msg(g_access.data.access_token, ts)
+                await post_send_msg(g_access.data.access_token, raw)
                 return await callback()
             }
 
@@ -384,8 +384,8 @@ async function g_request(callback) {
                 var save_filter = filters.save_filter(db, g_data)
                 if(save_filter?.error) {
                     console.log("sending error message:", save_filter.error)
-                //    raw = await helpers.makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] ERROR`, `Error: ${save_filter.error}`)
-                //    await post_send_msg(g_access.data.access_token, raw)
+                   raw = await helpers.makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] ERROR`, `Error: ${save_filter.error}`)
+                   await post_send_msg(g_access.data.access_token, raw)
                    return await callback()
                 }
 
@@ -410,12 +410,12 @@ async function g_request(callback) {
 
                             var desc = grp.description ? grp.description[0].trim() : null //set description(s) as desc
                             var grpid = insert_group.run(grpName, userid, desc).lastInsertRowid //creat the group
-                            var members = grp.member ? grp.member : null 
-                            if (members) { //add member(s) to group
-                                members.forEach((member) => {
-                                    member = member.trim()
-                                    insert_user.run(member, member) //create user if they don't already exist
-                                    add_to_group.run(member, grpid)
+                            var member = grp.member ? grp.member : null 
+                            if (member) { //add member(s) to group
+                                member.forEach((mem) => {
+                                    mem = mem.trim()
+                                    insert_user.run(mem, mem) //create user if they don't already exist
+                                    add_to_group.run(mem, grpid)
                                 })
                             }
 
@@ -427,16 +427,15 @@ async function g_request(callback) {
                         }
                     }
                     replyMessage.grp.name = grpName
-                    replyMessage.grp.members = members
+                    replyMessage.grp.member = member
 
                     // Construct email
-                    var emailBodyMessage = `Name: ${replyMessage.grp.name}\n`
-                    if (members) {
-                        for (var i = 0; i < replyMessage.grp.members.length; i++) {
-                            emailBodyMessage.concat(replyMessage.grp.members[i])
-                        }
-                    }
-                    console.log(emailBodyMessage)
+                    var emailBodyMessage = `Name: ${replyMessage.grp.name}\nMembers:\n`
+                    // if (member) {
+                    //     for (var i = 0; i < replyMessage.grp.member.length; i++) {
+                    //         emailBodyMessage = emailBodyMessage.concat(replyMessage.grp.member[i] + "\n")
+                    //     }
+                    // }
                     raw = await helpers.makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] SAVE GROUP SUCCESS`, `${emailBodyMessage}`)
                     await post_send_msg(g_access.data.access_token, raw)
                 }
@@ -527,24 +526,14 @@ async function g_request(callback) {
                         }
                         // Construct email
                         var emailBodyMessage = "Name: " + docName + "\nSerial: "
-                        for (var i = 0; i < replyMessage.doc.length; i++) {
-                            emailBodyMessage = emailBodyMessage.concat(replyMessage.doc + "\n")
-                        }
+                        emailBodyMessage = emailBodyMessage.concat(replyMessage.doc + "\n")
                         console.log(emailBodyMessage)
                         raw = await helpers.makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] SAVE DOCUMENT SUCCESS`, `${emailBodyMessage}`)
                         await post_send_msg(g_access.data.access_token, raw)
                     }
                 }
 
-                //case in where if the parse data has empty arrays then the parse() function found a formatting issue
-                if (!isEmpty(g_data.sender_email) && !isEmpty(g_data.attachments)) {
-                    raw = await helpers.makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] SAVED ATTACHMENTS`, `Success: Saved document(s) successfully to gobeavdms!`)
-                    await post_send_msg(g_access.data.access_token, raw)
-                }
-                else {
-                    raw = await helpers.makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] ERROR SAVING ATTACHMENTS`, `Error: No attachments were added or invalid email format.`)
-                    await post_send_msg(g_access.data.access_token, raw)
-                }
+               
             }
 
             else if (g_data.cmd == "get") {
@@ -582,22 +571,25 @@ async function g_request(callback) {
                     }
                     replyMessage.members = groupMembers
 
-                    replyMessage.description = db.prepare(`SELECT Groups.Description FROM Groups WHERE Groups.Name = ?`).get(grp.name[0])
+                    replyMessage.description = db.prepare(`SELECT Groups.Description FROM Groups WHERE Groups.Name = ?`).get(grp.name[0]).Description
 
                     var ownerID = db.prepare(`SELECT OwnerID From GROUPS WHERE GroupID = ?`).get(groupID).OwnerID
                     var ownerEmail = db.prepare(`SELECT Email from USERS WHERE UserID = ?`).get(ownerID).Email
 
                     replyMessage.ownerEmail = ownerEmail // assuming those with manage lever permissions are the owners of the group
                     // Construct email
-                    var emailBodyMessage = "Name: " + replyMessage.name + "\nMembers:\n"
-                    for (var i = 0; i < replyMessage.members.length; i++) {
-                        emailBodyMessage = emailBodyMessage.concat(replyMessage.members[i].Name + "\n")
+                    var emailBodyMessage = "Name: " + replyMessage.name
+                    if (groupMembers.length > 0) {
+                        emailBodyMessage = emailBodyMessage.concat("\nMembers: ")
+                        for (var i = 0; i < replyMessage.members.length; i++) {
+                            emailBodyMessage = emailBodyMessage.concat(replyMessage.members[i].Name + ", ")
+                        }
                     }
                     if (replyMessage.description) {
-                        emailBodyMessage = emailBodyMessage.concat("Description: " + replyMessage.description + "\n")
+                        emailBodyMessage = emailBodyMessage.concat("\nDescription: " + replyMessage.description)
                     }
                     if (replyMessage.ownerEmail) {
-                        emailBodyMessage = emailBodyMessage.concat("Owner: " + replyMessage.ownerEmail + "\n")
+                        emailBodyMessage = emailBodyMessage.concat("\nOwner: " + replyMessage.ownerEmail)
                     }
                     raw = await helpers.makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] GET GROUP SUCCESS`, `${emailBodyMessage}`)
                     await post_send_msg(g_access.data.access_token, raw)
@@ -630,7 +622,11 @@ async function g_request(callback) {
                     if (replyMessage.ownerEmail) {
                         emailBodyMessage = emailBodyMessage.concat("\nOwner: " + replyMessage.ownerEmail)
                     }
-                    console.log(replyMessage.docs)
+                    var docNames = Object.keys(replyMessage.docs)
+                    emailBodyMessage = emailBodyMessage.concat("\nDocs: ")
+                    for (var i = 0; i < docNames.length; i++) {
+                        emailBodyMessage = emailBodyMessage.concat(docNames[i] + ", ")
+                    }
 
                     console.log(emailBodyMessage)
                     raw = await helpers.makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] GET PROJECT SUCCESS`, `${emailBodyMessage}`)
@@ -648,15 +644,15 @@ async function g_request(callback) {
                         var docName = db.prepare(`SELECT Name FROM Documents WHERE DocID = ?`).get(docID).Name
                         var fpath = await get_file_path.get(docID).Location
                         replyMessage.docs[docName] = fs.readFileSync(fpath, { encoding: 'base64' })
-                        console.log(Object.keys(replyMessage.docs))
                         //document names can be accessed as an array by Object.keys(replyMessage.docs)
                         //base64 document blobs can be accessed as an array with Object.values(replyMessage.docs)
-
-                        
-
                     }
                     // exports.makeBodyAttachments = function (receiverId, subject, message, attach, filenames)
                     // Construct email
+                    emailBodyMessage = "Docs: "
+                    for (var i = 0; i < Object.keys(replyMessage.docs).length; i++) {
+                        emailBodyMessage = emailBodyMessage.concat(Object.keys(replyMessage.docs)[i] + ", ")
+                    }
                     raw = await helpers.makeBodyAttachments(`${g_data.sender_email}`, "GET DOCS SUCCESS", `${emailBodyMessage}`, Object.values(replyMessage.docs), Object.keys(replyMessage.docs))
                         await post_send_msg(g_access.data.access_token, raw)
                 }
@@ -696,9 +692,8 @@ async function g_request(callback) {
                         }
                     }
                     // Construct email
-                    var emailBodyMessage = "New Name: " + replyMessage.grp.name
+                    var emailBodyMessage = "New Name: " + replyMessage.grp.newName
                     
-                    console.log(emailBodyMessage)
                     raw = await helpers.makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] UPDATE GROUP SUCCESS`, `${emailBodyMessage}`)
                     await post_send_msg(g_access.data.access_token, raw)
                 }
@@ -758,45 +753,56 @@ async function g_request(callback) {
                             }
                             db.prepare(`UPDATE Documents SET Project = ? WHERE DocID = ?`).run(projID, docID)
                         }
-
-                        if (doc?.replace[j]) {
-                            var replaceString = doc.replace[j].split("-")
-                            var replaceYear = replaceString[0]
-                            var replaceSerial = replaceString[1]
-                            var replaceID = get_DocID.get(replaceYear, replaceSerial)?.DocID
-                            db.prepare('UPDATE Documents SET Replaces=? WHERE DocID=?').run(replaceID, docID)
-                            db.prepare('UPDATE Documents SET ReplacedBy=? WHERE DocID=?').run(docID, replaceID)
+                        if (doc.replace) {
+                            if (doc?.replace[j]) {
+                                var replaceString = doc.replace[j].split("-")
+                                var replaceYear = replaceString[0]
+                                var replaceSerial = replaceString[1]
+                                var replaceID = get_DocID.get(replaceYear, replaceSerial)?.DocID
+                                db.prepare('UPDATE Documents SET Replaces=? WHERE DocID=?').run(replaceID, docID)
+                                db.prepare('UPDATE Documents SET ReplacedBy=? WHERE DocID=?').run(docID, replaceID)
+                            }
                         }
-
-                        if (doc?.name[j]) {
-                            var newDocName = doc.name[j]
-                            db.prepare(`UPDATE Documents SET Name = ? WHERE DocID = ?`).run(newDocName, docID)
+                        if (doc.name) {
+                            if (doc?.name[j]) {
+                                var newDocName = doc.name[j]
+                                db.prepare(`UPDATE Documents SET Name = ? WHERE DocID = ?`).run(newDocName, docID)
+                            }
                         }
-
-                        if (doc?.description[j]) {
-                            var newDocDesc = doc.description[j]
-                            db.prepare(`UPDATE Documents SET Description = ? WHERE DocID = ?`).run(newDocDesc, docID)
+                        
+                        if (doc.description) {
+                            if (doc?.description[j]) {
+                                var newDocDesc = doc.description[j]
+                                db.prepare(`UPDATE Documents SET Description = ? WHERE DocID = ?`).run(newDocDesc, docID)
+                            }
                         }
-
-                        if (doc?.note[j]) {
-                            var newDocNote = doc.note[j]
-                            // var currDate = currentDate.getDay() + "/" + currentDate.getDate() + "/" + currentDate.getFullYear()
-                            var currDate = date.toString()
-                            db.prepare(`INSERT INTO Notes (DID, UID, DateAdded, Note) VALUES (?, ?, ?, ?)`).run(docID, userid, currDate, newDocNote)
+                        
+                        if (doc.note) {
+                            if (doc?.note[j]) {
+                                var newDocNote = doc.note[j]
+                                // var currDate = currentDate.getDay() + "/" + currentDate.getDate() + "/" + currentDate.getFullYear()
+                                var currDate = date.toString()
+                                db.prepare(`INSERT INTO Notes (DID, UID, DateAdded, Note) VALUES (?, ?, ?, ?)`).run(docID, userid, currDate, newDocNote)
+                            }
                         }
-
-                        if (doc?.tag[j]) {
-                            saveTags(docID, doc.tag[j].trim())
+                        
+                        if (doc.tag) {
+                            if (doc?.tag[j]) {
+                                saveTags(docID, doc.tag[j].trim())
+                            }
                         }
-
-                        if (doc?.link[j]) {
-                            saveLinks(docID, doc.link[j].trim(), "doc")
+                        
+                        if (doc.link) {
+                            if (doc?.link[j]) {
+                                saveLinks(docID, doc.link[j].trim(), "doc")
+                            }
                         }
+                        
                     }
                     // Construct email
                     // var emailBodyMessage = replyMessage.doc
                     // console.log(replyMessage.doc)
-                    raw = await helpers.makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] UPDATE Document SUCCESS`, `Documents Successfully updated`)
+                    raw = await helpers.makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] UPDATE DOCUMENT SUCCESS`, `Documents Successfully Updated`)
                     await post_send_msg(g_access.data.access_token, raw)
                 }
             }

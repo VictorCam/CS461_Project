@@ -27,7 +27,7 @@
                 Project
             </h2>
             <br>
-            <b-img src="https://snipboard.io/6lBypK.jpg" fluid alt="Fluid image" class="image"></b-img>
+            <b-img src="https://snipboard.io/CbBy1K.jpg" fluid alt="Fluid image" class="image"></b-img>
             <br>
         </div>
         <div class="steps">
