@@ -4,9 +4,14 @@
     <div class="content">
         <div class="general-info">
             <ul class="gi-list">
+                <li><h3>All emails MUST be sent to: gobeavdms@gmail.com</h3></li>
+                <li><h3>This tutorial page details how to GET documents, projects and groups from the DMS.</h3></li>
+                <li><h3>See the <router-link :to="{ name: 'save' }">SAVE </router-link> and <router-link :to="{ name: 'update' }">UPDATE </router-link> tutorial pages for detail on other operations.</h3></li>
                 <li><h3>Only fields displayed as bold in the images below are required, all other fields are optional. (You do not need to bold anything in the emails.)</h3></li>
                 <li><h3>When including multiple items in a field, use a double backslash '\\' to separate the items.</h3></li>
                 <li><h3>Use a comma ',' to separate items within double backslash '\\' deliminators.</h3></li>
+                <li><h3>Documents are saved to the DMS with the year and a unique code (these are shown on the website). To get existing documents, reference them by their year and code. Ex: 2021-0001, 2021-0002, 2021-0003</h3></li>
+                <li><h3>Projects are saved to the DMS with a unique code (these are shown on the website). To get an existing project, reference it by its name and code. Ex: BeaverProject#0001, MyProject#0002</h3></li>
             </ul>
         </div>
         <div class="steps">
