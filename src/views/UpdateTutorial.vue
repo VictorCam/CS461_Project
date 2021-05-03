@@ -16,7 +16,7 @@
                 </h3></li>
                 <li><h3>Refer to the <router-link :to="{ name: 'get' }">GET </router-link> tutorial for how to correctly reference existing documents and projects in you email</h3></li>
                 <li><h3>To update documents, reference the docs by their year-code and make the necessary changes in the other fields.</h3></li>
-                <!-- <li><h3>To update projects, you must specify the old project name and code along with a '\\' delimitor and a new project name. Ex: BeaverProj#0001 \\ NewBeavProj</h3></li> -->
+                <!-- <li><h3>To update projects, you must specify the old project name and code along with a '\\' deliminator and a new project name. Ex: BeaverProj#0001 \\ NewBeavProj</h3></li> -->
             </ul>
         </div>
         <div class="steps">
