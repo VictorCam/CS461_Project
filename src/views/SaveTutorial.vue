@@ -5,7 +5,7 @@
         <div class="general-info">
             <ul class="gi-list">
                 <li><h3>All emails MUST be sent to: gobeavdms@gmail.com</h3></li>
-                <li><h3>This tutorial page details how to SAVE documents, projects and groups to the DMS.</h3></li>
+                <li><h3>Save operations: <a href="#save-doc">SAVE DOCUMENT</a>, <a href="#save-proj">SAVE PROJECT</a>, <a href="#save-grp">SAVE GROUP</a>  </h3></li>
                 <li><h3>See the <router-link :to="{ name: 'get' }">GET </router-link> and <router-link :to="{ name: 'update' }">UPDATE </router-link> tutorial pages for detail on other operations.</h3></li>
                 <li><h3>You only send and email with attachments when you are saving a document.</h3></li>
                 <li><h3>Only fields displayed as bold in the images below are required, all other fields are optional. (You do not need to bold anything in the emails.)</h3></li>
@@ -14,7 +14,7 @@
                 <li><h3>In a save-document email, if no names are specified then a document will be created and named after each corresponding attachment.</h3></li>
             </ul>
         </div>
-        <div class="steps">
+        <div class="steps" id="save-doc">
             <br>
             <h2>
                 Document
@@ -23,7 +23,7 @@
             <b-img src="https://snipboard.io/pXTnVU.jpg" fluid alt="Fluid image" class="image"></b-img>
             <br>
         </div>
-        <div class="steps">
+        <div class="steps" id="save-proj">
             <h2>
                 Project
             </h2>
@@ -31,7 +31,7 @@
             <b-img src="https://snipboard.io/eXQoF4.jpg" fluid alt="Fluid image" class="image"></b-img>
             <br>
         </div>
-        <div class="steps">
+        <div class="steps" id="save-grp">
             <h2>
                 Group
             </h2>
