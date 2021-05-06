@@ -22,35 +22,35 @@ const READ = 1; //Permission to read document
 dbfun.createDatabase(db);
 // var test = filters.save_filter(db, json)
 
-get_user = db.prepare("SELECT * FROM Users WHERE Email=?;")
-get_group = db.prepare("SELECT * FROM Groups WHERE Name=?")
-find_doc = db.prepare("SELECT * FROM Documents WHERE Location = ?;")
+var get_user = db.prepare("SELECT * FROM Users WHERE Email=?;")
+var get_group = db.prepare("SELECT * FROM Groups WHERE Name=?")
+var find_doc = db.prepare("SELECT * FROM Documents WHERE Location = ?;")
 var find_group = db.prepare("SELECT * FROM Groups WHERE Name=?")
-find_project = db.prepare("SELECT * FROM Projects WHERE Name = ? AND ProjectCode=?;")
-find_max_proj_code = db.prepare("SELECT MAX(ProjectCode) AS ProjectCode FROM Projects WHERE Name=?;")
-get_file_path = db.prepare("SELECT Location FROM Documents WHERE DocID = ?;")
-get_db_year = db.prepare("SELECT MAX(Year) AS Year FROM Documents;")
-get_last_Serial = db.prepare("SELECT MAX(Serial) AS Serial FROM Documents WHERE Year=?;")
-get_DocID = db.prepare("SELECT DocID From Documents Where Year=? and Serial=?;")
-get_tag = db.prepare("SELECT * FROM Tags WHERE Name=?")
+var find_project = db.prepare("SELECT * FROM Projects WHERE Name = ? AND ProjectCode=?;")
+var find_max_proj_code = db.prepare("SELECT MAX(ProjectCode) AS ProjectCode FROM Projects WHERE Name=?;")
+var get_file_path = db.prepare("SELECT Location FROM Documents WHERE DocID = ?;")
+var get_db_year = db.prepare("SELECT MAX(Year) AS Year FROM Documents;")
+var get_last_Serial = db.prepare("SELECT MAX(Serial) AS Serial FROM Documents WHERE Year=?;")
+var get_DocID = db.prepare("SELECT DocID From Documents Where Year=? and Serial=?;")
+var get_tag = db.prepare("SELECT * FROM Tags WHERE Name=?")
 // get_dpermID = db.prepare("SELECT DP.PermID FROM Documents D INNER JOIN DocPerms DP ON D.DocID=DP.DID INNER JOIN Users U ON U.UserID=DP.UID WHERE D.DocID=? AND U.UserID=?;")
 // get_ppermID = db.prepare("SELECT PP.PermID FROM Projects P INNER JOIN ProjPerms PP ON P.ProjID=PP.PID INNER JOIN Users U ON U.UserID=PP.UID WHERE P.ProjID=? AND U.UserID=?;")
 // get_gpermID = db.prepare("SELECT GP.PermID FROM Groups G INNER JOIN GroupPerms GP ON G.GroupID=GP.GID INNER JOIN Users U ON U.UserID=GP.UID WHERE G.GroupID=? AND U.UserID=?;")
-get_groups = db.prepare("SELECT GroupID FROM Groups INNER JOIN usersXgroups ON GroupID=GID INNER JOIN Users ON UserID=UID WHERE UserID=?")
+var get_groups = db.prepare("SELECT GroupID FROM Groups INNER JOIN usersXgroups ON GroupID=GID INNER JOIN Users ON UserID=UID WHERE UserID=?")
 
 update_proj = db.prepare("UPDATE Documents SET Project=? WHERE DocID=?;")
 update_docName = db.prepare("UPDATE Documents SET Name=? WHERE DocID=?;")
 
-insert_user = db.prepare("INSERT OR IGNORE INTO Users (Name, Email) VALUES (?, ?);")
-insert_doc = db.prepare("INSERT INTO Documents (Year, Serial, Name, Description, Location, OwnerID, Project, DateAdded, Replaces, ReplacedBy) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);")
-insert_project = db.prepare("INSERT INTO Projects (Name, OwnerID, ProjectCode, Description) VALUES (?, ?, ?, ?);")
-insert_group = db.prepare("INSERT OR IGNORE INTO Groups (Name, OwnerID, Description) VALUES (?, ?, ?);")
-add_to_group = db.prepare("INSERT OR IGNORE INTO usersXgroups (UID, GID) VALUES ((SELECT UserID FROM Users WHERE Email=?), ?);")
-insert_tag = db.prepare("INSERT OR IGNORE INTO Tags (Name) VALUES (?);")
-insert_docTag = db.prepare("INSERT OR IGNORE INTO tagsXdocs (DID, TID) VALUES (?, (SELECT TagID FROM Tags WHERE Name=?))")
-insert_note = db.prepare("INSERT INTO Notes (DID, UID, DateAdded, Note) VALUES (?, ?, ?, ?)")
-insert_docLink = db.prepare("INSERT INTO DocLinks (DID, Link) VALUES (?, ?)")
-insert_projLink = db.prepare("INSERT INTO ProjLinks (PID, Link) VALUES (?, ?)")
+var insert_user = db.prepare("INSERT OR IGNORE INTO Users (Name, Email) VALUES (?, ?);")
+var insert_doc = db.prepare("INSERT INTO Documents (Year, Serial, Name, Description, Location, OwnerID, Project, DateAdded, Replaces, ReplacedBy) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);")
+var insert_project = db.prepare("INSERT INTO Projects (Name, OwnerID, ProjectCode, Description) VALUES (?, ?, ?, ?);")
+var insert_group = db.prepare("INSERT OR IGNORE INTO Groups (Name, OwnerID, Description) VALUES (?, ?, ?);")
+var add_to_group = db.prepare("INSERT OR IGNORE INTO usersXgroups (UID, GID) VALUES ((SELECT UserID FROM Users WHERE Email=?), ?);")
+var insert_tag = db.prepare("INSERT OR IGNORE INTO Tags (Name) VALUES (?);")
+var insert_docTag = db.prepare("INSERT OR IGNORE INTO tagsXdocs (DID, TID) VALUES (?, (SELECT TagID FROM Tags WHERE Name=?))")
+var insert_note = db.prepare("INSERT INTO Notes (DID, UID, DateAdded, Note) VALUES (?, ?, ?, ?)")
+var insert_docLink = db.prepare("INSERT INTO DocLinks (DID, Link) VALUES (?, ?)")
+var insert_projLink = db.prepare("INSERT INTO ProjLinks (PID, Link) VALUES (?, ?)")
 
 function get_ownerID (table, idtype, id) {
     return db.prepare("SELECT OwnerID FROM " + table + " WHERE " + idtype + "=?;").get(id)
@@ -167,6 +167,7 @@ async function parse_data(g_raw, idx, g_access) {
 
     //relay error if the title does not specify a command or the match isn't found
     var matches = title.match(/save|get|update|help/g)
+    console.log(matches," ", title, " ", sender_name)
     if (matches == undefined || matches == null || title == undefined || title == null || sender_name == 'NA' || sender_email == 'NA') {
         console.log("matches or title is undefined or null")
         return { "cmd": "relay_error", "sender_email": sender_email }
@@ -538,8 +539,8 @@ async function g_request(callback) {
                 var get_filter = filters.get_filter(db, g_data)
                 if(get_filter?.error) {
                     console.log("sending error message:", get_filter.error)
-                //    raw = await helpers.makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] ERROR`, `Error: ${get_filter.error}`)
-                //    await post_send_msg(g_access.data.access_token, raw)
+                   raw = await helpers.makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] ERROR`, `Error: ${get_filter.error}`)
+                   await post_send_msg(g_access.data.access_token, raw)
                    return await callback()
                 }
 
@@ -548,7 +549,7 @@ async function g_request(callback) {
                 var grp = g_data.access.group
 
                 //get userid
-                var userdata = get_user.get(`${g_data.sender_email}`)
+                var userdata = get_user.all(`${g_data.sender_email}`)
                 var userid = userdata ? userdata.UserID : insert_user.run(g_data.sender_email, g_data.sender_email).lastInsertRowid
 
                 var replyMessage = {}
@@ -655,6 +656,14 @@ async function g_request(callback) {
                 }
             }
             else if (g_data.cmd == "update") {
+                var update_filter = filters.update_filter(db, g_data)
+                if(update_filter?.error) {
+                    console.log("sending error message:", update_filter.error)
+                   raw = await helpers.makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] ERROR`, `Error: ${get_filter.error}`)
+                   await post_send_msg(g_access.data.access_token, raw)
+                   return await callback()
+                }
+
                 var doc = g_data.access.document
                 var proj = g_data.access.project
                 var grp = g_data.access.group
