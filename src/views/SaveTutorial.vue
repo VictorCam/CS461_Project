@@ -20,7 +20,7 @@
                 Document
             </h2>
             <br>
-            <b-img src="https://snipboard.io/pXTnVU.jpg" fluid alt="Fluid image" class="image"></b-img>
+            <img src="@/assets/save_document.png" fluid alt="Fluid image" class="image"/>
             <br>
         </div>
         <div class="steps" id="save-proj">
@@ -28,7 +28,7 @@
                 Project
             </h2>
             <br>
-            <b-img src="https://snipboard.io/eXQoF4.jpg" fluid alt="Fluid image" class="image"></b-img>
+            <img src="@/assets/save_project.png" fluid alt="Fluid image" class="image"/>
             <br>
         </div>
         <div class="steps" id="save-grp">
@@ -36,7 +36,7 @@
                 Group
             </h2>
             <br>
-            <b-img src="https://snipboard.io/B31sZJ.jpg" fluid alt="Fluid image" class="image"></b-img>
+            <img src="@/assets/save_group.png" fluid alt="Fluid image" class="image"/>
             <br>
         </div>
     </div>

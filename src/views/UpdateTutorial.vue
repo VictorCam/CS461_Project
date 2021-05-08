@@ -25,7 +25,7 @@
                 Document
             </h2>
             <br>
-            <b-img src="https://snipboard.io/uA5CFn.jpg" fluid alt="Fluid image" class="image"></b-img>
+            <img src="@/assets/update_document.png" fluid alt="Fluid image" class="image"/>
             <br>
         </div>
         <div class="steps" id="update-proj">
@@ -33,7 +33,7 @@
                 Project
             </h2>
             <br>
-            <b-img src="https://snipboard.io/CbBy1K.jpg" fluid alt="Fluid image" class="image"></b-img>
+            <img src="@/assets/update_project.png" fluid alt="Fluid image" class="image"/>
             <br>
         </div>
         <div class="steps" id="update-grp">
@@ -41,7 +41,7 @@
                 Group
             </h2>
             <br>
-            <b-img src="https://snipboard.io/i2qjeV.jpg" fluid alt="Fluid image" class="image"></b-img>
+            <img src="@/assets/update_group.png" fluid alt="Fluid image" class="image"/>
             <br>
         </div>
     </div>

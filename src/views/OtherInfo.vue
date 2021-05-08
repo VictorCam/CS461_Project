@@ -14,7 +14,7 @@
                 <h4>Grants a user the authority to give other users permissions to a document or project. May also remove or modify their permissions.</h4>
         </div>
         <div class="item">
-                <h3>- BeavDMS currently does not work with desktop clients, send emails from a web browser to avoid issues.</h3>
+                <h3>- BeavDMS currently does not work with desktop clients, send emails from a web browser using Gmail to avoid issues.</h3>
         </div>
     </div>
 </template>
