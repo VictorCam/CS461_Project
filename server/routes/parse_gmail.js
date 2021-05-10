@@ -167,7 +167,7 @@ async function parse_data(g_raw, idx, g_access) {
 
     //relay error if the title does not specify a command or the match isn't found
     var matches = title.match(/save|get|update|help/g)
-    console.log(matches," ", title, " ", sender_name)
+    //console.log(matches," ", title, " ", sender_name)
     if (matches == undefined || matches == null || title == undefined || title == null || sender_name == 'NA' || sender_email == 'NA') {
         console.log("matches or title is undefined or null")
         return { "cmd": "relay_error", "sender_email": sender_email }
@@ -277,13 +277,15 @@ async function checkPermission(entType, resType, entID, resID) {
 
     result = get_perms(entType, entID, resType, resID) //check if the user has been explicitly granted permissions and what level
     if (result?.Permissions >= level) { level = result.Permissions }
-
     if (entType == "UserEnt") {
-        groups = Object.values(get_groups.get(entID)) //get IDs of all groups that the user belongs to 
-        groups?.forEach((group) => {
-            result = get_perms("GroupEnt", group, resType, resID)
-            if (result?.Permissions >= level) { level = result.Permissions } //check permissions of each group that the user belongs to and what level
-        })
+        groups = get_groups?.get(entID)
+        if (groups) {
+            groups = Object?.values(groups) //get IDs of all groups that the user belongs to 
+            groups?.forEach((group) => {
+                result = get_perms("GroupEnt", group, resType, resID)
+                if (result?.Permissions >= level) { level = result.Permissions } //check permissions of each group that the user belongs to and what level
+            })
+        }
     }
     return level //return highest level of permission that user has been granted whether explicitly or through some group
 }
@@ -525,7 +527,7 @@ async function g_request(callback) {
                         // Construct email
                         var emailBodyMessage = "Name: " + docName + "\nSerial: "
                         emailBodyMessage = emailBodyMessage.concat(replyMessage.doc + "\n")
-                        console.log(emailBodyMessage)
+                        //console.log(emailBodyMessage)
                         raw = await helpers.makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] SAVE DOCUMENT SUCCESS`, `${emailBodyMessage}`)
                         await post_send_msg(g_access.data.access_token, raw)
                     }
@@ -626,7 +628,7 @@ async function g_request(callback) {
                         emailBodyMessage = emailBodyMessage.concat(docNames[i] + ", ")
                     }
 
-                    console.log(emailBodyMessage)
+                    //console.log(emailBodyMessage)
                     raw = await helpers.makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] GET PROJECT SUCCESS`, `${emailBodyMessage}`)
                     await post_send_msg(g_access.data.access_token, raw)
 
@@ -731,7 +733,7 @@ async function g_request(callback) {
                     // Construct email
                     var emailBodyMessage = replyMessage.proj.newName
                     
-                    console.log(emailBodyMessage)
+                    //console.log(emailBodyMessage)
                     raw = await helpers.makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] UPDATE PROJECT SUCCESS`, `New Name # Code: ${emailBodyMessage}`)
                     await post_send_msg(g_access.data.access_token, raw)
                 }
