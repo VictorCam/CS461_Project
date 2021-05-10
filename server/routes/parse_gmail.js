@@ -42,7 +42,7 @@ update_proj = db.prepare("UPDATE Documents SET Project=? WHERE DocID=?;")
 update_docName = db.prepare("UPDATE Documents SET Name=? WHERE DocID=?;")
 
 var insert_user = db.prepare("INSERT OR IGNORE INTO Users (Name, Email) VALUES (?, ?);")
-var insert_doc = db.prepare("INSERT INTO Documents (Year, Serial, Name, Description, Location, OwnerID, Project, DateAdded, Replaces, ReplacedBy) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);")
+var insert_doc = db.prepare("INSERT INTO Documents (Year, Serial, Name, Description, Location, MIMEType, OwnerID, Project, DateAdded, Replaces, ReplacedBy) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);")
 var insert_project = db.prepare("INSERT INTO Projects (Name, OwnerID, ProjectCode, Description) VALUES (?, ?, ?, ?);")
 var insert_group = db.prepare("INSERT OR IGNORE INTO Groups (Name, OwnerID, Description) VALUES (?, ?, ?);")
 var add_to_group = db.prepare("INSERT OR IGNORE INTO usersXgroups (UID, GID) VALUES ((SELECT UserID FROM Users WHERE Email=?), ?);")
@@ -291,7 +291,7 @@ async function checkPermission(entType, resType, entID, resID) {
 }
 
 //manages the DocID/Year key pair for Documents, determines the next valid key, and saves all related data to database
-async function saveDocData(name, desc, pathname, userid, projid, replaces) {
+async function saveDocData(name, desc, pathname, mimetype, userid, projid, replaces) {
     //use g_data later to get document related data like Notes, Supersedes, etc...
 
     if (!currentDBYear) { //If currentDBYear isn't set, retrieve it from database
@@ -308,7 +308,7 @@ async function saveDocData(name, desc, pathname, userid, projid, replaces) {
     nextSerial++ //increment to next available ID
 
     //null values to be replaced by Description, Supersedes, and SupersededBy respectively 
-    docid = insert_doc.run(currentDBYear, nextSerial, name, desc, pathname, userid, projid, currentDate.toString(), replaces, null).lastInsertRowid
+    docid = insert_doc.run(currentDBYear, nextSerial, name, desc, pathname, mimetype, userid, projid, currentDate.toString(), replaces, null).lastInsertRowid
     return [docid, currentDBYear, nextSerial]
 }
 
@@ -506,7 +506,8 @@ async function g_request(callback) {
                                 function (err) { if (err) { return console.log("err with writing pdf file") } })
 
                             //save document data to database
-                            var [docid, year, serial] = await saveDocData(docName, desc, pathname, userid, projid, replaceid);
+                            mimetype = g_data.attachments[j].mime
+                            var [docid, year, serial] = await saveDocData(docName, desc, pathname, mimetype, userid, projid, replaceid);
                             replyMessage.doc.push(year + "-" + serial.toString().padStart(4, '0'))
                             //figure out whether the user used link: or links:, tag: or tags:, and note: or notes:
                             var link = doc?.link ? doc.link[j] : null
