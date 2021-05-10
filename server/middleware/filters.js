@@ -21,7 +21,7 @@ exports.save_filter = function(db, json) {
                         manage: Joi.array().items(Joi.string()).min(1),
                         name: Joi.array().min(json.attachments.length).max(json.attachments.length).items(Joi.string().allow('')),
                         link: Joi.array().items(Joi.string().allow('')).min(1),
-                        description: Joi.array().items(Joi.string().allow('')).min(1).max(1),
+                        description: Joi.array().items(Joi.string().allow('')).min(1),
                         note: Joi.array().items(Joi.string().allow('')).min(1),
                         tag: Joi.array().items(Joi.string().allow('')).min(1),
                         replace: Joi.array().items(Joi.string().allow('')).min(1).max(1)

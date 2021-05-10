@@ -94,15 +94,16 @@ function parse_from(i, g_raw) {
 
 //find the date
 exports.findDate = function (g_raw) {
-    var find_index = [17, 1, 19]
-    for (let i = 0; i < find_index.length; i++) {
-        const element = find_index[i]
-        if (typeof g_raw.data.payload.headers[element] != 'undefined') { //check if it exists
-            if (g_raw.data.payload.headers[element].name.toLowerCase() == "date")
-                var date = g_raw.data.payload.headers[element].value
-            return date
-        }
-    }
+    // var find_index = [17, 1, 19]
+    // for (let i = 0; i < find_index.length; i++) {
+    //     const element = find_index[i]
+    //     if (typeof g_raw.data.payload.headers[element] != 'undefined') { //check if it exists
+    //         if (g_raw.data.payload.headers[element].name.toLowerCase() == "date")
+    //             var date = g_raw.data.payload.headers[element].value
+    //         return date
+    //     }
+    // }
+    return g_raw.headers.date
 }
 
 //parses the message and grabs the emails (is accompanied with function below)
