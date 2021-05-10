@@ -152,7 +152,7 @@ exports.parseBody = function (message) {
     return data
 }
 
-exports.makeBodyAttachments = function (receiverId, subject, message, attach, filenames) {
+exports.makeBodyAttachments = function (receiverId, subject, message, attach, filenames, mimeType) {
     var boundary = "dms" // set demarcation value
     // set email headers
     var str = [
@@ -167,11 +167,10 @@ exports.makeBodyAttachments = function (receiverId, subject, message, attach, fi
         message + "\n",
     ].join("\n") // set format
 
-    // append each attachment to the email
     for (var i = 0; i < attach.length; i++) {
         str += ["--" + boundary,
         "--" + boundary,
-        `Content-Type: Application/pdf; name=${filenames[i]}`,
+        `Content-Type: ${mimeType}; name=${filenames[i]}`,
         `Content-Disposition: attachment; filename=${filenames[i]}`,
         "Content-Transfer-Encoding: base64" + "\n",
         `${attach[i]}`,
