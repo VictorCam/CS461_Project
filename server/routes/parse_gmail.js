@@ -642,9 +642,16 @@ async function g_request(callback) {
                         var docSerial = docString[1]
 
                         var docID = db.prepare(`SELECT DocID FROM Documents WHERE Year = ? AND Serial = ?`).get(docYear, docSerial).DocID
-                        var docName = db.prepare(`SELECT Name FROM Documents WHERE DocID = ?`).get(docID).Name
+                        var docName = db.prepare(`SELECT Name, MIMEType FROM Documents WHERE DocID = ?`).get(docID)
+
+                        if(typeof docName.MIMEType === null) {
+                            raw = await helpers.makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] ERROR`, `Error: one of your files is an invalid. Try testing each individual file. If this issue keeps persisting please contact the adminsistrators of BeavDMS`)
+                            await post_send_msg(g_access.data.access_token, raw)
+                            return await callback()
+                        }
+
                         var fpath = await get_file_path.get(docID).Location
-                        replyMessage.docs[docName] = fs.readFileSync(fpath, { encoding: 'base64' })
+                        replyMessage.docs[docName.Name] = fs.readFileSync(fpath, { encoding: 'base64' })
                         //document names can be accessed as an array by Object.keys(replyMessage.docs)
                         //base64 document blobs can be accessed as an array with Object.values(replyMessage.docs)
                     }
@@ -654,7 +661,7 @@ async function g_request(callback) {
                     for (var i = 0; i < Object.keys(replyMessage.docs).length; i++) {
                         emailBodyMessage = emailBodyMessage.concat(Object.keys(replyMessage.docs)[i] + ", ")
                     }
-                    raw = await helpers.makeBodyAttachments(`${g_data.sender_email}`, "GET DOCS SUCCESS", `${emailBodyMessage}`, Object.values(replyMessage.docs), Object.keys(replyMessage.docs))
+                    raw = await helpers.makeBodyAttachments(`${g_data.sender_email}`, "GET DOCS SUCCESS", `${emailBodyMessage}`, Object.values(replyMessage.docs), Object.keys(replyMessage.docs), docName.MIMEType)
                         await post_send_msg(g_access.data.access_token, raw)
                 }
             }
