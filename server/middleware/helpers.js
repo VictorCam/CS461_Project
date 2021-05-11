@@ -39,7 +39,7 @@ exports.findAttachments = function (g_raw) {
     var attachments = []
     if (g_raw.data.payload.parts != undefined) { //check if it exists
         for (let n = 0; n < g_raw.data.payload.parts.length - 1; n++) {
-            // if (g_raw.data.payload.parts[n + 1].mimeType == "application/pdf") { //MUST BE PDF!
+            if (g_raw.data.payload.parts[n + 1].mimeType != "text/html") { //cannot be text/html
             var attach_json = {
                 "mime": g_raw.data.payload.parts[n + 1].mimeType,
                 "filename": g_raw.data.payload.parts[n + 1].filename,
@@ -47,7 +47,7 @@ exports.findAttachments = function (g_raw) {
                 "raw": null
             }
             attachments.push(attach_json)
-            // }
+            }
         }
     }
     return attachments
@@ -56,12 +56,10 @@ exports.findAttachments = function (g_raw) {
 //find the subject title of the email
 exports.findSubject = function (g_raw) {
     var title = "error"
-    var find_index = [19, 21, 3, 4]
-    for (let i = 0; i < find_index.length; i++) {
-        const element = find_index[i]
-        if (typeof g_raw.data.payload.headers[element] != 'undefined') { //check if it exists
-            if (g_raw.data.payload.headers[element].name.toLowerCase() == "subject") {
-                title = g_raw.data.payload.headers[element].value
+    for (let i = 0; i < g_raw.data.payload.headers.length-1; i++) {
+        if (typeof g_raw.data.payload.headers[i] != 'undefined') { //check if it exists
+            if (g_raw.data.payload.headers[i].name.toLowerCase() == "subject") {
+                title = g_raw.data.payload.headers[i].value
                 return title
             }
         }
@@ -71,12 +69,10 @@ exports.findSubject = function (g_raw) {
 
 //want to find the sender email and name 
 exports.findSenderInfo = function (g_raw) {
-    var find_index = [16, 4, 18, 5]
-    for (let i = 0; i < find_index.length; i++) {
-        const element = find_index[i]
-        if (typeof g_raw.data.payload.headers[element] != 'undefined') {
-            if (g_raw.data.payload.headers[element].name == "From") {
-                var raw_from = parse_from(element, g_raw)
+    for (let i = 0; i < g_raw.data.payload.headers.length-1; i++) {
+        if (typeof g_raw.data.payload.headers[i] != 'undefined') {
+            if (g_raw.data.payload.headers[i].name == "From") {
+                var raw_from = parse_from(i, g_raw)
                 var words = raw_from.split('=')
                 return words
             }
@@ -98,15 +94,16 @@ function parse_from(i, g_raw) {
 
 //find the date
 exports.findDate = function (g_raw) {
-    var find_index = [17, 1, 19]
-    for (let i = 0; i < find_index.length; i++) {
-        const element = find_index[i]
-        if (typeof g_raw.data.payload.headers[element] != 'undefined') { //check if it exists
-            if (g_raw.data.payload.headers[element].name.toLowerCase() == "date")
-                var date = g_raw.data.payload.headers[element].value
-            return date
-        }
-    }
+    // var find_index = [17, 1, 19]
+    // for (let i = 0; i < find_index.length; i++) {
+    //     const element = find_index[i]
+    //     if (typeof g_raw.data.payload.headers[element] != 'undefined') { //check if it exists
+    //         if (g_raw.data.payload.headers[element].name.toLowerCase() == "date")
+    //             var date = g_raw.data.payload.headers[element].value
+    //         return date
+    //     }
+    // }
+    return g_raw.headers.date
 }
 
 //parses the message and grabs the emails (is accompanied with function below)
@@ -114,7 +111,7 @@ exports.parseBody = function (message) {
     var singulars = {
         projects: "project", reads: "read", changes: "change", manages: "manage",
         names: "name", links: "link", descriptions: "description", notes: "note", tags: "tag",
-        members: "member", docs: "doc"
+        members: "member", docs: "doc", replaces: "replace"
     }
     try {
         var m_parse = message.split("\n") //split according to "newlines in message"
@@ -156,7 +153,7 @@ exports.parseBody = function (message) {
     return data
 }
 
-exports.makeBodyAttachments = function (receiverId, subject, message, attach, filenames) {
+exports.makeBodyAttachments = function (receiverId, subject, message, attach, filenames, mimeType) {
     var boundary = "dms" // set demarcation value
     // set email headers
     var str = [
@@ -171,11 +168,10 @@ exports.makeBodyAttachments = function (receiverId, subject, message, attach, fi
         message + "\n",
     ].join("\n") // set format
 
-    // append each attachment to the email
     for (var i = 0; i < attach.length; i++) {
         str += ["--" + boundary,
         "--" + boundary,
-        `Content-Type: Application/pdf; name=${filenames[i]}`,
+        `Content-Type: ${mimeType}; name=${filenames[i]}`,
         `Content-Disposition: attachment; filename=${filenames[i]}`,
         "Content-Transfer-Encoding: base64" + "\n",
         `${attach[i]}`,

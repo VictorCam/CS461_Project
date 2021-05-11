@@ -19,7 +19,7 @@ exports.createDatabase = function(db) {
         "ON UPDATE CASCADE)");
 
     db.exec("CREATE TABLE IF NOT EXISTS Documents (DocID INTEGER PRIMARY KEY, Year INTEGER NOT NULL, Serial " +
-        "INTEGER NOT NULL, Name TEXT NOT NULL, Description TEXT, Location TEXT NOT NULL, OwnerID INTEGER NOT " +
+        "INTEGER NOT NULL, Name TEXT NOT NULL, Description TEXT, Location TEXT NOT NULL, MIMEType TEXT, OwnerID INTEGER NOT " +
         "NULL, Project INTEGER, DateAdded TEXT NOT NULL, Replaces INTEGER, ReplacedBy INTEGER, FOREIGN " +
         "KEY(Replaces) REFERENCES Documents(DocID), FOREIGN KEY(ReplacedBy) REFERENCES Documents(DocID), " +
         "UNIQUE(Year, Serial), FOREIGN KEY(OwnerID) REFERENCES Users(UserID) ON DELETE CASCADE, FOREIGN " +

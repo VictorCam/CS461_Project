@@ -11,7 +11,7 @@ router.get("/api", (req, res) => {
     const page = schema.validate(req.query.page)
     if(page.error) { return res.status(422).json(page.error.details[0].message) }
 
-    var find_doc = db.prepare("SELECT Documents.DocID, Documents.Year, Documents.Serial, Documents.Name as Dname, Documents.DateAdded, Documents.Description, Projects.ProjID, Projects.Name as Pname FROM Documents, Projects WHERE Documents.Project = Projects.ProjID LIMIT ? OFFSET ?")
+    var find_doc = db.prepare("SELECT Documents.DocID, Documents.Year, Documents.Serial, Documents.Name as Dname, Documents.DateAdded, Documents.Description, Projects.ProjID, Projects.Name as Pname FROM Documents LEFT JOIN Projects ON Documents.Project = Projects.ProjID LIMIT ? OFFSET ?")
     var get_count = db.prepare("SELECT count(*) FROM Documents, Projects WHERE Documents.Project = Projects.ProjID")
 
     var cnt = 10 //shows 10 json items from db
@@ -51,7 +51,7 @@ router.get("/api/doc/:docID", (req, res) => {
 // Get the document the user is currently viewing
 router.get("/api/project/:projID", (req, res) => {
     const projID = req.params.projID;
-    const proj = `SELECT Projects.Name AS Pname, Projects.Description FROM Projects WHERE Projects.ProjID = ${projID}`;
+    const proj = `SELECT Projects.Name AS Pname, Projects.ProjectCode AS Pcode, Projects.Description FROM Projects WHERE Projects.ProjID = ${projID}`;
     const projDocs = `SELECT Documents.Name AS Dname FROM Documents WHERE Documents.Project = ${projID}`
     const projLinks = `SELECT ProjLinks.Link FROM ProjLinks WHERE ${projID} = ProjLinks.PID`
 
