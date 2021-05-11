@@ -372,7 +372,7 @@ async function g_request(callback) {
 
             //relay a message back mentioning that an error has occurred
             if (g_data.cmd == "relay_error") {
-                raw = await helpers.makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] ERROR`, `An unknown error has occured.\nPlease verify that your e-mail was correctly formated and sent from your oregonstate e-mail account`)
+                raw = await helpers.makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] ERROR`, `An unknown error has occured.\nPlease verify that your e-mail was correctly formated`)
                 await post_send_msg(g_access.data.access_token, raw)
                 return await callback()
             }
