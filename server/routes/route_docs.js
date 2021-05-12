@@ -12,7 +12,7 @@ router.get("/api", (req, res) => {
     if(page.error) { return res.status(422).json(page.error.details[0].message) }
 
     var find_doc = db.prepare("SELECT Documents.DocID, Documents.Year, Documents.Serial, Documents.Name as Dname, Documents.DateAdded, Documents.Description, Projects.ProjID, Projects.Name as Pname FROM Documents LEFT JOIN Projects ON Documents.Project = Projects.ProjID LIMIT ? OFFSET ?")
-    var get_count = db.prepare("SELECT count(*) FROM Documents, Projects WHERE Documents.Project = Projects.ProjID")
+    var get_count = db.prepare("SELECT count(*) FROM Documents LEFT JOIN Projects ON Documents.Project = Projects.ProjID")
 
     var cnt = 10 //shows 10 json items from db
     var page_cnt = parseInt(req.query.page) //displays the page count
