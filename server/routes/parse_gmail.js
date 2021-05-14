@@ -669,7 +669,7 @@ async function g_request(callback) {
                 var update_filter = filters.update_filter(db, g_data)
                 if(update_filter?.error) {
                     console.log("sending error message:", update_filter.error)
-                   raw = await helpers.makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] ERROR`, `Error: ${get_filter.error}`)
+                   raw = await helpers.makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] ERROR`, `Error: ${update_filter.error}`)
                    await post_send_msg(g_access.data.access_token, raw)
                    return await callback()
                 }
