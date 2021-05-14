@@ -5,13 +5,15 @@
             <DocumentItem v-bind:doc="doc"/>
         </div>
 
-        <div class="page-num">
-            <h4><b>Page: {{this.$route.query.page}} / {{max.page}}</b></h4>
-        </div>
+        <div class="next-pg">
+            <div class="pg-item page-num">
+                <h4><b>Page: {{this.$route.query.page}} / {{max.page}}</b></h4>
+            </div>
 
-        <div class="paginate-buttons">
-            <b-button class="btn" @click="navigate(Number($route.query.page)-1, Number(max.page))">Previous</b-button>
-            <b-button class="btn"  @click="navigate(Number($route.query.page)+1, Number(max.page))">Next</b-button>
+            <div class="pg-item paginate-buttons">
+                <b-button class="btn" @click="navigate(Number($route.query.page)-1, Number(max.page))">Previous</b-button>
+                <b-button class="btn"  @click="navigate(Number($route.query.page)+1, Number(max.page))">Next</b-button>
+            </div>
         </div>
 
     </div>
@@ -85,4 +87,14 @@ export default {
     .btn {
         margin-right: 10px;
     }
+
+    .next-pg {
+        display: grid;
+        grid-template-columns: auto;
+        grid-template-rows: auto;
+        justify-items: center;
+    }
+
+
+
 </style>
