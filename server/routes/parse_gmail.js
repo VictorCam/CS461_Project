@@ -7,6 +7,7 @@ const db = new Database('./server/database/beavdms.db')
 const dbfun = require('../middleware/create_db')
 const helpers = require('../middleware/helpers')
 const filters = require('../middleware/filters')
+// const { raw } = require("core-js/core/string")
 const router = express.Router()
 require('dotenv').config()
 
@@ -653,7 +654,9 @@ async function g_request(callback) {
                         // }
 
                         var fpath = await get_file_path.get(docID).Location
-                        replyMessage.docs[docName.Name + "#" + doc.doc[j]] = fs.readFileSync(fpath, { encoding: 'base64' })
+                        var extension = fpath.split('.').pop()
+                        var rawfile = fs.readFileSync(fpath, { encoding: 'base64' })
+                        replyMessage.docs[docName.Name + "#" + doc.doc[j] + "." + extension] = rawfile 
                         mimeTypes[j] = docName.MIMEType
                         // console.log(`doc.doc[j]: ${doc.doc[j]}\tdocID: ${docID}\tmimeTypes[j]: ${mimeTypes[j]}`)
                         //document names can be accessed as an array by Object.keys(replyMessage.docs)
