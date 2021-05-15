@@ -3,6 +3,11 @@ const Joi = require('joi')
 
 exports.save_filter = function(db, json) {
 
+    if(typeof json.access.project === 'undefined' && typeof json.access.document === 'undefined' && typeof json.access.group === 'undefined') {
+        console.log("none of these exist so we give an error here")
+        return {"error": "please specify a #project #document or #group"}
+    }
+
     if(json.attachments.length > 0) {
         fschema = Joi.object({
             id: Joi.number().required(),
@@ -100,6 +105,11 @@ exports.save_filter = function(db, json) {
 }
 
 exports.get_filter = function(db, json) {
+
+    if(typeof json.access.project === 'undefined' && typeof json.access.document === 'undefined' && typeof json.access.group === 'undefined') {
+        console.log("none of these exist so we give an error here")
+        return {"error": "please specify a #project #document or #group"}
+    }
     
 const fschema = Joi.object({
     id: Joi.number().required(),
