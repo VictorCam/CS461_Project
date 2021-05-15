@@ -171,7 +171,7 @@ exports.makeBodyAttachments = function (receiverId, subject, message, attach, fi
     for (var i = 0; i < attach.length; i++) {
         str += ["--" + boundary,
         "--" + boundary,
-        `Content-Type: ${mimeType}; name=${filenames[i]}`,
+        `Content-Type: ${mimeType[i]}; name=${filenames[i]}`,
         `Content-Disposition: attachment; filename=${filenames[i]}`,
         "Content-Transfer-Encoding: base64" + "\n",
         `${attach[i]}`,
