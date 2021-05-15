@@ -470,7 +470,8 @@ async function g_request(callback) {
                     if (doc) {
 
                         //get path and filename
-                        var pathname = `./server/files/${g_data.g_id}-${j}.pdf`
+                        var extension = g_data.attachments[j].filename.split('.').pop()
+                        var pathname = `./server/files/${currentDate.getFullYear()}${new Date().getSeconds()}${g_data.g_id}-${j}.${extension}`
 
                         //get document name
                         var docName = doc?.name ? doc.name[j].trim() : g_data.attachments[j].filename //set name(s) as docName
@@ -636,6 +637,7 @@ async function g_request(callback) {
                 }
                 if (doc) {
                     replyMessage.docs = replyMessage.docs ? replyMessage.docs : []
+                    var mimeTypes = []
                     for (var j = 0; j < doc.doc.length; j++) {
                         var docString = doc.doc[j].split("-")
                         var docYear = docString[0]
@@ -644,24 +646,27 @@ async function g_request(callback) {
                         var docID = db.prepare(`SELECT DocID FROM Documents WHERE Year = ? AND Serial = ?`).get(docYear, docSerial).DocID
                         var docName = db.prepare(`SELECT Name, MIMEType FROM Documents WHERE DocID = ?`).get(docID)
 
-                        if(typeof docName.MIMEType === null) {
-                            raw = await helpers.makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] ERROR`, `Error: one of your files is an invalid. Try testing each individual file. If this issue keeps persisting please contact the adminsistrators of BeavDMS`)
-                            await post_send_msg(g_access.data.access_token, raw)
-                            return await callback()
-                        }
+                        // if(typeof docName.MIMEType === null) {
+                        //     raw = await helpers.makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] ERROR`, `Error: one of your files is an invalid. Try testing each individual file. If this issue keeps persisting please contact the adminsistrators of BeavDMS`)
+                        //     await post_send_msg(g_access.data.access_token, raw)
+                        //     return await callback()
+                        // }
 
                         var fpath = await get_file_path.get(docID).Location
-                        replyMessage.docs[docName.Name] = fs.readFileSync(fpath, { encoding: 'base64' })
+                        replyMessage.docs[docName.Name + "#" + doc.doc[j]] = fs.readFileSync(fpath, { encoding: 'base64' })
+                        mimeTypes[j] = docName.MIMEType
+                        // console.log(`doc.doc[j]: ${doc.doc[j]}\tdocID: ${docID}\tmimeTypes[j]: ${mimeTypes[j]}`)
                         //document names can be accessed as an array by Object.keys(replyMessage.docs)
                         //base64 document blobs can be accessed as an array with Object.values(replyMessage.docs)
                     }
                     // exports.makeBodyAttachments = function (receiverId, subject, message, attach, filenames)
                     // Construct email
+                    // console.log(`replyMessage.docs: ${replyMessage.docs}`)
                     emailBodyMessage = "Docs: "
                     for (var i = 0; i < Object.keys(replyMessage.docs).length; i++) {
                         emailBodyMessage = emailBodyMessage.concat(Object.keys(replyMessage.docs)[i] + ", ")
                     }
-                    raw = await helpers.makeBodyAttachments(`${g_data.sender_email}`, "GET DOCS SUCCESS", `${emailBodyMessage}`, Object.values(replyMessage.docs), Object.keys(replyMessage.docs), docName.MIMEType)
+                    raw = await helpers.makeBodyAttachments(`${g_data.sender_email}`, "GET DOCS SUCCESS", `${emailBodyMessage}`, Object.values(replyMessage.docs), Object.keys(replyMessage.docs), mimeTypes)
                         await post_send_msg(g_access.data.access_token, raw)
                 }
             }
