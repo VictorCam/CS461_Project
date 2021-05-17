@@ -125,7 +125,7 @@ const fschema = Joi.object({
                     doc: Joi.array().required().min(1).label("please provide at least one document (ex. DocYear-DocCode) in #document [REQUIRED FIELD]"),
                 }).unknown().optional(),
                 project: Joi.object().keys({
-                    project: Joi.array().items(Joi.string()).min(1).max(1).required().label("please provide only one project (ex. ProjName#Code) in #project [REQUIRED FIELD]"),
+                    name: Joi.array().items(Joi.string()).min(1).max(1).required().label("please provide only one project (ex. ProjName#Code) in #project [REQUIRED FIELD]"),
                 }).unknown().optional(),
                 group: Joi.object().keys({
                     name: Joi.array().required().min(1).label("please provide at least one group name in #groups [REQUIRED FIELD]"),

@@ -598,7 +598,7 @@ async function g_request(callback) {
                     await post_send_msg(g_access.data.access_token, raw)
                 }
                 if (proj) {
-                    const projNameCode = proj.project[0].split("#")
+                    const projNameCode = proj.name[0].split("#")
                     const projName = projNameCode[0]
                     const projCode = projNameCode[1] ? projNameCode[1] : "0001"
                     const projID = db.prepare(`SELECT ProjID FROM Projects WHERE Name = ? AND ProjectCode = ?`).get(projName, projCode)?.ProjID
