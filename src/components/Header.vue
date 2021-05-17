@@ -14,12 +14,12 @@
       {{ title }}
     </h1>
     <button class="home">
-    <router-link :to="{ name: 'home', query: {page: 1 }}">
-        <img class="find-button" src="@/assets/home.png" />
-      <!-- <b-button variant="secondary" class="home-btn"> -->
-        <!-- <b-icon-house-door-fill></b-icon-house-door-fill> -->
-      <!-- </b-button> -->
-    </router-link>
+        <router-link :to="{ name: 'home', query: {page: 1 }}">
+            <img class="find-button" src="@/assets/home.png" />
+        <!-- <b-button variant="secondary" class="home-btn"> -->
+            <!-- <b-icon-house-door-fill></b-icon-house-door-fill> -->
+        <!-- </b-button> -->
+        </router-link>
     </button>
     
     <div v-if="showTutorialButton">
@@ -119,6 +119,7 @@ export default {
   opacity: 1.0;
   margin: 20px;
   background-color: rgb(219, 115, 30);
+  flex-wrap: wrap;
 }
 
 .tutorial h3 {
