@@ -21,7 +21,7 @@ exports.save_filter = function(db, json) {
                         manage: Joi.array().items(Joi.string()).min(1).label("please provide at least one person to manage this #document [OPTIONAL FIELD]"),
                         name: Joi.array().min(json.attachments.length).max(json.attachments.length).items(Joi.string().allow('')).label("please provide a name for each individual document you attach for this #document (ex. 3 attachments = 3 names) [OPTIONAL FIELD]"),
                         link: Joi.array().items(Joi.string().allow('')).min(1).label("please provide at least one link in this #document [OPTIONAL FIELD]"),
-                        description: Joi.array().items(Joi.string().allow('')).min(1).max(1).label("please provide only one description to this #document [OPTIONAL FIELD]"),
+                        description: Joi.array().items(Joi.string().allow('')).min(1).label("please provide at lesat one description to this #document [OPTIONAL FIELD]"),
                         note: Joi.array().items(Joi.string().allow('')).min(1).label("please provide at least one note to this #document [OPTIONAL FIELD]"),
                         tag: Joi.array().items(Joi.string().allow('')).min(1).label("please provide at least one tag to this #document [OPTIONAL FIELD]"),
                         replace: Joi.array().items(Joi.string().allow('')).min(1).max(1).label("please provide only one superceding document [OPTIONAL FIELD]")
@@ -31,7 +31,7 @@ exports.save_filter = function(db, json) {
                         read: Joi.array().items(Joi.string()).min(1).label("please provide at least one person to read this #project [OPTIONAL FIELD]"),
                         change: Joi.array().items(Joi.string()).min(1).label("please provide at least one person to change this #project [OPTIONAL FIELD]"),
                         manage: Joi.array().items(Joi.string()).min(1).label("please provide at least one person to manage this #project [OPTIONAL FIELD]"),
-                        description: Joi.array().items(Joi.string()).min(1).min(1).label("please provide only one description to this #project [OPTIONAL FIELD]"),
+                        description: Joi.array().items(Joi.string()).min(1).label("please provide at least one description to this #project [OPTIONAL FIELD]"),
                         group: Joi.array().items(Joi.string()).max(1).min(1).label("please provide only one group name to this #project [OPTIONAL FIELD]") //????
                     }).unknown().optional(),
                     group: Joi.object().keys({ //ALL OPTIONAL (EXCEPT NAME)
@@ -40,7 +40,7 @@ exports.save_filter = function(db, json) {
                         read: Joi.array().items(Joi.string()).min(1).label("please provide at least one person to read this #group [OPTIONAL FIELD]"),
                         change: Joi.array().items(Joi.string()).min(1).label("please provide at least one person to manage this #group [OPTIONAL FIELD"),
                         manage: Joi.array().items(Joi.string()).min(1).label("please provide at least one person to this #group [OPTIONAL FIELD]"),
-                        description: Joi.array().items(Joi.string()).min(1).max(1).label("please provide a only one description to this #group [OPTIONAL FIELD]")
+                        description: Joi.array().items(Joi.string()).min(1).label("please provide at least one description to this #group [OPTIONAL FIELD]")
                     }).unknown().optional()
                 }
             )
@@ -64,7 +64,7 @@ exports.save_filter = function(db, json) {
                         read: Joi.array().items(Joi.string()).min(1).label("please provide at least one person to read this #project [OPTIONAL FIELD]"),
                         change: Joi.array().items(Joi.string()).min(1).label("please provide at least one person to change this #project [OPTIONAL FIELD]"),
                         manage: Joi.array().items(Joi.string()).min(1).label("please provide at least one person to manage this #project [OPTIONAL FIELD]"),
-                        description: Joi.array().items(Joi.string()).min(1).min(1).label("please provide only one description to this #project [OPTIONAL FIELD]"),
+                        description: Joi.array().items(Joi.string()).min(1).label("please provide at least one description to this #project [OPTIONAL FIELD]"),
                         group: Joi.array().items(Joi.string()).max(1).min(1).label("please provide only one group name to this #project [OPTIONAL FIELD]") //????
                     }).unknown().optional(),
                     group: Joi.object().keys({ //ALL OPTIONAL (EXCEPT NAME)
@@ -73,7 +73,7 @@ exports.save_filter = function(db, json) {
                         read: Joi.array().items(Joi.string()).min(1).label("please provide at least one person to read this #group [OPTIONAL FIELD]"),
                         change: Joi.array().items(Joi.string()).min(1).label("please provide at least one person to manage this #group [OPTIONAL FIELD"),
                         manage: Joi.array().items(Joi.string()).min(1).label("please provide at least one person to this #group [OPTIONAL FIELD]"),
-                        description: Joi.array().items(Joi.string()).min(1).max(1).label("please provide a only one description to this #group [OPTIONAL FIELD]")
+                        description: Joi.array().items(Joi.string()).min(1).label("please provide at least one description to this #group [OPTIONAL FIELD]")
                     }).unknown().optional()
                 }
             )
@@ -208,7 +208,7 @@ exports.update_filter = function(db, json) {
                     change: Joi.array().items(Joi.string()).min(1).label("please provide at least one person to change this #project [OPTIONAL FIELD]"),
                     manage: Joi.array().items(Joi.string()).min(1).label("please provide at least one person to manage this #project [OPTIONA FIELD]"),
                     link: Joi.array().items(Joi.string()).min(1).label("please provide at least one link in this #project [OPTIONAL FIELD]"),
-                    description: Joi.array().min(1).max(1).items(Joi.string()).label("please provide at only one description in this #project [OPTIONAL FIELD]")
+                    description: Joi.array().min(1).items(Joi.string()).label("please provide at least one description in this #project [OPTIONAL FIELD]")
                 }).unknown().optional(),
                 group: Joi.object().keys({ //ALL OPTIONAL (EXCEPT NAME)
                     name: Joi.array().items(Joi.string()).max(2).min(2).required().label("please provide the name of the old group name then the new document name (ex. OldGroupName \\ NewGroupName) in #group [REQUIRED FIELD]"),
@@ -216,7 +216,7 @@ exports.update_filter = function(db, json) {
                     read: Joi.array().items(Joi.string()).min(1).label("please provide at least one person to read this #group [OPTIONAL FIELD]"),
                     change: Joi.array().items(Joi.string()).min(1).label("please provide at least one person to change this #group [OPTIONAL FIELD]"),
                     manage: Joi.array().items(Joi.string()).min(1).label("please provide at least one person to manage this #group [OPTIONAL FIELD]"),
-                    description: Joi.array().items(Joi.string()).min(1).max(1).label("please provide only one description in this #group [OPTIONAL FIELD]")
+                    description: Joi.array().items(Joi.string()).min(1).label("please provide at least one description in this #group [OPTIONAL FIELD]")
                 }).unknown().optional()
             }
         )

@@ -12,7 +12,7 @@ router.get("/api", (req, res) => {
     if(page.error) { return res.status(422).json(page.error.details[0].message) }
 
     var find_doc = db.prepare("SELECT Documents.DocID, Documents.Year, Documents.Serial, Documents.Name as Dname, Documents.DateAdded, Documents.Description, Projects.ProjID, Projects.Name as Pname FROM Documents LEFT JOIN Projects ON Documents.Project = Projects.ProjID LIMIT ? OFFSET ?")
-    var get_count = db.prepare("SELECT count(*) FROM Documents, Projects WHERE Documents.Project = Projects.ProjID")
+    var get_count = db.prepare("SELECT count(*) FROM Documents LEFT JOIN Projects ON Documents.Project = Projects.ProjID")
 
     var cnt = 10 //shows 10 json items from db
     var page_cnt = parseInt(req.query.page) //displays the page count
@@ -79,16 +79,16 @@ router.get("/api/search/", (req, res) => {
     if(page.error) { return res.status(422).json(page.error.details[0].message) }
     if(search.error) { return res.status(422).json(search.error.details[0].message) }
 
-    var find_doc = db.prepare("SELECT Documents.DocID, Documents.Year, Documents.Serial, Documents.Name as Dname, Documents.DateAdded, Documents.Name, Projects.ProjID, Projects.Name as Pname FROM Documents, Projects WHERE Documents.Project = Projects.ProjID AND (Documents.Name LIKE ? OR Projects.Name LIKE ?) LIMIT ? OFFSET ?")
-    var get_count = db.prepare("SELECT count(*) FROM Documents, Projects WHERE Documents.Project = Projects.ProjID AND (Documents.Name LIKE ? OR Projects.Name LIKE ?)")
+    var find_doc = db.prepare("SELECT DISTINCT D.DocID, D.Year, D.Serial, D.Name as Dname, D.DateAdded, D.Description, P.ProjID, P.Name as Pname FROM Documents D LEFT JOIN Projects P ON D.Project = P.ProjID LEFT JOIN tagsXdocs txd ON txd.DID=D.DocID LEFT JOIN Tags T ON T.TagID=txd.TID WHERE Dname LIKE ? OR Pname LIKE ? OR T.Name LIKE ? LIMIT ? OFFSET ?")
+    var get_count = db.prepare("SELECT DISTINCT count(*) FROM Documents D LEFT JOIN Projects P ON D.Project=P.ProjID LEFT JOIN tagsXdocs txd ON txd.DID=D.DocID LEFT JOIN Tags T ON T.TagID=txd.TID WHERE D.Name LIKE ? OR P.Name LIKE ? OR T.Name LIKE ?")
 
     var s_req = req.query.search; //keyword we are looking for
     var cnt = 10 //shows 10 json items from db
     var page_cnt = parseInt(req.query.page) //displays the page count
     var offset = (page_cnt-1)*cnt //finds the index we should be looking at for each page
 
-    var model = find_doc.all(`%${s_req}%`, `%${s_req}%`, cnt, offset)
-    var count = get_count.all(`%${s_req}%`, `%${s_req}%`)
+    var model = find_doc.all(`%${s_req}%`, `%${s_req}%`, `%${s_req}%`, cnt, offset)
+    var count = get_count.all(`%${s_req}%`, `%${s_req}%`, `%${s_req}%`)
 
     var pag = paginatedResults(model, count, page_cnt, cnt)
 
