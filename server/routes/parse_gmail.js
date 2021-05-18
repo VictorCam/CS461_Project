@@ -32,10 +32,7 @@ var get_file_path = db.prepare("SELECT Location FROM Documents WHERE DocID = ?;"
 var get_db_year = db.prepare("SELECT MAX(Year) AS Year FROM Documents;")
 var get_last_Serial = db.prepare("SELECT MAX(Serial) AS Serial FROM Documents WHERE Year=?;")
 var get_DocID = db.prepare("SELECT DocID From Documents Where Year=? and Serial=?;")
-var get_tag = db.prepare("SELECT * FROM Tags WHERE Name=?")
-// get_dpermID = db.prepare("SELECT DP.PermID FROM Documents D INNER JOIN DocPerms DP ON D.DocID=DP.DID INNER JOIN Users U ON U.UserID=DP.UID WHERE D.DocID=? AND U.UserID=?;")
-// get_ppermID = db.prepare("SELECT PP.PermID FROM Projects P INNER JOIN ProjPerms PP ON P.ProjID=PP.PID INNER JOIN Users U ON U.UserID=PP.UID WHERE P.ProjID=? AND U.UserID=?;")
-// get_gpermID = db.prepare("SELECT GP.PermID FROM Groups G INNER JOIN GroupPerms GP ON G.GroupID=GP.GID INNER JOIN Users U ON U.UserID=GP.UID WHERE G.GroupID=? AND U.UserID=?;")
+// var get_tag = db.prepare("SELECT * FROM Tags WHERE Name=?")
 var get_groups = db.prepare("SELECT GroupID FROM Groups INNER JOIN usersXgroups ON GroupID=GID INNER JOIN Users ON UserID=UID WHERE UserID=?")
 
 update_proj = db.prepare("UPDATE Documents SET Project=? WHERE DocID=?;")
@@ -130,7 +127,6 @@ async function post_send_msg(access_tok, raw) {
 
 async function parse_data(g_raw, idx, g_access) {
     g_id = g_raw.data.id
-    //console.log("GOOGLE ID: ", g_id)
 
     //get the subject of the message
     try {
@@ -140,13 +136,6 @@ async function parse_data(g_raw, idx, g_access) {
         console.log("something went wrong with helpers.findSubject()")
         return { "cmd": "error" }
     }
-
-    //use this if you want to see the data of a giant json object
-    // var fs = require('fs');
-    // fs.writeFile(`j_${g_id}.json`, JSON.stringify(g_raw.data), function(err) {
-    //     if (err) throw err;
-    //     console.log('complete');
-    // })
 
     //sender_name and sender_email (if we cannot find it then we cannot send a error msg)
     try {
@@ -335,26 +324,6 @@ function saveTags(id, tags) {
     });
 }
 
-function saveProj(proj, userid) {
-    var projName = proj.name ? proj.name[1] : proj.names[1] //determine whether user used name: or names:
-    projName = projName ? projName.trim() : null
-    if (projName) { //don't do anything if no name was specified 
-        var desc = proj.description ? proj.description : proj.descriptions
-        desc = desc ? desc[0].trim() : null //perpare des with description or descriptions
-        var projdata = projName ? find_project.get(projName, 1) : null
-        var projid = projdata ? insert_project.run(projName, userid, find_max_proj_code.get(projName).ProjectCode + 1, desc).lastInsertRowid
-            : insert_project.run(projName, userid, 1, desc).lastInsertRowid //if project with same name exists, create new one with highest existing project code +1
-        var links = proj.link ? proj.link : proj.links
-        links = links ? links : null
-        if (links) { saveLinks(projid, links[0].trim(), "proj") } //save link(s) to ProjLinks
-        //save new users and give permissions
-        proj.manage.push(g_data.sender_email) //ensure sender has manage permissions to their new project
-        if (proj.read) { grantPermission("PID", projid, READ, proj.read, userid) }
-        if (proj.change) { grantPermission("PID", projid, CHANGE, proj.change, userid) }
-        if (proj.manage) { grantPermission("PID", projid, MANAGE, proj.manage, userid) } 
-    }
-}
-
 async function g_request(callback) {
     try {
         const g_access = await get_token() //getting access token 
@@ -431,11 +400,6 @@ async function g_request(callback) {
 
                     // Construct email
                     var emailBodyMessage = `Name: ${replyMessage.grp.name}\nMembers:\n`
-                    // if (member) {
-                    //     for (var i = 0; i < replyMessage.grp.member.length; i++) {
-                    //         emailBodyMessage = emailBodyMessage.concat(replyMessage.grp.member[i] + "\n")
-                    //     }
-                    // }
                     raw = await helpers.makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] SAVE GROUP SUCCESS`, `${emailBodyMessage}`)
                     await post_send_msg(g_access.data.access_token, raw)
                 }
@@ -796,7 +760,6 @@ async function g_request(callback) {
                         if (doc.note) {
                             if (doc?.note[j]) {
                                 var newDocNote = doc.note[j]
-                                // var currDate = currentDate.getDay() + "/" + currentDate.getDate() + "/" + currentDate.getFullYear()
                                 var currDate = date.toString()
                                 db.prepare(`INSERT INTO Notes (DID, UID, DateAdded, Note) VALUES (?, ?, ?, ?)`).run(docID, userid, currDate, newDocNote)
                             }
@@ -816,8 +779,6 @@ async function g_request(callback) {
                         
                     }
                     // Construct email
-                    // var emailBodyMessage = replyMessage.doc
-                    // console.log(replyMessage.doc)
                     raw = await helpers.makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] UPDATE DOCUMENT SUCCESS`, `Documents Successfully Updated`)
                     await post_send_msg(g_access.data.access_token, raw)
                 }
