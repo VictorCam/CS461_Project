@@ -20,7 +20,7 @@
                 </b-row>
                 <b-row class="my-5 field">
                     <b-col>
-                        <h4 v-if="doc.Description"><b>Description:</b> {{doc.userDoc[0].Description}}</h4>
+                        <h4 v-if="doc.userDoc[0].Description"><b>Description:</b> {{doc.userDoc[0].Description}}</h4>
                         <h4 v-else><b>No Description</b> - Contact {{doc.userDoc[0].Owner}} for more information.</h4>
                     </b-col>
                 </b-row>
