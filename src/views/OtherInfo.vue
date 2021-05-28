@@ -13,7 +13,13 @@
                 <h1>Manage:</h1>
                 <h4>Grants a user the authority to give other users permissions to a document or project. May also remove or modify their permissions.</h4>
         </div>
+
+        <div class="item">
+            <h3>- Keep files under 25MB to avoid long load times and prevent other issues</h3>
+        </div>
     </div>
+
+    
 </template>
 
 <script>
