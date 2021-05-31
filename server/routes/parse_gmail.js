@@ -398,9 +398,14 @@ async function g_request(callback) {
                     }
                     replyMessage.grp.name = grpName
                     replyMessage.grp.member = member
+                    replyMessage.grp.desc = grp.description ? grp.description : grp.descriptions
 
                     // Construct email
-                    var emailBodyMessage = `Name: ${replyMessage.grp.name}\nMembers:\n`
+                    var emailBodyMessage = `Name: ${replyMessage.grp.name}\nDescription: ${replyMessage.grp.desc}\nMembers: `
+                    for (var i = 0; i < replyMessage.grp.member.length; i++) {
+                        emailBodyMessage = emailBodyMessage.concat(`${replyMessage.grp.member[i]}, `)
+                    }
+
                     raw = await helpers.makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] SAVE GROUP SUCCESS`, `${emailBodyMessage}`)
                     await post_send_msg(g_access.data.access_token, raw)
                 }
@@ -424,16 +429,20 @@ async function g_request(callback) {
                         if (proj.change) { grantPermission("PID", projid, CHANGE, proj.change, userid) }
                         if (proj.manage) { grantPermission("PID", projid, MANAGE, proj.manage, userid) } 
                         replyMessage.proj.name = projName + "#" + projCode.toString().padStart(4, '0')
+                        replyMessage.proj.description = proj.description ? proj.description : proj.descriptions
                     }
 
                     // Construct email
-                    var emailBodyMessage = replyMessage.proj.name
-                    raw = await helpers.makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] SAVE PROJECT SUCCESS`, `Name: ${emailBodyMessage}`)
+                    var emailBodyMessage = `Name: ${replyMessage.proj.name}\n`
+                    if (replyMessage.proj.description) {
+                        emailBodyMessage = emailBodyMessage.concat(`Description: ${replyMessage.proj.description}`)
+                    }
+                    raw = await helpers.makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] SAVE PROJECT SUCCESS`, `${emailBodyMessage}`)
                     await post_send_msg(g_access.data.access_token, raw)
                 }
                 for (var j = 0; j < g_data.attachments.length; j++) {
                     if (doc) {
-
+                        var docReplyMessage = {}
                         //get path and filename
                         var extension = g_data.attachments[j].filename.split('.').pop()
                         var pathname = `./server/files/${currentDate.getFullYear()}${new Date().getSeconds()}${g_data.g_id}-${j}.${extension}`
@@ -442,10 +451,11 @@ async function g_request(callback) {
                         var docName = doc?.name ? doc.name[j].trim() : g_data.attachments[j].filename //set name(s) as docName
 
                         replyMessage.doc = [] 
-
+                        
                         //get id of project if one is specified
                         if (doc?.project) {
                             var fullName = doc.project[0].split("#") //get full name of project and split on #
+                            docReplyMessage.project = fullName
                             var projName = fullName[0]
                             var projNum = fullName[1] ? fullName[1] : 1 //if project code wasn't specificed, assume 1
                             var projdata = doc.project ? find_project.get(projName, projNum) : null //lookup project using name and project code
@@ -466,6 +476,7 @@ async function g_request(callback) {
 
                         //get description of document if one is specified
                         var desc = doc?.description ? doc.description[j].trim() : null
+                        docReplyMessage.description = desc
                         if (level >= CHANGE) { //don't allow the user to make any changes if they don't have sufficient permission
                             //save document to filesystem 
                             fs.writeFile(pathname, g_data.attachments[j].raw, { encoding: 'base64' },
@@ -494,6 +505,12 @@ async function g_request(callback) {
                         // Construct email
                         var emailBodyMessage = "Name: " + docName + "\nSerial: "
                         emailBodyMessage = emailBodyMessage.concat(replyMessage.doc + "\n")
+                        if (docReplyMessage.project) {
+                            emailBodyMessage = emailBodyMessage.concat("Project: " + docReplyMessage.project + "\n")
+                        }
+                        if (docReplyMessage.description) {
+                            emailBodyMessage = emailBodyMessage.concat("Description: " + docReplyMessage.description)
+                        }
                         //console.log(emailBodyMessage)
                         raw = await helpers.makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] SAVE DOCUMENT SUCCESS`, `${emailBodyMessage}`)
                         await post_send_msg(g_access.data.access_token, raw)
