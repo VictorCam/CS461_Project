@@ -6,6 +6,7 @@ This project creates web portal where members of the Oregon State community can 
 The document management system time stamps documents, documents are immutable once received. The system must have a rich and flexible set of permissions to allow or bar different groups access. The system must be able to search and group documents according to a number of tags. The system must be create with a mindset that it will be continuously updated to suit the needs of the Oregon State community.
 
 ## Project Setup
+(If you get issues you might need to delete package-lock.json)
 ```
 1. npm install (use sudo on linux/mac)
 2. npm install -g nodemon (use sudo on linux/mac)
@@ -16,7 +17,6 @@ The document management system time stamps documents, documents are immutable on
 ```
 
 ## Project Notes (Frontend)
-(If you get issues you might need to delete package-lock.json)
 ```
 (NOTE: the src folder contains the frontend)
 1. using "@" will start at the src folder (when importing a vue file)
