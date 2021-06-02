@@ -13,7 +13,7 @@ The document management system time stamps documents, documents are immutable on
 3. npm install -g @vue/cli (use sudo on linux/mac)
 4. create a file named ".env" on root dir (add env variables provided)
 5. npm run serve (starts localhost for vue)
-6. npm run server (starts database)
+6. npm run server (starts database and listening for email parsing)
 ```
 
 ## Project Notes (Frontend)
