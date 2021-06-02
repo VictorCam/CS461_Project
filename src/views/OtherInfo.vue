@@ -26,10 +26,17 @@
                 <h1>Link:</h1>
                 <h4>A link to other resources relating to a document or project. E.g. Github link, website link, etc.</h4>
         </div>
-
         <div class="item">
                 <h1>Tag:</h1>
                 <h4>Represents keywords for your document. When searching for tags attached to your document, your document will show up.</h4>
+        </div>
+        <div class="item">
+                <h1>Note:</h1>
+                <h4>Can add multiple notes to a single document of project. Used to provide supplementary information for a document which is useful for a viewer to know.</h4>
+        </div>
+        <div class="item">
+            <h1>Replaces:</h1>
+            <h4>Specify the year and serial of an older version of this document. Creates a reference to the older document.</h4>
         </div>
 
         <div class="item">
