@@ -16,6 +16,7 @@ The document management system time stamps documents, documents are immutable on
 ```
 
 ## Project Notes (Frontend)
+(If you get issues you might need to delete package-lock.json)
 ```
 (NOTE: the src folder contains the frontend)
 1. using "@" will start at the src folder (when importing a vue file)
