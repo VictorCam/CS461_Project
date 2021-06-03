@@ -31,6 +31,9 @@ exports.findBody = function (g_raw) {
     else {
         message = g_raw.data.snippet
     }
+
+    message = message.replace(/\*/g,"");
+
     return message
 }
 
