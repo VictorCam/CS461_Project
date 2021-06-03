@@ -8,7 +8,17 @@ exports.save_filter = function(db, json) {
         return {"error": "please specify a #project #document or #group"}
     }
 
-    // console.log("test", json)
+    // console.log("test", json.access.document)
+
+    function removeEmpty(obj) {
+        Object.keys(obj).forEach(function(key) {
+          (obj[key] && typeof obj[key] === 'object') && removeEmpty(obj[key]) ||
+          (obj[key] === '' || obj[key] === null) && delete obj[key]
+        });
+        return obj;
+    };
+
+    json = removeEmpty(json);
 
     if(json.attachments.length > 0) {
         fschema = Joi.object({
@@ -23,7 +33,7 @@ exports.save_filter = function(db, json) {
                 {
                     document: Joi.object().keys({ //ALL OPTIONAL
                         project: Joi.array().items(Joi.string()).min(1).max(1).label("please provide at only one project name in a #document [OPTIONAL FIELD]"),
-                        read: Joi.array().items(Joi.string()).min(1).label("pleast provide at least one person to read this #document [OPTIONAL FIELD]"),
+                        read: Joi.array().items(Joi.string()).min(1).label("please provide at least one person to read this #document [OPTIONAL FIELD]"),
                         change: Joi.array().items(Joi.string()).min(1).label("please provide at least one person to change this #document [OPTIONAL FIELD]"),
                         manage: Joi.array().items(Joi.string()).min(1).label("please provide at least one person to manage this #document [OPTIONAL FIELD]"),
                         name: Joi.array().min(json.attachments.length).max(json.attachments.length).items(Joi.string().allow('')).label("please provide a name for each individual document you attach for this #document (ex. 3 attachments = 3 names) [OPTIONAL FIELD]"),
@@ -112,6 +122,17 @@ exports.get_filter = function(db, json) {
         console.log("none of these exist so we give an error here")
         return {"error": "please specify a #project #document or #group"}
     }
+
+    function removeEmpty(obj) {
+        Object.keys(obj).forEach(function(key) {
+          (obj[key] && typeof obj[key] === 'object') && removeEmpty(obj[key]) ||
+          (obj[key] === '' || obj[key] === null) && delete obj[key]
+        });
+        return obj;
+    };
+
+    json = removeEmpty(json);
+
     
 const fschema = Joi.object({
     id: Joi.number().required(),
@@ -191,6 +212,17 @@ exports.update_filter = function(db, json) {
         console.log("none of these exist so we give an error here")
         return {"error": "please specify a #project #document or #group"}
     }
+
+    function removeEmpty(obj) {
+        Object.keys(obj).forEach(function(key) {
+          (obj[key] && typeof obj[key] === 'object') && removeEmpty(obj[key]) ||
+          (obj[key] === '' || obj[key] === null) && delete obj[key]
+        });
+        return obj;
+    };
+
+    json = removeEmpty(json);
+
 
     fschema = Joi.object({
         id: Joi.number().required(),
