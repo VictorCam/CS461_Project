@@ -354,7 +354,7 @@ async function g_request(callback) {
                 var save_filter = filters.save_filter(db, g_data)
                 if(save_filter?.error) {
                     console.log("sending error message:", save_filter.error)
-                   raw = await helpers.makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] ERROR`, `Error: ${save_filter.error} \n\n (NOTE: please make sure not to add special syntax like bold, italics, underline on your message)`)
+                   raw = await helpers.makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] ERROR`, `Error: ${save_filter.error} \n\n(NOTE: please make sure not to add special syntax like bold, italics, underline on your message)`)
                    await post_send_msg(g_access.data.access_token, raw)
                    return await callback()
                 }
@@ -525,7 +525,7 @@ async function g_request(callback) {
                 var get_filter = filters.get_filter(db, g_data)
                 if(get_filter?.error) {
                     console.log("sending error message:", get_filter.error)
-                   raw = await helpers.makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] ERROR`, `Error: ${get_filter.error} \n\n (NOTE: please make sure not to add special syntax like bold, italics, underline on your message)`)
+                   raw = await helpers.makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] ERROR`, `Error: ${get_filter.error} \n\n(NOTE: please make sure not to add special syntax like bold, italics, underline on your message)`)
                    await post_send_msg(g_access.data.access_token, raw)
                    return await callback()
                 }
@@ -658,7 +658,7 @@ async function g_request(callback) {
                 var update_filter = filters.update_filter(db, g_data)
                 if(update_filter?.error) {
                     console.log("sending error message:", update_filter.error)
-                   raw = await helpers.makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] ERROR`, `Error: ${update_filter.error} \n\n (NOTE: please make sure not to add special syntax like bold, italics, underline on your message)`)
+                   raw = await helpers.makeBody(`${g_data.sender_email}`, "gobeavdms@gmail.com", `[BOT MESSAGE] ERROR`, `Error: ${update_filter.error} \n\n(NOTE: please make sure not to add special syntax like bold, italics, underline on your message)`)
                    await post_send_msg(g_access.data.access_token, raw)
                    return await callback()
                 }
