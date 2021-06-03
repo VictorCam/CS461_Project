@@ -8,6 +8,8 @@ exports.save_filter = function(db, json) {
         return {"error": "please specify a #project #document or #group"}
     }
 
+    // console.log("test", json)
+
     if(json.attachments.length > 0) {
         fschema = Joi.object({
             id: Joi.number().required(),
